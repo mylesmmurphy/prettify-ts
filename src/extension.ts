@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Node, Project } from 'ts-morph';
+import { Project, TypeAliasDeclaration, MappedTypeNode } from 'ts-morph';
 import { ulid } from 'ulid';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -22,10 +22,23 @@ export function activate(context: vscode.ExtensionContext) {
         const type = typeChecker.getTypeAtLocation(node);
       
         // Get the name of the type
-        const typeName = type.getText();
+        let typeName = type.getText();
+        const typeSymbol = type.getSymbol();
+        // Get what kind of type the type is, ex. 'class', 'interface', 'type alias', etc.
+        const declaration = typeSymbol?.getDeclarations()[0];
+        const typeKind = declaration?.getKindName();
 
-        // Don't show the hover if the type is any
-        if (typeName === 'any') {
+        // Get the parent of the identifier if the type is a type alias
+        if (typeKind !== 'InterfaceDeclaration' && typeKind !== 'ClassDeclaration') {
+          node = node.getParent();
+          // Check if the parent node is a type alias
+          if (node && TypeAliasDeclaration.isTypeAliasDeclaration(node)) {
+            typeName = node.getName();
+          }
+        }
+
+        // Don't show the hover if the type is any or if the type kind is undefined
+        if (typeName === 'any' || !typeKind) {
           return;
         }
       
@@ -37,9 +50,13 @@ export function activate(context: vscode.ExtensionContext) {
           name: `Prettify_${prettifyId}`,
           typeParameters: [{ name: 'T' }],
           isExported: false,
-          type: `{
-            [P in keyof T]: T[P] extends object ? Prettify_${prettifyId}<T[P]> : T[P];
-          } & {}`,
+          type: `T extends String | Number | Boolean | Date | RegExp | Function | Symbol | undefined | null | void
+            ? T
+            : T extends Array<infer U>
+            ? Prettify<U>[]
+            : T extends object
+            ? { [P in keyof T]: Prettify<T[P]> } & unknown
+            : T;`,
         });
             
         // Add a new type alias that uses Prettify with the type of the node as the generic parameter
@@ -51,39 +68,22 @@ export function activate(context: vscode.ExtensionContext) {
       
         // Get the type of the PrettifiedType type alias and get the text of the type node
         const prettifiedType = typeChecker.getTypeAtLocation(sourceFile.getTypeAliasOrThrow(`PrettifiedType_${prettifyId}`).getTypeNodeOrThrow());
-        let prettifiedTypeString = prettifiedType.getText();
-        
-        // Manually format the type string
-        prettifiedTypeString = prettifiedTypeString.replace(/; /g, ';\n');
+        const prettifiedTypeString = prettifiedType.getText().replace(/; /g, ';\n'); // Add linebreaks which will get formatted later
 
-        // Get the parent of the node if the node is an identifier
-        if (node.getKindName() === 'Identifier') {
-          node = node.getParent();
-        }
-
-        if (!node) {
-          return;
-        }
-
-        // Get the name and kind of the node
-        const nodeName = Node.isNamed(node) ? node.getName() : '';
-        const nodeKind = node.getKindName();
-
-        // Format the declaration string based on the kind of the node
+        // Format the declaration string based on the kind of type
         let declarationString;
-        switch (nodeKind) {
-          case 'TypeAliasDeclaration':
-            declarationString = `type ${nodeName} = ${prettifiedTypeString}`;
-            break;
+        switch (typeKind) {
+          case 'FunctionDeclaration':
+            return;
           case 'ClassDeclaration':
-            declarationString = `class ${nodeName} ${prettifiedTypeString}`;
+            declarationString = `class ${typeName} ${prettifiedTypeString}`;
             break;
           case 'InterfaceDeclaration':
-            declarationString = `interface ${nodeName} ${prettifiedTypeString}`;
+            declarationString = `interface ${typeName} ${prettifiedTypeString}`;
             break;
-          // Add more cases as needed
           default:
-            return;
+            declarationString = `type ${typeName} = ${prettifiedTypeString}`;
+            break;
         }
         
         // Format the type string using the TypeScript formatter in a temporary file
@@ -93,6 +93,8 @@ export function activate(context: vscode.ExtensionContext) {
         
         // Format the hover text with Markdown
         const hoverText = new vscode.MarkdownString();
+        // Add a title
+        hoverText.appendMarkdown(`**${typeName}**`);
         hoverText.appendCodeblock(formattedTypeString, 'typescript');
         
         return new vscode.Hover(hoverText);
