@@ -1,0 +1,16 @@
+# Ignore node_modules directory
+node_modules/
+
+# Ignore build output
+dist/
+
+# Ignore IDE and editor files
+.idea/
+*.iml
+
+# Ignore logs
+*.log
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
