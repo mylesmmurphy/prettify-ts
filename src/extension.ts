@@ -1,7 +1,8 @@
 import * as vscode from 'vscode'
 import { Project } from 'ts-morph'
 import { ulid } from 'ulid'
-import { format } from 'prettier'
+import parserTypescript from 'prettier/parser-typescript'
+import { format } from 'prettier/standalone'
 
 const MAX_LENGTH = 99000
 const EXTENSION_NAME = 'prettify-ts'
@@ -138,7 +139,7 @@ export function activate (context: vscode.ExtensionContext): void {
             break
         }
 
-        let formattedTypeString = await format(declarationString, { parser: 'typescript' })
+        let formattedTypeString = await format(declarationString, { plugins: [parserTypescript], parser: 'typescript' })
 
         // Anonymous function that removes all whitespace and semicolons
         const washTypeString = (str: string): string => str.replace(/\s+/g, '').replace(/;/g, '')

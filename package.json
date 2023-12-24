@@ -4,8 +4,8 @@
   "description": "VSCode TypeScript Extension to Prettify TypeScript types in hover tooltips.",
   "publisher": "MylesMurphy",
   "license": "MIT",
-  "version": "0.0.2",
-  "icon": "./assets/logo.png",
+  "version": "0.0.3",
+  "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -20,7 +20,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:typescript"
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -46,12 +47,12 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "vscode-test"
+    "lint": "eslint src --ext ts"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
+    "@types/prettier": "^2.7.3",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
@@ -64,7 +65,7 @@
     "eslint-plugin-promise": "^6.1.1"
   },
   "dependencies": {
-    "prettier": "^3.1.1",
+    "prettier": "^2.8.8",
     "ts-morph": "^21.0.1",
     "typescript": "^5.3.3",
     "ulid": "^2.3.0"
