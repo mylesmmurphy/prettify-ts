@@ -3,6 +3,7 @@
   "displayName": "Prettify TypeScript",
   "description": "VSCode TypeScript Extension to Prettify TypeScript types in hover tooltips.",
   "publisher": "MylesMurphy",
+  "license": "MIT",
   "version": "0.0.1",
   "icon": "./assets/logo.png",
   "engines": {
