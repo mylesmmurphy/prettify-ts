@@ -18,7 +18,7 @@ Use the `Prettify TS: Toggle Hover` command to enable or disable the hover infor
 
 ## Example
 
-![Example Photo](assets/example.jpg)
+![Example Photo](./assets/example.png)
 
 ## Contributing
 
