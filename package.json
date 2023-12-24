@@ -4,6 +4,7 @@
   "description": "VSCode TypeScript Extension to Prettify TypeScript types in hover tooltips.",
   "publisher": "MylesMurphy",
   "version": "0.0.1",
+  "icon": "./assets/logo.png",
   "engines": {
     "vscode": "^1.85.0"
   },
