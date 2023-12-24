@@ -1,10 +1,15 @@
 {
   "name": "prettify-ts",
-  "displayName": "prettify-ts",
-  "description": "",
+  "displayName": "Prettify TypeScript",
+  "description": "VSCode TypeScript Extension to Prettify TypeScript types in hover tooltips.",
+  "publisher": "MylesMurphy",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.85.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mylesmmurphy/prettify-ts"
   },
   "categories": [
     "Programming Languages",
