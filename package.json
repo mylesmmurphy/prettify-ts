@@ -19,10 +19,20 @@
   "contributes": {
     "commands": [
       {
-        "command": "prettify-ts.helloWorld",
-        "title": "Hello World"
+        "command": "prettify-ts.toggleHover",
+        "title": "Prettify TS: Toggle Hover"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Prettify TS",
+      "properties": {
+        "prettify-ts.enableHover": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable the Prettify TS hover tooltip."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -44,6 +54,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "prettier": "^3.1.1",
     "ts-morph": "^21.0.1",
     "ulid": "^2.3.0"
   }
