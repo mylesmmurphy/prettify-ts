@@ -80,42 +80,35 @@ export function activate (context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.languages.registerHoverProvider('typescript', {
       async provideHover (document, position, token) {
-        // Create a new Project and type checker instance
         const project = new Project()
-        const typeChecker = project.getTypeChecker()
-
-        // Add the file to the project
         const sourceFile = project.addSourceFileAtPath(document.fileName)
 
         // Use the current document's text as the source file's text
+        // Supports unsaved changes
         const content = document.getText()
         sourceFile.replaceWithText(content)
-
-        // Get the offset of the position
         const offset = document.offsetAt(position)
 
-        // Get the node at the offset
         const node = sourceFile.getDescendantAtPos(offset)
-        if (node === undefined) {
-          return
-        }
+        if (node === undefined) return
 
-        // Get the type of the node
-        const type = typeChecker.getTypeAtLocation(node)
-        const typeFullName = type.getText()
-        const typeSymbol = type.getSymbol() ?? type.getAliasSymbol()
+        const nodeKind = node.getKindName()
+        if (nodeKind !== 'Identifier') return
 
-        if (typeSymbol === undefined) {
-          return
-        }
-
-        // Return early if the hover is disabled
         if (!enableHover) {
           const hoverText = new vscode.MarkdownString()
           hoverText.isTrusted = true
           hoverText.appendMarkdown(`Prettify TS &nbsp; | &nbsp; [Show](command:${EXTENSION_NAME}.toggleHover?${encodeURIComponent(JSON.stringify([true]))})`)
           return new vscode.Hover(hoverText)
         }
+
+        // Get the type of the node
+        const typeChecker = project.getTypeChecker()
+        const type = typeChecker.getTypeAtLocation(node)
+        const typeFullName = type.getText()
+        const typeSymbol = type.getSymbol() ?? type.getAliasSymbol()
+
+        if (typeSymbol === undefined) return
 
         // Get what kind of type the type is, ex. 'class', 'interface', 'type alias', etc.
         const typeDeclaration = typeSymbol.getDeclarations()[0]
@@ -130,9 +123,9 @@ export function activate (context: vscode.ExtensionContext): void {
         // Check if the node is a property signature or assignment
         // If it is, then get the name of the property
         const nodeSymbol = node.getSymbol()
-        const nodeKind = nodeSymbol?.getDeclarations()[0]?.getKindName()
+        const nodeDeclarationKind = nodeSymbol?.getDeclarations()[0]?.getKindName()
 
-        if (nodeSymbol !== undefined && (nodeKind === 'PropertySignature' || nodeKind === 'PropertyAssignment')) {
+        if (nodeSymbol !== undefined && (nodeDeclarationKind === 'PropertySignature' || nodeDeclarationKind === 'PropertyAssignment')) {
           typeName = nodeSymbol.getName()
         }
 
@@ -175,9 +168,7 @@ export function activate (context: vscode.ExtensionContext): void {
         prettifiedTypeString = prettifiedTypeString.replace(/import\(.*?\)\./g, '')
 
         // If the prettified type isn't an object, then return early
-        if (prettifiedTypeString[0] !== '{') {
-          return
-        }
+        if (prettifiedTypeString[0] !== '{') return
 
         // Format the declaration string based on the kind of type
         let declarationString
