@@ -1,10 +1,10 @@
-# Prettify-ts
+# Prettify TypeScript
 
-Prettify-ts is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable way.
+Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable way.
 
 ## Disclaimer
 
-Prettify-ts is currently, at best, a working proof of concept. The project is still in its early stages of development and may have limitations or bugs.
+Prettify TS is currently, at best, a working proof of concept. The project is still in its early stages of development and may have limitations or bugs.
 
 If you encounter any problems or have any feature requests, please feel free to open an issue on the project's GitHub repository.
 

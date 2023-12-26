@@ -1,6 +1,6 @@
 {
   "name": "prettify-ts",
-  "displayName": "Prettify TypeScript",
+  "displayName": "Prettify TypeScript: Better Tooltips",
   "description": "Prettify TypeScript and view deeply nested types in hover tooltips.",
   "publisher": "MylesMurphy",
   "license": "MIT",
