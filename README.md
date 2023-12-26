@@ -2,12 +2,6 @@
 
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable way.
 
-## Disclaimer
-
-Prettify TS is currently, at best, a working proof of concept. The project is still in its early stages of development and may have limitations or bugs.
-
-If you encounter any problems or have any feature requests, please feel free to open an issue on the project's GitHub repository.
-
 ## Features
 
 - **Hover Information**: Just hover over a type, class, interface, etc., and you'll see a prettified version of its declaration in the hover panel.
@@ -28,6 +22,12 @@ Use the `Prettify TS: Toggle View Nested Types` command to show or hide nested t
 
 ![Example Photo 1](./assets/example1.png)
 ![Example Photo 2](./assets/example2.png)
+
+## Disclaimer
+
+Prettify TS is currently, at best, a working proof of concept. The project is still in its early stages of development and may have limitations or bugs.
+
+If you encounter any problems or have any feature requests, please feel free to open an issue on the project's GitHub repository.
 
 ## Contributing
 

@@ -4,10 +4,10 @@
   "description": "Prettify TypeScript and view deeply nested types in hover tooltips.",
   "publisher": "MylesMurphy",
   "license": "MIT",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "icon": "assets/logo.png",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.44.0"
   },
   "repository": {
     "type": "git",
