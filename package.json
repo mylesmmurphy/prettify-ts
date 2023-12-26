@@ -4,7 +4,7 @@
   "description": "Prettify TypeScript and view deeply nested types in hover tooltips.",
   "publisher": "MylesMurphy",
   "license": "MIT",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.85.0"
@@ -46,19 +46,31 @@
         "prettify-ts.viewNestedTypes": {
           "type": "boolean",
           "default": false,
-          "description": "Enable or disable the Prettify TS hover tooltip."
+          "description": "Show or hide nested types."
         },
         "prettify-ts.ignoredNestedTypes": {
-          "type": "string[]",
-          "default": ["String", "Number", "Boolean", "Date", "RegExp", "Function", "Symbol"],
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "String",
+            "Number",
+            "Boolean",
+            "Date",
+            "RegExp",
+            "Function",
+            "Symbol"
+          ],
           "description": "Types that won't be expanded when viewing deeply nested types."
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "build": "tsc -p ./",
+    "vscode:prepublish": "npm run esbuild",
+    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts"
@@ -72,6 +84,7 @@
     "@typescript-eslint/parser": "^6.15.0",
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.3.8",
+    "esbuild": "^0.19.10",
     "eslint": "^8.56.0",
     "eslint-config-standard-with-typescript": "^43.0.0",
     "eslint-plugin-import": "^2.29.1",

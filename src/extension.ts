@@ -171,6 +171,9 @@ export function activate (context: vscode.ExtensionContext): void {
         // Replace all whitespace with newlines which will be used for formatting
         prettifiedTypeString = prettifiedTypeString.replace(/\s+/g, '\n')
 
+        // Issue: Remove import statements from the formatted type string
+        prettifiedTypeString = prettifiedTypeString.replace(/import\(.*?\)\./g, '')
+
         // If the prettified type isn't an object, then return early
         if (prettifiedTypeString[0] !== '{') {
           return
