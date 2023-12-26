@@ -22,13 +22,22 @@ If you encounter any problems or have any feature requests, please feel free to 
 
 Use the `Prettify TS: Toggle Hover` command to enable or disable the hover information feature provided by the Prettify-ts extension.
 
+Use the `Prettify TS: Toggle View Nested Types` command to show or hide nested type information.
+
 ## Example
 
-![Example Photo](./assets/example.png)
+![Example Photo 1](./assets/example1.png)
+![Example Photo 2](./assets/example2.png)
 
 ## Contributing
 
 Contributions are welcome! Please open an issue if you encounter any problems or have a feature request.
+
+## Note from the developer:
+
+Thanks for trying my extension! This is my first VSCode extension, and also my first time working with the TypeScript AST (Abstract Syntax Tree). Any code optimizations would be greatly appreciated.
+
+Special thanks to [@mattpocock](https://github.com/mattpocock) for the Prettify Type, and to [@willbattel](https://github.com/willbattel) for Beta testing, providing feedback, and overall improving this tool!
 
 ## License
 
