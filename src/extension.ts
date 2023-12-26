@@ -113,7 +113,7 @@ export function activate (context: vscode.ExtensionContext): void {
         if (!enableHover) {
           const hoverText = new vscode.MarkdownString()
           hoverText.isTrusted = true
-          hoverText.appendMarkdown(`*${EXTENSION_NAME}* - \\([Show](command:${EXTENSION_NAME}.toggleHover?${encodeURIComponent(JSON.stringify([true]))})\\)`)
+          hoverText.appendMarkdown(`Prettify TS &nbsp; | &nbsp; [Show](command:${EXTENSION_NAME}.toggleHover?${encodeURIComponent(JSON.stringify([true]))})`)
           return new vscode.Hover(hoverText)
         }
 
@@ -214,11 +214,11 @@ export function activate (context: vscode.ExtensionContext): void {
         // Format the hover text with Markdown
         const hoverText = new vscode.MarkdownString()
         hoverText.isTrusted = true
-        hoverText.appendMarkdown(` *${EXTENSION_NAME}* - \\([Hide](command:${EXTENSION_NAME}.toggleHover?${encodeURIComponent(JSON.stringify([false]))})\\)`)
+        hoverText.appendMarkdown(`Prettify TS &nbsp; | &nbsp; [Hide](command:${EXTENSION_NAME}.toggleHover?${encodeURIComponent(JSON.stringify([false]))}) &nbsp; | &nbsp; `)
         if (viewNestedTypes) {
-          hoverText.appendMarkdown(`\n\n[Hide Nested Types](command:${EXTENSION_NAME}.toggleViewNestedTypes?${encodeURIComponent(JSON.stringify([false]))})`)
+          hoverText.appendMarkdown(`[Hide Nested](command:${EXTENSION_NAME}.toggleViewNestedTypes?${encodeURIComponent(JSON.stringify([false]))})`)
         } else {
-          hoverText.appendMarkdown(`\n\n[View Nested Types](command:${EXTENSION_NAME}.toggleViewNestedTypes?${encodeURIComponent(JSON.stringify([true]))})`)
+          hoverText.appendMarkdown(`[View Nested](command:${EXTENSION_NAME}.toggleViewNestedTypes?${encodeURIComponent(JSON.stringify([true]))})`)
         }
 
         hoverText.appendCodeblock(formattedTypeString, 'typescript')
