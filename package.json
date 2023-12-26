@@ -1,7 +1,7 @@
 {
   "name": "prettify-ts",
   "displayName": "Prettify TypeScript",
-  "description": "VSCode TypeScript Extension to Prettify TypeScript types in hover tooltips.",
+  "description": "Prettify TypeScript and view deeply nested types in hover tooltips.",
   "publisher": "MylesMurphy",
   "license": "MIT",
   "version": "0.0.3",
@@ -29,6 +29,10 @@
       {
         "command": "prettify-ts.toggleHover",
         "title": "Prettify TS: Toggle Hover"
+      },
+      {
+        "command": "prettify-ts.toggleViewNestedTypes",
+        "title": "Prettify TS: Toggle View Nested Types"
       }
     ],
     "configuration": {
@@ -38,6 +42,16 @@
           "type": "boolean",
           "default": true,
           "description": "Enable or disable the Prettify TS hover tooltip."
+        },
+        "prettify-ts.viewNestedTypes": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable or disable the Prettify TS hover tooltip."
+        },
+        "prettify-ts.ignoredNestedTypes": {
+          "type": "string[]",
+          "default": ["String", "Number", "Boolean", "Date", "RegExp", "Function", "Symbol"],
+          "description": "Types that won't be expanded when viewing deeply nested types."
         }
       }
     }

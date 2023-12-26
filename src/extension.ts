@@ -5,18 +5,74 @@ import parserTypescript from 'prettier/parser-typescript'
 import { format } from 'prettier/standalone'
 
 const MAX_LENGTH = 99000
+const DEFAULT_IGNORED_TYPES = ['String', 'Number', 'Boolean', 'Date', 'RegExp', 'Function', 'Symbol']
 const EXTENSION_NAME = 'prettify-ts'
+
+export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, ignoredNestedTypes: string[]): string {
+  if (ignoredNestedTypes.length === 0) {
+    ignoredNestedTypes = ['undefined']
+  }
+
+  if (viewNestedTypes) {
+    return `T extends ${ignoredNestedTypes.join(' | ')}
+    ? T
+    : T extends Array<infer U>
+    ? Prettify_${prettifyId}<U>[]
+    : T extends object
+    ? { [P in keyof T]: Prettify_${prettifyId}<T[P]> } & unknown
+    : T;`
+  }
+
+  return `T extends ${ignoredNestedTypes.join(' | ')}
+  ? T
+  : T extends object
+  ? { [P in keyof T]: T[P] } & unknown
+  : T;`
+}
 
 export function activate (context: vscode.ExtensionContext): void {
   // Get the current configuration
   const config = vscode.workspace.getConfiguration(EXTENSION_NAME)
   let enableHover = config.get('enableHover', true)
+  let viewNestedTypes = config.get('viewNestedTypes', false)
+  let ignoredNestedTypes: string[] = config.get('ignoredNestedTypes', [])
 
   // Register the toggleHover command
   context.subscriptions.push(
-    vscode.commands.registerCommand(`${EXTENSION_NAME}.toggleHover`, async () => {
-      enableHover = !enableHover
-      await config.update('enableHover', enableHover, vscode.ConfigurationTarget.Global)
+    vscode.commands.registerCommand(`${EXTENSION_NAME}.toggleHover`, async (option?: boolean) => {
+      if (option === true || option === false) {
+        await config.update('enableHover', option, vscode.ConfigurationTarget.Global)
+        return
+      }
+
+      await config.update('enableHover', !enableHover, vscode.ConfigurationTarget.Global)
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(`${EXTENSION_NAME}.toggleViewNestedTypes`, async (option?: boolean) => {
+      if (option === true || option === false) {
+        await config.update('viewNestedTypes', option, vscode.ConfigurationTarget.Global)
+        return
+      }
+
+      await config.update('viewNestedTypes', !viewNestedTypes, vscode.ConfigurationTarget.Global)
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(event => {
+      if (event.affectsConfiguration(`${EXTENSION_NAME}.enableHover`)) {
+        enableHover = vscode.workspace.getConfiguration(EXTENSION_NAME).get('enableHover', true)
+      }
+
+      if (event.affectsConfiguration(`${EXTENSION_NAME}.viewNestedTypes`)) {
+        viewNestedTypes = vscode.workspace.getConfiguration(EXTENSION_NAME).get('viewNestedTypes', false)
+      }
+
+      if (event.affectsConfiguration(`${EXTENSION_NAME}.ignoredNestedTypes`)) {
+        ignoredNestedTypes = vscode.workspace.getConfiguration(EXTENSION_NAME).get('ignoredNestedTypes', DEFAULT_IGNORED_TYPES)
+      }
     })
   )
 
@@ -24,11 +80,6 @@ export function activate (context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.languages.registerHoverProvider('typescript', {
       async provideHover (document, position, token) {
-        // Return early if the hover is disabled
-        if (!enableHover) {
-          return
-        }
-
         // Create a new Project and type checker instance
         const project = new Project()
         const typeChecker = project.getTypeChecker()
@@ -58,6 +109,14 @@ export function activate (context: vscode.ExtensionContext): void {
           return
         }
 
+        // Return early if the hover is disabled
+        if (!enableHover) {
+          const hoverText = new vscode.MarkdownString()
+          hoverText.isTrusted = true
+          hoverText.appendMarkdown(`*${EXTENSION_NAME}* - \\([Show](command:${EXTENSION_NAME}.toggleHover?${encodeURIComponent(JSON.stringify([true]))})\\)`)
+          return new vscode.Hover(hoverText)
+        }
+
         // Get what kind of type the type is, ex. 'class', 'interface', 'type alias', etc.
         const typeDeclaration = typeSymbol.getDeclarations()[0]
         const typeKind = typeDeclaration.getKindName()
@@ -85,13 +144,7 @@ export function activate (context: vscode.ExtensionContext): void {
           name: `Prettify_${prettifyId}`,
           typeParameters: [{ name: 'T' }],
           isExported: false,
-          type: `T extends String | Number | Boolean | Date | RegExp | Function | Symbol
-            ? T
-            : T extends Array<infer U>
-            ? Prettify_${prettifyId}<U>[]
-            : T extends object
-            ? { [P in keyof T]: Prettify_${prettifyId}<T[P]> } & unknown
-            : T;`
+          type: getPrettifyType(prettifyId, viewNestedTypes, ignoredNestedTypes)
         })
 
         // Add a new type alias that uses Prettify with the type of the node as the generic parameter
@@ -139,7 +192,7 @@ export function activate (context: vscode.ExtensionContext): void {
             break
         }
 
-        let formattedTypeString = await format(declarationString, { plugins: [parserTypescript], parser: 'typescript' })
+        let formattedTypeString = format(declarationString, { plugins: [parserTypescript], parser: 'typescript' })
 
         // Anonymous function that removes all whitespace and semicolons
         const washTypeString = (str: string): string => str.replace(/\s+/g, '').replace(/;/g, '')
@@ -157,7 +210,14 @@ export function activate (context: vscode.ExtensionContext): void {
 
         // Format the hover text with Markdown
         const hoverText = new vscode.MarkdownString()
-        hoverText.appendMarkdown(`\`${typeName}\` - *${EXTENSION_NAME}*`)
+        hoverText.isTrusted = true
+        hoverText.appendMarkdown(` *${EXTENSION_NAME}* - \\([Hide](command:${EXTENSION_NAME}.toggleHover?${encodeURIComponent(JSON.stringify([false]))})\\)`)
+        if (viewNestedTypes) {
+          hoverText.appendMarkdown(`\n\n[Hide Nested Types](command:${EXTENSION_NAME}.toggleViewNestedTypes?${encodeURIComponent(JSON.stringify([false]))})`)
+        } else {
+          hoverText.appendMarkdown(`\n\n[View Nested Types](command:${EXTENSION_NAME}.toggleViewNestedTypes?${encodeURIComponent(JSON.stringify([true]))})`)
+        }
+
         hoverText.appendCodeblock(formattedTypeString, 'typescript')
 
         return new vscode.Hover(hoverText)
