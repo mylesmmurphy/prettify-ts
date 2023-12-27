@@ -3,7 +3,7 @@ import { Project, IndentationText, SyntaxKind } from 'ts-morph'
 import { ulid } from 'ulid'
 
 import { MARKDOWN_MAX_LENGTH, EXTENSION_ID, DEFAULT_IGNORED_TYPES } from './consts'
-import { hasType, buildDeclarationString, getPrettifyType, formatDeclarationString } from './helpers'
+import { hasType, buildDeclarationString, getPrettifyType, formatDeclarationString, washString } from './helpers'
 
 export function activate (context: vscode.ExtensionContext): void {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
@@ -74,6 +74,7 @@ export function activate (context: vscode.ExtensionContext): void {
         if (!hasType(parentNodeKind)) return
 
         const nodeText = node.getText()
+        const parentNodeText = parentNode.getText()
 
         const hoverText = new vscode.MarkdownString()
         hoverText.isTrusted = true
@@ -129,6 +130,10 @@ export function activate (context: vscode.ExtensionContext): void {
         if (prettifiedTypeString[0] !== '{') return new vscode.Hover(hoverText)
 
         const declarationString = buildDeclarationString(parentNodeKind, nodeText, prettifiedTypeString)
+
+        if (parentNodeText.startsWith('type') && washString(parentNodeText) === washString(declarationString)) {
+          return new vscode.Hover(hoverText)
+        }
 
         let formattedTypeString = formatDeclarationString(declarationString)
         if (formattedTypeString.length > MARKDOWN_MAX_LENGTH) {
