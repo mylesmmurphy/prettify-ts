@@ -131,7 +131,8 @@ export function activate (context: vscode.ExtensionContext): void {
 
         const declarationString = buildDeclarationString(parentNodeKind, nodeText, prettifiedTypeString)
 
-        if (parentNodeText.startsWith('type') && washString(parentNodeText) === washString(declarationString)) {
+        // TODO: Explore better options for this
+        if ((parentNodeText.startsWith('type') || parentNodeText.startsWith('export type')) && washString(parentNodeText) === washString(declarationString)) {
           return new vscode.Hover(hoverText)
         }
 

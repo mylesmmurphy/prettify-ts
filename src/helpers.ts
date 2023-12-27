@@ -132,5 +132,5 @@ export function formatDeclarationString (declarationString: string): string {
 }
 
 export function washString (str: string): string {
-  return str.replace(/\s/g, '').replace(/;/g, '')
+  return str.replace(/^export\s/, '').replace(/\s/g, '').replace(/;/g, '')
 }
