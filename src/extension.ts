@@ -79,15 +79,15 @@ export function activate (context: vscode.ExtensionContext): void {
         hoverText.isTrusted = true
 
         if (!enableHover) {
-          hoverText.appendMarkdown(`Prettify TS &nbsp; | &nbsp; [Show](command:${EXTENSION_ID}.toggleHover?${encodeURIComponent(JSON.stringify([true]))})`)
+          hoverText.appendMarkdown(`*Prettify \\([Show](command:${EXTENSION_ID}.toggleHover?${encodeURIComponent(JSON.stringify([true]))})\\)*`)
           return new vscode.Hover(hoverText)
         }
 
-        hoverText.appendMarkdown(`Prettify TS &nbsp; | &nbsp; [Hide](command:${EXTENSION_ID}.toggleHover?${encodeURIComponent(JSON.stringify([false]))}) &nbsp; | &nbsp; `)
+        hoverText.appendMarkdown(`*Prettify \\([Hide](command:${EXTENSION_ID}.toggleHover?${encodeURIComponent(JSON.stringify([false]))})\\) |* `)
         if (viewNestedTypes) {
-          hoverText.appendMarkdown(`[Hide Nested](command:${EXTENSION_ID}.toggleViewNestedTypes?${encodeURIComponent(JSON.stringify([false]))})`)
+          hoverText.appendMarkdown(`*[Hide Nested](command:${EXTENSION_ID}.toggleViewNestedTypes?${encodeURIComponent(JSON.stringify([false]))})*`)
         } else {
-          hoverText.appendMarkdown(`[View Nested](command:${EXTENSION_ID}.toggleViewNestedTypes?${encodeURIComponent(JSON.stringify([true]))})`)
+          hoverText.appendMarkdown(`*[View Nested](command:${EXTENSION_ID}.toggleViewNestedTypes?${encodeURIComponent(JSON.stringify([true]))})*`)
         }
 
         const typeChecker = project.getTypeChecker()

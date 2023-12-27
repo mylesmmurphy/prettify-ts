@@ -23,6 +23,10 @@ Use the `Prettify TS: Toggle View Nested Types` command to show or hide nested t
 ![Example Photo 1](./assets/example1.png)
 ![Example Photo 2](./assets/example2.png)
 
+## Why is the preview loading slowly, even for simple types?
+
+Prettify TS works by creating and loading the entire Abstract Syntax Tree (AST) of the file into memory. This is true even for simple types. The time taken can increase with the complexity and size of the types in the file due to the computation involved in parsing and traversing the AST.
+
 ## Disclaimer
 
 Prettify TS is currently, at best, a working proof of concept. The project is still in its early stages of development and may have limitations or bugs.
