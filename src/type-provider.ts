@@ -14,7 +14,7 @@ export class TypeProvider implements vscode.WebviewViewProvider {
     const prismCssUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'prism', 'prism-vsc-dark-plus.css'))
     const prismJsUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'prism', 'prism.js'))
 
-    const updateWebview = (code: string): void => {
+    const updateWebview = (code: string, loading = false): void => {
       webviewView.webview.options = {
         enableScripts: true,
         localResourceRoots: [this.extensionContext.extensionUri]
@@ -30,11 +30,24 @@ export class TypeProvider implements vscode.WebviewViewProvider {
             code {
               background: none;
             }
+            @keyframes move {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(100%); }
+            }
           </style>
         </head>
         <body>
-        <pre><code class="language-typescript">${code}</code></pre>
-        <script src="${prismJsUri.toString()}"></script>
+          ${loading
+              ? /* html */ `
+                <div style="position: relative; height: 2px; overflow: hidden;">
+                  <div style="position: absolute; height: 100%; width: 100%; background-color: #007acc; animation: move 2s linear infinite;"></div>
+                </div>`
+              : code.length > 0
+                ? /* html */ `
+                  <pre><code class="language-typescript">${code}</code></pre>
+                  <script src="${prismJsUri.toString()}"></script>`
+                : ''
+          }
         </body>
       `
     }
@@ -55,6 +68,7 @@ export class TypeProvider implements vscode.WebviewViewProvider {
       const position = selection.active
       const offset = document.offsetAt(position)
 
+      updateWebview('', true)
       const formattedTypeString = await prettifyType(fileName, content, offset) ?? ''
       updateWebview(formattedTypeString)
     }

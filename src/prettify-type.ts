@@ -3,7 +3,7 @@ import { Project, IndentationText, SyntaxKind } from 'ts-morph'
 import { ulid } from 'ulid'
 
 import { MARKDOWN_MAX_LENGTH, EXTENSION_ID } from './consts'
-import { hasType, buildDeclarationString, getPrettifyType, formatDeclarationString, washString } from './helpers'
+import { hasType, buildDeclarationString, getPrettifyType, formatDeclarationString } from './helpers'
 
 export async function prettifyType (fileName: string, content: string, offset: number): Promise<string | undefined> {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
@@ -29,7 +29,6 @@ export async function prettifyType (fileName: string, content: string, offset: n
   if (!hasType(parentNodeKind)) return
 
   const nodeText = node.getText()
-  const parentNodeText = parentNode.getText()
 
   const typeChecker = project.getTypeChecker()
   const type = typeChecker.getTypeAtLocation(node)
@@ -70,11 +69,6 @@ export async function prettifyType (fileName: string, content: string, offset: n
   if (prettifiedTypeString[0] !== '{') return
 
   const declarationString = buildDeclarationString(parentNodeKind, nodeText, prettifiedTypeString)
-
-  // TODO: Explore better options for this
-  if ((parentNodeText.startsWith('type') || parentNodeText.startsWith('export type')) && washString(parentNodeText) === washString(declarationString)) {
-    return
-  }
 
   let formattedTypeString = formatDeclarationString(declarationString)
   if (formattedTypeString.length > MARKDOWN_MAX_LENGTH) {
