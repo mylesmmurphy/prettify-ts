@@ -1,29 +1,40 @@
 import * as vscode from 'vscode'
 
-import hljs from 'highlight.js/lib/core'
-import typescript from 'highlight.js/lib/languages/typescript'
-
 import { prettifyType } from './prettify-type'
 import { EXTENSION_ID } from './consts'
 
-hljs.registerLanguage('typescript', typescript)
-
 export class TypeProvider implements vscode.WebviewViewProvider {
+  private readonly extensionContext: vscode.ExtensionContext
+
+  constructor (context: vscode.ExtensionContext) {
+    this.extensionContext = context
+  }
+
   resolveWebviewView (webviewView: vscode.WebviewView): void {
-    const updateWebview = (highlightedCode: string): void => {
+    const prismCssUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'prism', 'prism-vsc-dark-plus.css'))
+    const prismJsUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'prism', 'prism.js'))
+
+    const updateWebview = (code: string): void => {
+      webviewView.webview.options = {
+        enableScripts: true,
+        localResourceRoots: [this.extensionContext.extensionUri]
+      }
+
       webviewView.webview.html = /* html */ `
         <head>
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+          <link href="${prismCssUri.toString()}" rel="stylesheet" />
           <style>
             body, pre {
-                font-family: "Monaco", "Consolas", "Droid Sans Mono", "Courier", monospace;
+              font-family: "Monaco", "Consolas", "Droid Sans Mono", "Courier", monospace;
+            }
+            code {
+              background: none;
             }
           </style>
         </head>
         <body>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
-          <pre>${highlightedCode}</pre>
+        <pre><code class="language-typescript">${code}</code></pre>
+        <script src="${prismJsUri.toString()}"></script>
         </body>
       `
     }
@@ -44,9 +55,8 @@ export class TypeProvider implements vscode.WebviewViewProvider {
       const position = selection.active
       const offset = document.offsetAt(position)
 
-      const formattedTypeString = await prettifyType(fileName, content, offset)
-      const highlightedCode = hljs.highlight(formattedTypeString ?? '', { language: 'typescript' }).value
-      updateWebview(highlightedCode)
+      const formattedTypeString = await prettifyType(fileName, content, offset) ?? ''
+      updateWebview(formattedTypeString)
     }
 
     vscode.window.onDidChangeTextEditorSelection(async (e) => {
