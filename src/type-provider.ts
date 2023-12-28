@@ -14,6 +14,11 @@ export class TypeProvider implements vscode.WebviewViewProvider {
       webviewView.webview.html = /* html */ `
         <head>
           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+          <style>
+            body, pre {
+                font-family: "Monaco", "Consolas", "Droid Sans Mono", "Courier", monospace;
+            }
+          </style>
         </head>
         <body>
           <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
