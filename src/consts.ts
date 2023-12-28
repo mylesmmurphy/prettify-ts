@@ -10,3 +10,4 @@ export const DEFAULT_IGNORED_TYPES = [
   'Symbol'
 ]
 export const EXTENSION_ID = 'prettify-ts'
+export const IS_DEV = false

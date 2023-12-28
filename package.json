@@ -20,8 +20,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:typescript",
-    "onLanguage:typescriptreact"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -92,17 +91,16 @@
   },
   "scripts": {
     "build": "tsc -p ./",
-    "vscode:prepublish": "npm run esbuild",
-    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "vscode:prepublish": "npm run esbuild && npm run copy-prism",
+    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --external:src/prism --format=cjs --platform=node",
+    "copy-prism": "mkdirp out/src && ncp ./src/prism ./out/src/prism",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
-    "@types/markdown-it": "^13.0.7",
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
-    "@types/prettier": "^2.7.3",
     "@types/vscode": "^1.44.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
@@ -113,11 +111,11 @@
     "eslint-config-standard-with-typescript": "^43.0.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-n": "^16.5.0",
-    "eslint-plugin-promise": "^6.1.1"
+    "eslint-plugin-promise": "^6.1.1",
+    "mkdirp": "^3.0.1",
+    "ncp": "^2.0.0"
   },
   "dependencies": {
-    "highlight.js": "^11.9.0",
-    "markdown-it": "^14.0.0",
     "ts-morph": "^21.0.1",
     "typescript": "^5.3.3",
     "ulid": "^2.3.0"

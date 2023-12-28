@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { prettifyType } from './prettify-type'
-import { EXTENSION_ID } from './consts'
+import { EXTENSION_ID, IS_DEV } from './consts'
 
 export class TypeProvider implements vscode.WebviewViewProvider {
   private readonly extensionContext: vscode.ExtensionContext
@@ -10,9 +10,14 @@ export class TypeProvider implements vscode.WebviewViewProvider {
     this.extensionContext = context
   }
 
+  private getResourceUri (...pathSegments: string[]): vscode.Uri {
+    const base = IS_DEV ? this.extensionContext.extensionUri : vscode.Uri.joinPath(this.extensionContext.extensionUri, 'out')
+    return vscode.Uri.joinPath(base, ...pathSegments)
+  }
+
   resolveWebviewView (webviewView: vscode.WebviewView): void {
-    const prismCssUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'prism', 'prism-vsc-dark-plus.css'))
-    const prismJsUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src', 'prism', 'prism.js'))
+    const prismCssUri = webviewView.webview.asWebviewUri(this.getResourceUri('src', 'prism', 'prism-vsc-dark-plus.css'))
+    const prismJsUri = webviewView.webview.asWebviewUri(this.getResourceUri('src', 'prism', 'prism.js'))
 
     const updateWebview = (code: string, loading = false): void => {
       webviewView.webview.options = {

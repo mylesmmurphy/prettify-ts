@@ -6,11 +6,14 @@ Prettify TS is a Visual Studio Code extension that enhances your TypeScript deve
 
 - **Hover Information**: Just hover over a type, class, interface, etc., and you'll see a prettified version of its declaration in the hover panel.
 
+- **Sidebar**: Open the Prettify TS sidebar to view menu options and types.
+
 ## Usage
 
 1. Install the extension from the Visual Studio Code marketplace.
 2. Open a TypeScript file in Visual Studio Code.
 3. Hover over a type, class, interface, etc., to see the prettified declaration in a hover panel.
+4. Or, open the Prettify TS option on the sidebar to view menu options and types.
 
 ## Toggle
 
@@ -22,6 +25,7 @@ Use the `Prettify TS: Toggle View Nested Types` command to show or hide nested t
 
 ![Example Photo 1](./assets/example1.png)
 ![Example Photo 2](./assets/example2.png)
+![Example Photo 3](./assets/example3.png)
 
 ## Why is the preview loading slowly, even for simple types?
 
