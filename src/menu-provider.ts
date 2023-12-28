@@ -47,8 +47,8 @@ export class MenuProvider implements vscode.WebviewViewProvider {
           </style>
         </head>
         <body>
-          <button class="vscode-button" onclick="handleEnableHoverClicked()">${this.enableHover ? 'Disable' : 'Enable'} type preview on hover</button>
-          <button class="vscode-button" onclick="handleViewNestedTypesClicked()">${this.viewNestedTypes ? 'Hide' : 'Show'} deeply nested types</button>
+          <button class="vscode-button" onclick="handleEnableHoverClicked()">${this.enableHover ? 'Disable' : 'Enable'} Hover Type Preview</button>
+          <button class="vscode-button" onclick="handleViewNestedTypesClicked()">${this.viewNestedTypes ? 'Hide' : 'Show'} Nested Types</button>
 
           <script>
             const vscode = acquireVsCodeApi();
