@@ -4,7 +4,7 @@
   "description": "Prettify TypeScript and view deeply nested types in hover tooltips.",
   "publisher": "MylesMurphy",
   "license": "MIT",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.44.0"
@@ -20,8 +20,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:typescript",
-    "onLanguage:typescriptreact"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -65,12 +64,36 @@
           "description": "Types that won't be expanded when viewing deeply nested types. These types need to be in the global or local scope, or else the extension will fail."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "prettify-ts",
+          "title": "Prettify TypeScript",
+          "icon": "assets/sparkle.svg"
+        }
+      ]
+    },
+    "views": {
+      "prettify-ts": [
+        {
+          "id": "prettify-ts-menu",
+          "name": "Menu",
+          "type": "webview"
+        },
+        {
+          "id": "prettify-ts-type-view",
+          "name": "Type View",
+          "type": "webview"
+        }
+      ]
     }
   },
   "scripts": {
     "build": "tsc -p ./",
-    "vscode:prepublish": "npm run esbuild",
-    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "vscode:prepublish": "npm run esbuild && npm run copy-prism",
+    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --external:src/prism --format=cjs --platform=node",
+    "copy-prism": "mkdirp out/src && ncp ./src/prism ./out/src/prism",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts"
@@ -78,7 +101,6 @@
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
-    "@types/prettier": "^2.7.3",
     "@types/vscode": "^1.44.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
@@ -89,7 +111,9 @@
     "eslint-config-standard-with-typescript": "^43.0.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-n": "^16.5.0",
-    "eslint-plugin-promise": "^6.1.1"
+    "eslint-plugin-promise": "^6.1.1",
+    "mkdirp": "^3.0.1",
+    "ncp": "^2.0.0"
   },
   "dependencies": {
     "ts-morph": "^21.0.1",

@@ -130,7 +130,3 @@ export function formatDeclarationString (declarationString: string): string {
 
   return result
 }
-
-export function washString (str: string): string {
-  return str.replace(/^export\s/, '').replace(/\s/g, '').replace(/;/g, '')
-}
