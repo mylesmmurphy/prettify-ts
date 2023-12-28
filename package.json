@@ -65,6 +65,29 @@
           "description": "Types that won't be expanded when viewing deeply nested types. These types need to be in the global or local scope, or else the extension will fail."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "prettify-ts",
+          "title": "Prettify TypeScript",
+          "icon": "assets/sparkle.svg"
+        }
+      ]
+    },
+    "views": {
+      "prettify-ts": [
+        {
+          "id": "prettify-ts-menu",
+          "name": "Menu",
+          "type": "webview"
+        },
+        {
+          "id": "prettify-ts-type-view",
+          "name": "Type View",
+          "type": "webview"
+        }
+      ]
     }
   },
   "scripts": {
@@ -76,6 +99,7 @@
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
+    "@types/markdown-it": "^13.0.7",
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
     "@types/prettier": "^2.7.3",
@@ -92,6 +116,8 @@
     "eslint-plugin-promise": "^6.1.1"
   },
   "dependencies": {
+    "highlight.js": "^11.9.0",
+    "markdown-it": "^14.0.0",
     "ts-morph": "^21.0.1",
     "typescript": "^5.3.3",
     "ulid": "^2.3.0"
