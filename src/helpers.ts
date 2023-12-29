@@ -1,4 +1,23 @@
+import * as path from 'path'
+import * as fs from 'fs/promises'
+
 import { SyntaxKind } from 'ts-morph'
+import * as vscode from 'vscode'
+
+export const getTsConfigPath = async (fileName: string): Promise<string | undefined> => {
+  const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(fileName))
+
+  if (folder === undefined) return
+
+  const tsConfigPath = path.resolve(folder.uri.fsPath, 'tsconfig.json')
+
+  try {
+    const stat = await fs.stat(tsConfigPath)
+    return stat.isFile() ? tsConfigPath : undefined
+  } catch (e) {
+    return undefined
+  }
+}
 
 /**
  * https://github.com/microsoft/TypeScript/blob/main/src/compiler/types.ts

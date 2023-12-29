@@ -3,14 +3,18 @@ import { Project, IndentationText, SyntaxKind } from 'ts-morph'
 import { ulid } from 'ulid'
 
 import { EXTENSION_ID } from './consts'
-import { hasType, buildDeclarationString, getPrettifyType, formatDeclarationString } from './helpers'
+import { hasType, buildDeclarationString, getPrettifyType, getTsConfigPath, formatDeclarationString } from './helpers'
 
 export async function prettifyType (fileName: string, content: string, offset: number, checkHasType = true): Promise<string | undefined> {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
   const viewNestedTypes = config.get('viewNestedTypes', false)
   const ignoredNestedTypes: string[] = config.get('ignoredNestedTypes', [])
 
-  const project = new Project({ manipulationSettings: { indentationText: IndentationText.TwoSpaces } })
+  const project = new Project({
+    manipulationSettings: { indentationText: IndentationText.TwoSpaces },
+    tsConfigFilePath: await getTsConfigPath(fileName),
+    skipAddingFilesFromTsConfig: true
+  })
   const sourceFile = project.addSourceFileAtPath(fileName)
 
   // Use the current document's text as the source file's text, supports unsaved changes
