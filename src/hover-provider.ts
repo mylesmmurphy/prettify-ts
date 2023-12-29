@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import { prettifyType } from './prettify-type'
-import { EXTENSION_ID } from './consts'
+import { EXTENSION_ID, MARKDOWN_MAX_LENGTH } from './consts'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {
   context.subscriptions.push(
@@ -14,14 +14,16 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
         const content = document.getText()
         const offset = document.offsetAt(position)
 
-        const formattedTypeString = await prettifyType(document.fileName, content, offset)
+        let typeString = await prettifyType(document.fileName, content, offset)
 
-        if (formattedTypeString === undefined) {
-          return
+        if (typeString === undefined) return
+
+        if (typeString.length > MARKDOWN_MAX_LENGTH) {
+          typeString = typeString.substring(0, MARKDOWN_MAX_LENGTH) + '...'
         }
 
         const hoverText = new vscode.MarkdownString()
-        hoverText.appendCodeblock(formattedTypeString, 'typescript')
+        hoverText.appendCodeblock(typeString, 'typescript')
         return new vscode.Hover(hoverText)
       }
     })

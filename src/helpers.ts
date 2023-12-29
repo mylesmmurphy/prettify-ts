@@ -2,16 +2,17 @@ import { SyntaxKind } from 'ts-morph'
 
 /**
  * https://github.com/microsoft/TypeScript/blob/main/src/compiler/types.ts
- * HasType Type
+ * HasType attempts to quickly identify if the given SyntaxKind has a type.
  */
 export function hasType (syntaxKind: SyntaxKind): boolean {
   switch (syntaxKind) {
-    case SyntaxKind.ImportSpecifier:
     case SyntaxKind.ArrayType:
     case SyntaxKind.ClassDeclaration:
     case SyntaxKind.ConstructorType:
     case SyntaxKind.ConstructSignature:
+    case SyntaxKind.ExpressionWithTypeArguments:
     case SyntaxKind.FunctionType:
+    case SyntaxKind.ImportSpecifier:
     case SyntaxKind.IndexedAccessType:
     case SyntaxKind.IndexSignature:
     case SyntaxKind.InterfaceDeclaration:
@@ -53,6 +54,7 @@ export function buildDeclarationString (syntaxKind: SyntaxKind, typeName: string
     case SyntaxKind.NewExpression:
       return `class ${typeName} ${typeString}`
 
+    case SyntaxKind.ExpressionWithTypeArguments:
     case SyntaxKind.InterfaceDeclaration:
     case SyntaxKind.QualifiedName:
       return `interface ${typeName} ${typeString}`
@@ -87,7 +89,7 @@ export function buildDeclarationString (syntaxKind: SyntaxKind, typeName: string
  * Builds the prettify type string depending on user settings
  */
 export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, ignoredNestedTypes: string[]): string {
-  if (ignoredNestedTypes.length === 0) {
+  if (!Array.isArray(ignoredNestedTypes) || ignoredNestedTypes.length === 0) {
     ignoredNestedTypes = ['undefined']
   }
 

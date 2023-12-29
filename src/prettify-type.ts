@@ -2,10 +2,10 @@ import * as vscode from 'vscode'
 import { Project, IndentationText, SyntaxKind } from 'ts-morph'
 import { ulid } from 'ulid'
 
-import { MARKDOWN_MAX_LENGTH, EXTENSION_ID } from './consts'
+import { EXTENSION_ID } from './consts'
 import { hasType, buildDeclarationString, getPrettifyType, formatDeclarationString } from './helpers'
 
-export async function prettifyType (fileName: string, content: string, offset: number): Promise<string | undefined> {
+export async function prettifyType (fileName: string, content: string, offset: number, checkHasType = true): Promise<string | undefined> {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
   const viewNestedTypes = config.get('viewNestedTypes', false)
   const ignoredNestedTypes: string[] = config.get('ignoredNestedTypes', [])
@@ -26,7 +26,7 @@ export async function prettifyType (fileName: string, content: string, offset: n
   if (parentNode === undefined) return
 
   const parentNodeKind = parentNode.getKind()
-  if (!hasType(parentNodeKind)) return
+  if (checkHasType && !hasType(parentNodeKind)) return
 
   const nodeText = node.getText()
 
@@ -34,6 +34,9 @@ export async function prettifyType (fileName: string, content: string, offset: n
   const type = typeChecker.getTypeAtLocation(node)
 
   const fullTypeText = type.getText()
+
+  if (fullTypeText === 'any') return
+
   const typeText = fullTypeText.replace(/^typeof /, '')
 
   const prettifyId = ulid()
@@ -66,14 +69,11 @@ export async function prettifyType (fileName: string, content: string, offset: n
   prettifiedTypeString = prettifiedTypeString.replace(/import\(.*?\)\./g, '')
 
   // If the prettified type isn't an object, then return early
-  if (prettifiedTypeString[0] !== '{') return
+  // if (prettifiedTypeString[0] !== '{') return
 
   const declarationString = buildDeclarationString(parentNodeKind, nodeText, prettifiedTypeString)
 
-  let formattedTypeString = formatDeclarationString(declarationString)
-  if (formattedTypeString.length > MARKDOWN_MAX_LENGTH) {
-    formattedTypeString = formattedTypeString.substring(0, MARKDOWN_MAX_LENGTH) + '...'
-  }
+  const typeString = formatDeclarationString(declarationString)
 
-  return formattedTypeString
+  return typeString
 }

@@ -25,6 +25,12 @@ export class MenuProvider implements vscode.WebviewViewProvider {
         <html lang="en">
         <head>
           <style>
+            .button-container {
+              display: grid;
+              grid-template-columns: 1fr minmax(auto, 300px) 1fr;
+              transition: grid-template-columns 0.3s ease-in-out;
+            }
+
             button.vscode-button {
               color: var(--vscode-button-foreground);
               background-color: var(--vscode-button-background);
@@ -34,11 +40,19 @@ export class MenuProvider implements vscode.WebviewViewProvider {
               text-decoration: none;
               display: block;
               font-size: 1em;
-              margin: 10px auto;
+              margin: 10px 0px;
+              max-width: 300px;
               cursor: pointer;
               width: 100%;
               box-sizing: border-box;
               border-radius: 2px;
+              grid-column: 2;
+            }
+
+            @media (min-width: 500px) {
+              .button-container {
+                grid-template-columns: 0fr minmax(auto, 300px) 1fr;
+              }
             }
             
             button.vscode-button:hover {
@@ -47,9 +61,10 @@ export class MenuProvider implements vscode.WebviewViewProvider {
           </style>
         </head>
         <body>
-          <button class="vscode-button" onclick="handleEnableHoverClicked()">${this.enableHover ? 'Disable' : 'Enable'} Hover Type Preview</button>
-          <button class="vscode-button" onclick="handleViewNestedTypesClicked()">${this.viewNestedTypes ? 'Hide' : 'Show'} Nested Types</button>
-
+          <div class="button-container">
+            <button class="vscode-button" onclick="handleEnableHoverClicked()">${this.enableHover ? 'Disable' : 'Enable'} Hover Type Preview</button>
+            <button class="vscode-button" onclick="handleViewNestedTypesClicked()">${this.viewNestedTypes ? 'Hide' : 'Show'} Nested Types</button>
+          </div>
           <script>
             const vscode = acquireVsCodeApi();
             function handleEnableHoverClicked() { vscode.postMessage({ command: 'enableHoverClicked' }); }
