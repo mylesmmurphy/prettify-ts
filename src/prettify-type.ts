@@ -1,11 +1,9 @@
 import * as vscode from 'vscode'
 import { Project, IndentationText, SyntaxKind } from 'ts-morph'
 import { ulid } from 'ulid'
-import * as path from 'path'
-import * as fs from 'fs/promises'
 
 import { EXTENSION_ID } from './consts'
-import { hasType, buildDeclarationString, getPrettifyType, formatDeclarationString } from './helpers'
+import { hasType, buildDeclarationString, getPrettifyType, getTsConfigPath, formatDeclarationString } from './helpers'
 
 export async function prettifyType (fileName: string, content: string, offset: number, checkHasType = true): Promise<string | undefined> {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
@@ -82,19 +80,4 @@ export async function prettifyType (fileName: string, content: string, offset: n
   const typeString = formatDeclarationString(declarationString)
 
   return typeString
-}
-
-const getTsConfigPath = async (fileName: string): Promise<string | undefined> => {
-  const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(fileName))
-
-  if (folder === undefined) return
-
-  const p = path.resolve(folder.uri.fsPath, 'tsconfig.json')
-
-  try {
-    const stat = await fs.stat(p)
-    return stat.isFile() ? p : undefined
-  } catch (e) {
-    return undefined
-  }
 }
