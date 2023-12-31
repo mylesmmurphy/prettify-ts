@@ -1,66 +1,28 @@
 import * as path from 'path'
-import * as fs from 'fs/promises'
+import * as fs from 'fs'
 
 import { SyntaxKind } from 'ts-morph'
-import * as vscode from 'vscode'
 
-export const getTsConfigPath = async (fileName: string): Promise<string | undefined> => {
-  const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(fileName))
+export const getTsConfigPath = (fileName: string): string | undefined => {
+  // Start with the directory of the file
+  let dir = path.dirname(fileName)
 
-  if (folder === undefined) return
+  // Loop until we reach the root directory
+  while (dir !== '/' && dir !== '' && dir !== '.' && dir.length > 0) {
+    // Construct the path to tsconfig.json in the current directory
+    const tsConfigPath = path.join(dir, 'tsconfig.json')
 
-  const tsConfigPath = path.resolve(folder.uri.fsPath, 'tsconfig.json')
+    // If tsconfig.json exists in the current directory, return its path
+    if (fs.existsSync(tsConfigPath)) {
+      return tsConfigPath
+    }
 
-  try {
-    const stat = await fs.stat(tsConfigPath)
-    return stat.isFile() ? tsConfigPath : undefined
-  } catch (e) {
-    return undefined
-  }
-}
-
-/**
- * https://github.com/microsoft/TypeScript/blob/main/src/compiler/types.ts
- * HasType attempts to quickly identify if the given SyntaxKind has a type.
- */
-export function hasType (syntaxKind: SyntaxKind): boolean {
-  switch (syntaxKind) {
-    case SyntaxKind.ArrayType:
-    case SyntaxKind.ClassDeclaration:
-    case SyntaxKind.ConstructorType:
-    case SyntaxKind.ConstructSignature:
-    case SyntaxKind.ExpressionWithTypeArguments:
-    case SyntaxKind.FunctionType:
-    case SyntaxKind.ImportSpecifier:
-    case SyntaxKind.IndexedAccessType:
-    case SyntaxKind.IndexSignature:
-    case SyntaxKind.InterfaceDeclaration:
-    case SyntaxKind.IntersectionType:
-    case SyntaxKind.MappedType:
-    case SyntaxKind.MethodSignature:
-    case SyntaxKind.NewExpression:
-    case SyntaxKind.Parameter:
-    case SyntaxKind.ParenthesizedType:
-    case SyntaxKind.PropertyAccessExpression:
-    case SyntaxKind.PropertyAssignment:
-    case SyntaxKind.PropertyDeclaration:
-    case SyntaxKind.PropertySignature:
-    case SyntaxKind.QualifiedName:
-    case SyntaxKind.ShorthandPropertyAssignment:
-    case SyntaxKind.ThisType:
-    case SyntaxKind.TupleType:
-    case SyntaxKind.TypeAliasDeclaration:
-    case SyntaxKind.TypeAssertionExpression:
-    case SyntaxKind.TypeLiteral:
-    case SyntaxKind.TypeOperator:
-    case SyntaxKind.TypePredicate:
-    case SyntaxKind.TypeQuery:
-    case SyntaxKind.TypeReference:
-    case SyntaxKind.UnionType:
-    case SyntaxKind.VariableDeclaration:
-      return true
-    default:
-      return false
+    // Move up to the parent directory
+    const parentDir = path.dirname(dir)
+    if (dir === parentDir) {
+      break // We've reached the root directory
+    }
+    dir = parentDir
   }
 }
 
@@ -125,7 +87,9 @@ export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, i
           : T;`
 }
 
-export function formatDeclarationString (declarationString: string): string {
+export function formatDeclarationString (declarationString: string, indentation: number): string {
+  if (indentation < 1) return declarationString
+
   // Add newline after { and ; to make the type string more readable
   const splitDeclarationString = declarationString.replace(/{\s/g, '{\n').replace(/;\s/g, ';\n')
 
@@ -142,7 +106,7 @@ export function formatDeclarationString (declarationString: string): string {
       depth--
     }
 
-    result += '  '.repeat(depth) + trimmedLine + '\n'
+    result += ' '.repeat(indentation).repeat(depth) + trimmedLine + '\n'
 
     if (hasOpenBrace) {
       depth++
@@ -150,4 +114,9 @@ export function formatDeclarationString (declarationString: string): string {
   }
 
   return result
+}
+
+export function washString (str: string): string {
+  // Remove all whitespace, newlines, and semicolons
+  return str.replace(/\s/g, '').replace(/\n/g, '').replace(/;/g, '')
 }

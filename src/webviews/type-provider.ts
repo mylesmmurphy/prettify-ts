@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
-import { prettifyType } from './prettify-type'
-import { EXTENSION_ID, IS_DEV } from './consts'
+import { prettifyType } from '../prettify-type'
+import { EXTENSION_ID, IS_DEV } from '../consts'
 
 export class TypeProvider implements vscode.WebviewViewProvider {
   private readonly extensionContext: vscode.ExtensionContext
@@ -74,7 +74,7 @@ export class TypeProvider implements vscode.WebviewViewProvider {
       const offset = document.offsetAt(position)
 
       updateWebview('', true)
-      const formattedTypeString = await prettifyType(fileName, content, offset, false) ?? ''
+      const formattedTypeString = await prettifyType(fileName, content, offset) ?? ''
       updateWebview(formattedTypeString)
     }
 

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { EXTENSION_ID } from './consts'
+import { EXTENSION_ID } from '../consts'
 
 export class MenuProvider implements vscode.WebviewViewProvider {
   private readonly extensionContext: vscode.ExtensionContext
