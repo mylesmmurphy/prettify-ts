@@ -4,7 +4,7 @@
   "description": "View \"prettified\" and nested types in hover tooltips and sidebar.",
   "publisher": "MylesMurphy",
   "license": "MIT",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.44.0"
@@ -121,6 +121,7 @@
     "ncp": "^2.0.0"
   },
   "dependencies": {
+    "get-tsconfig": "^4.7.2",
     "lru-cache": "^10.1.0",
     "ts-morph": "^21.0.1",
     "typescript": "^5.3.3",

@@ -1,30 +1,4 @@
-import * as path from 'path'
-import * as fs from 'fs'
-
 import { SyntaxKind } from 'ts-morph'
-
-export const getTsConfigPath = (fileName: string): string | undefined => {
-  // Start with the directory of the file
-  let dir = path.dirname(fileName)
-
-  // Loop until we reach the root directory
-  while (dir !== '/' && dir !== '' && dir !== '.' && dir.length > 0) {
-    // Construct the path to tsconfig.json in the current directory
-    const tsConfigPath = path.join(dir, 'tsconfig.json')
-
-    // If tsconfig.json exists in the current directory, return its path
-    if (fs.existsSync(tsConfigPath)) {
-      return tsConfigPath
-    }
-
-    // Move up to the parent directory
-    const parentDir = path.dirname(dir)
-    if (dir === parentDir) {
-      break // We've reached the root directory
-    }
-    dir = parentDir
-  }
-}
 
 /**
  * Builds a declaration string based on the syntax kind
@@ -90,7 +64,7 @@ export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, i
 export function formatDeclarationString (declarationString: string, indentation: number): string {
   if (indentation < 1) return declarationString
 
-  // Add newline after { and ; to make the type string more readable
+  // Add newline after { and ;
   const splitDeclarationString = declarationString.replace(/{\s/g, '{\n').replace(/;\s/g, ';\n')
 
   let depth = 0

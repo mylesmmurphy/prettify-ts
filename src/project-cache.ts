@@ -1,6 +1,6 @@
 import { LRUCache } from 'lru-cache'
 import { Project } from 'ts-morph'
-import { getTsConfigPath } from './helpers'
+import { getTsconfig } from 'get-tsconfig'
 
 const projectCache = new LRUCache<string, Project>({
   max: 3,
@@ -8,10 +8,12 @@ const projectCache = new LRUCache<string, Project>({
 })
 
 export function getProject (fileName: string): Project {
-  const tsConfigFilePath = getTsConfigPath(fileName)
-  if (tsConfigFilePath === undefined) {
+  const tsConfig = getTsconfig(fileName)
+  if (tsConfig === null) {
     throw new Error('Could not find tsconfig.json')
   }
+
+  const tsConfigFilePath = tsConfig.path
 
   const cachedProject = projectCache.get(tsConfigFilePath)
   if (cachedProject !== undefined) {
