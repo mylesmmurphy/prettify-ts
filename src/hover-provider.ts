@@ -21,7 +21,8 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
         let typeString = await prettifyType(fileName, content, offset)
         if (typeString === undefined) return
 
-        if (typeString.startsWith('type')) {
+        // Ignore hover if the type is already displayed from TS quick info
+        if (typeString.startsWith('type') || typeString.startsWith('const')) {
           const project = getProject(fileName)
           const languageService = project.getLanguageService().compilerObject
           const quickInfo = languageService.getQuickInfoAtPosition(fileName, offset)

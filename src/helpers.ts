@@ -91,6 +91,9 @@ export function formatDeclarationString (declarationString: string, indentation:
 }
 
 export function washString (str: string): string {
+  // Remove the first line
+  str = str.replace(/.*\n/, '')
+
   // Remove all whitespace, newlines, and semicolons
   return str.replace(/\s/g, '').replace(/\n/g, '').replace(/;/g, '')
 }
