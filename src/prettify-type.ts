@@ -70,8 +70,8 @@ export async function prettifyType (fileName: string, content: string, offset: n
   // Issue: Remove import statements from the prettified type string
   prettifiedTypeString = prettifiedTypeString.replace(/import\(.*?\)\./g, '')
 
-  // Issue: Prettify doesn't always work for functions or complex types, so we'll just return the original type
-  if (prettifiedTypeString === 'any') return typeText.replace(/import\(.*?\)\./g, '').replace(/import\(.*?\)/g, '')
+  // Issue: Prettify doesn't always work for functions or complex types
+  if (prettifiedTypeString === 'any') return
 
   const declarationString = buildDeclarationString(parentNodeKind, nodeText, prettifiedTypeString)
   const typeString = formatDeclarationString(declarationString, typeIndentation)
