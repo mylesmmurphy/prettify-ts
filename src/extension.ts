@@ -1,14 +1,12 @@
-import * as vscode from 'vscode'
-
-import { EXTENSION_ID } from './consts'
-import { MenuProvider } from './menu-provider'
-import { TypeProvider } from './type-provider'
+import type * as vscode from 'vscode'
+import { registerWebViews } from './webviews'
 import { registerCommands } from './commands'
 import { registerHoverProvider } from './hover-provider'
+import { registerProjectInitializer } from './project-initializer'
 
 export function activate (context: vscode.ExtensionContext): void {
+  registerProjectInitializer(context)
   registerCommands(context)
   registerHoverProvider(context)
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider(`${EXTENSION_ID}-type-view`, new TypeProvider(context)))
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider(`${EXTENSION_ID}-menu`, new MenuProvider(context)))
+  registerWebViews(context)
 }

@@ -4,7 +4,7 @@
   "description": "View \"prettified\" and nested types in hover tooltips and sidebar.",
   "publisher": "MylesMurphy",
   "license": "MIT",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.44.0"
@@ -24,16 +24,6 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "prettify-ts.toggleHover",
-        "title": "Prettify TS: Toggle Hover"
-      },
-      {
-        "command": "prettify-ts.toggleViewNestedTypes",
-        "title": "Prettify TS: Toggle View Nested Types"
-      }
-    ],
     "configuration": {
       "title": "Prettify TS",
       "properties": {
@@ -46,6 +36,11 @@
           "type": "boolean",
           "default": false,
           "description": "Show or hide nested types."
+        },
+        "prettify-ts.typeIndentation": {
+          "type": "number",
+          "default": 4,
+          "description": "Indentations for type previews."
         },
         "prettify-ts.ignoredNestedTypes": {
           "type": "array",
@@ -65,6 +60,16 @@
         }
       }
     },
+    "commands": [
+      {
+        "command": "prettify-ts.toggleHover",
+        "title": "Prettify TS: Toggle Hover"
+      },
+      {
+        "command": "prettify-ts.toggleViewNestedTypes",
+        "title": "Prettify TS: Toggle View Nested Types"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -116,6 +121,8 @@
     "ncp": "^2.0.0"
   },
   "dependencies": {
+    "get-tsconfig": "^4.7.2",
+    "lru-cache": "^10.1.0",
     "ts-morph": "^21.0.1",
     "typescript": "^5.3.3",
     "ulid": "^2.3.0"

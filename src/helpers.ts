@@ -1,68 +1,4 @@
-import * as path from 'path'
-import * as fs from 'fs/promises'
-
 import { SyntaxKind } from 'ts-morph'
-import * as vscode from 'vscode'
-
-export const getTsConfigPath = async (fileName: string): Promise<string | undefined> => {
-  const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(fileName))
-
-  if (folder === undefined) return
-
-  const tsConfigPath = path.resolve(folder.uri.fsPath, 'tsconfig.json')
-
-  try {
-    const stat = await fs.stat(tsConfigPath)
-    return stat.isFile() ? tsConfigPath : undefined
-  } catch (e) {
-    return undefined
-  }
-}
-
-/**
- * https://github.com/microsoft/TypeScript/blob/main/src/compiler/types.ts
- * HasType attempts to quickly identify if the given SyntaxKind has a type.
- */
-export function hasType (syntaxKind: SyntaxKind): boolean {
-  switch (syntaxKind) {
-    case SyntaxKind.ArrayType:
-    case SyntaxKind.ClassDeclaration:
-    case SyntaxKind.ConstructorType:
-    case SyntaxKind.ConstructSignature:
-    case SyntaxKind.ExpressionWithTypeArguments:
-    case SyntaxKind.FunctionType:
-    case SyntaxKind.ImportSpecifier:
-    case SyntaxKind.IndexedAccessType:
-    case SyntaxKind.IndexSignature:
-    case SyntaxKind.InterfaceDeclaration:
-    case SyntaxKind.IntersectionType:
-    case SyntaxKind.MappedType:
-    case SyntaxKind.MethodSignature:
-    case SyntaxKind.NewExpression:
-    case SyntaxKind.Parameter:
-    case SyntaxKind.ParenthesizedType:
-    case SyntaxKind.PropertyAccessExpression:
-    case SyntaxKind.PropertyAssignment:
-    case SyntaxKind.PropertyDeclaration:
-    case SyntaxKind.PropertySignature:
-    case SyntaxKind.QualifiedName:
-    case SyntaxKind.ShorthandPropertyAssignment:
-    case SyntaxKind.ThisType:
-    case SyntaxKind.TupleType:
-    case SyntaxKind.TypeAliasDeclaration:
-    case SyntaxKind.TypeAssertionExpression:
-    case SyntaxKind.TypeLiteral:
-    case SyntaxKind.TypeOperator:
-    case SyntaxKind.TypePredicate:
-    case SyntaxKind.TypeQuery:
-    case SyntaxKind.TypeReference:
-    case SyntaxKind.UnionType:
-    case SyntaxKind.VariableDeclaration:
-      return true
-    default:
-      return false
-  }
-}
 
 /**
  * Builds a declaration string based on the syntax kind
@@ -125,8 +61,10 @@ export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, i
           : T;`
 }
 
-export function formatDeclarationString (declarationString: string): string {
-  // Add newline after { and ; to make the type string more readable
+export function formatDeclarationString (declarationString: string, indentation: number): string {
+  if (indentation < 1) return declarationString
+
+  // Add newline after { and ;
   const splitDeclarationString = declarationString.replace(/{\s/g, '{\n').replace(/;\s/g, ';\n')
 
   let depth = 0
@@ -142,7 +80,7 @@ export function formatDeclarationString (declarationString: string): string {
       depth--
     }
 
-    result += '  '.repeat(depth) + trimmedLine + '\n'
+    result += ' '.repeat(indentation).repeat(depth) + trimmedLine + '\n'
 
     if (hasOpenBrace) {
       depth++
@@ -150,4 +88,9 @@ export function formatDeclarationString (declarationString: string): string {
   }
 
   return result
+}
+
+export function washString (str: string): string {
+  // Remove all whitespace, newlines, and semicolons
+  return str.replace(/\s/g, '').replace(/\n/g, '').replace(/;/g, '')
 }

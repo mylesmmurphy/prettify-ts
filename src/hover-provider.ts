@@ -1,6 +1,9 @@
 import * as vscode from 'vscode'
+import * as ts from 'typescript'
 import { prettifyType } from './prettify-type'
 import { EXTENSION_ID, MARKDOWN_MAX_LENGTH } from './consts'
+import { getProject } from './project-cache'
+import { washString } from './helpers'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {
   context.subscriptions.push(
@@ -13,10 +16,21 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
 
         const content = document.getText()
         const offset = document.offsetAt(position)
+        const fileName = document.fileName
 
-        let typeString = await prettifyType(document.fileName, content, offset)
-
+        let typeString = await prettifyType(fileName, content, offset)
         if (typeString === undefined) return
+
+        if (typeString.startsWith('type')) {
+          const project = getProject(fileName)
+          const languageService = project.getLanguageService().compilerObject
+          const quickInfo = languageService.getQuickInfoAtPosition(fileName, offset)
+          const quickInfoText = ts.displayPartsToString(quickInfo?.displayParts)
+
+          if (washString(quickInfoText).includes(washString(typeString))) {
+            return
+          }
+        }
 
         if (typeString.length > MARKDOWN_MAX_LENGTH) {
           typeString = typeString.substring(0, MARKDOWN_MAX_LENGTH) + '...'

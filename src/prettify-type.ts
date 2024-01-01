@@ -1,20 +1,18 @@
 import * as vscode from 'vscode'
-import { Project, IndentationText, SyntaxKind } from 'ts-morph'
+import { SyntaxKind } from 'ts-morph'
 import { ulid } from 'ulid'
 
 import { EXTENSION_ID } from './consts'
-import { hasType, buildDeclarationString, getPrettifyType, getTsConfigPath, formatDeclarationString } from './helpers'
+import { buildDeclarationString, getPrettifyType, formatDeclarationString } from './helpers'
+import { getProject } from './project-cache'
 
-export async function prettifyType (fileName: string, content: string, offset: number, checkHasType = true): Promise<string | undefined> {
+export async function prettifyType (fileName: string, content: string, offset: number): Promise<string | undefined> {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
   const viewNestedTypes = config.get('viewNestedTypes', false)
   const ignoredNestedTypes: string[] = config.get('ignoredNestedTypes', [])
+  const typeIndentation: number = config.get('typeIndentation', 4)
 
-  const project = new Project({
-    manipulationSettings: { indentationText: IndentationText.TwoSpaces },
-    tsConfigFilePath: await getTsConfigPath(fileName),
-    skipAddingFilesFromTsConfig: true
-  })
+  const project = getProject(fileName)
   const sourceFile = project.addSourceFileAtPath(fileName)
 
   // Use the current document's text as the source file's text, supports unsaved changes
@@ -30,7 +28,6 @@ export async function prettifyType (fileName: string, content: string, offset: n
   if (parentNode === undefined) return
 
   const parentNodeKind = parentNode.getKind()
-  if (checkHasType && !hasType(parentNodeKind)) return
 
   const nodeText = node.getText()
 
@@ -41,6 +38,7 @@ export async function prettifyType (fileName: string, content: string, offset: n
 
   if (fullTypeText === 'any') return
 
+  // Issue: Remove typeof prefix from type text?
   const typeText = fullTypeText.replace(/^typeof /, '')
 
   const prettifyId = ulid()
@@ -72,12 +70,11 @@ export async function prettifyType (fileName: string, content: string, offset: n
   // Issue: Remove import statements from the prettified type string
   prettifiedTypeString = prettifiedTypeString.replace(/import\(.*?\)\./g, '')
 
-  // If the prettified type isn't an object, then return early
-  // if (prettifiedTypeString[0] !== '{') return
+  // Issue: Prettify doesn't always work for functions or complex types, so we'll just return the original type
+  if (prettifiedTypeString === 'any') return typeText.replace(/import\(.*?\)\./g, '').replace(/import\(.*?\)/g, '')
 
   const declarationString = buildDeclarationString(parentNodeKind, nodeText, prettifiedTypeString)
-
-  const typeString = formatDeclarationString(declarationString)
+  const typeString = formatDeclarationString(declarationString, typeIndentation)
 
   return typeString
 }
