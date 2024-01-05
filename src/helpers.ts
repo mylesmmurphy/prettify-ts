@@ -65,7 +65,10 @@ export function formatDeclarationString (declarationString: string, indentation:
   if (indentation < 1) return declarationString
 
   // Add newline after { and ;
-  const splitDeclarationString = declarationString.replace(/{\s/g, '{\n').replace(/;\s/g, ';\n')
+  const splitDeclarationString = declarationString
+    .replace(/{/g, '{\n')
+    .replace(/}/g, '\n}')
+    .replace(/;/g, ';\n')
 
   let depth = 0
   let result = ''
@@ -87,6 +90,11 @@ export function formatDeclarationString (declarationString: string, indentation:
     }
   }
 
+  // Remove empty braces newlines
+  result = result.replace(/{\s*\n*\s*}/g, '{}')
+
+  // Remove empty lines
+  result = result.replace(/^\s*[\r\n]/gm, '')
   return result
 }
 

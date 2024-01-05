@@ -31,6 +31,8 @@ Use the `Prettify TS: Toggle View Nested Types` command to show or hide nested t
 
 Prettify TS works by creating and loading the entire Abstract Syntax Tree (AST) of the file into memory. This is true even for simple types. The time taken can increase with the complexity and size of the types in the file due to the computation involved in parsing and traversing the AST.
 
+The extension attempts to cache the project after the first preview, which should greatly improve the speed of previews.
+
 ## Disclaimer
 
 Prettify TS is currently, at best, a working proof of concept. The project is still in its early stages of development and may have limitations or bugs.
@@ -45,7 +47,7 @@ Contributions are welcome! Please open an issue if you encounter any problems or
 
 Thanks for trying my extension! This is my first VSCode extension, and also my first time working with the TypeScript AST (Abstract Syntax Tree). Any code optimizations would be greatly appreciated.
 
-Special thanks to [@mattpocock](https://github.com/mattpocock) for the Prettify Type, and to [@willbattel](https://github.com/willbattel) for Beta testing, providing feedback, and overall improving this tool!
+Special thanks to [@mattpocock](https://github.com/mattpocock) for the Prettify Type, [@willbattel](https://github.com/willbattel) for beta testing, and @mattiamanzati for help with TypeScript AST questions. (https://github.com/mattiamanzati)
 
 ## License
 
