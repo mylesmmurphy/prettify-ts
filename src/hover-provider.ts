@@ -13,7 +13,10 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     const config = vscode.workspace.getConfiguration(EXTENSION_ID)
     const enableHover = config.get('enableHover', true)
 
-    if (!enableHover) { await Promise.resolve(undefined); return }
+    if (!enableHover) {
+      await Promise.resolve(undefined)
+      return
+    }
 
     const content = document.getText()
     const offset = document.offsetAt(position)
