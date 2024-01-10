@@ -5,7 +5,7 @@
   "publisher": "MylesMurphy",
   "license": "MIT",
   "version": "0.0.16",
-  "icon": "assets/logo.png",
+  "icon": "../assets/logo.png",
   "engines": {
     "vscode": "^1.44.0"
   },
@@ -75,7 +75,7 @@
         {
           "id": "prettify-ts",
           "title": "Prettify TypeScript",
-          "icon": "assets/sparkle.svg"
+          "icon": "../assets/sparkle.svg"
         }
       ]
     },
@@ -92,7 +92,13 @@
           "type": "webview"
         }
       ]
-    }
+    },
+    "typescriptServerPlugins": [
+      {
+        "name": "prettify-ts-plugin",
+        "enableForWorkspaceTypeScriptVersions": true
+      }
+    ]
   },
   "scripts": {
     "build": "tsc -p ./",
