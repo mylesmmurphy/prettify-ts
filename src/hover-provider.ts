@@ -50,11 +50,6 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     })
   }
 
-  context.subscriptions.push(
-    vscode.languages.registerHoverProvider('typescript', { provideHover })
-  )
-
-  context.subscriptions.push(
-    vscode.languages.registerHoverProvider('typescriptreact', { provideHover })
-  )
+  context.subscriptions.push(vscode.languages.registerHoverProvider('typescript', { provideHover }))
+  context.subscriptions.push(vscode.languages.registerHoverProvider('typescriptreact', { provideHover }))
 }
