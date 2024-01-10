@@ -1,6 +1,12 @@
 # Prettify TypeScript
 
-Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable way.
+Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable and configurable way.
+
+## Example
+
+![Example Photo 1](./assets/example1.png)
+![Example Photo 2](./assets/example2.png)
+![Example Photo 3](./assets/example3.png)
 
 ## Features
 
@@ -21,33 +27,13 @@ Use the `Prettify TS: Toggle Hover` command to enable or disable the hover infor
 
 Use the `Prettify TS: Toggle View Nested Types` command to show or hide nested type information.
 
-## Example
-
-![Example Photo 1](./assets/example1.png)
-![Example Photo 2](./assets/example2.png)
-![Example Photo 3](./assets/example3.png)
-
-## Why is the preview loading slowly, even for simple types?
-
-Prettify TS works by creating and loading the entire Abstract Syntax Tree (AST) of the file into memory. This is true even for simple types. The time taken can increase with the complexity and size of the types in the file due to the computation involved in parsing and traversing the AST.
-
-The extension attempts to cache the project after the first preview, which should greatly improve the speed of previews.
-
-## Disclaimer
-
-Prettify TS is currently, at best, a working proof of concept. The project is still in its early stages of development and may have limitations or bugs.
-
-If you encounter any problems or have any feature requests, please feel free to open an issue on the project's GitHub repository.
-
 ## Contributing
 
 Contributions are welcome! Please open an issue if you encounter any problems or have a feature request.
 
 ## Note from the developer:
 
-Thanks for trying my extension! This is my first VSCode extension, and also my first time working with the TypeScript AST (Abstract Syntax Tree). Any code optimizations would be greatly appreciated.
-
-Special thanks to [@mattpocock](https://github.com/mattpocock) for the Prettify Type, [@willbattel](https://github.com/willbattel) for beta testing, and [@mattiamanzati](https://github.com/mattiamanzati) for help with TypeScript questions.
+Thanks for trying my extension! Special thanks to [@mattpocock](https://github.com/mattpocock) for the Prettify Type, [@willbattel](https://github.com/willbattel) for beta testing, and [@mattiamanzati](https://github.com/mattiamanzati) for help with TypeScript questions.
 
 ## License
 
