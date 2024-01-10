@@ -47,7 +47,7 @@ Contributions are welcome! Please open an issue if you encounter any problems or
 
 Thanks for trying my extension! This is my first VSCode extension, and also my first time working with the TypeScript AST (Abstract Syntax Tree). Any code optimizations would be greatly appreciated.
 
-Special thanks to [@mattpocock](https://github.com/mattpocock) for the Prettify Type, [@willbattel](https://github.com/willbattel) for beta testing, and @mattiamanzati for help with TypeScript AST questions. (https://github.com/mattiamanzati)
+Special thanks to [@mattpocock](https://github.com/mattpocock) for the Prettify Type, [@willbattel](https://github.com/willbattel) for beta testing, and [@mattiamanzati](https://github.com/mattiamanzati) for help with TypeScript questions.
 
 ## License
 
