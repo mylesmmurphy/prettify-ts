@@ -1,0 +1,50 @@
+{
+  "name": "prettify-ts-plugin",
+  "displayName": "Prettify TypeScript Plugin: Better Type Previews",
+  "description": "The plugin to view \"prettified\" and nested types in hover tooltips and sidebar.",
+  "publisher": "MylesMurphy",
+  "license": "MIT",
+  "version": "0.0.1",
+  "icon": "../assets/logo.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mylesmmurphy/prettify-ts"
+  },
+  "keywords": [
+    "TypeScript",
+    "Language Service"
+  ],
+  "categories": [
+    "Programming Languages",
+    "Debuggers",
+    "Visualization",
+    "Other"
+  ],
+  "main": "./out/plugin.js",
+  "scripts": {
+    "build": "tsc -p ./",
+    "vscode:prepublish": "npm run esbuild && npm run copy-prism",
+    "esbuild": "esbuild ./src/plugin.ts --bundle --minify --sourcemap --outfile=out/plugin.js --format=cjs --platform=node",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.7",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "esbuild": "^0.19.11",
+    "eslint": "^8.56.0",
+    "eslint-config-standard-with-typescript": "^43.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-n": "^16.6.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "mkdirp": "^3.0.1",
+    "ncp": "^2.0.0"
+  },
+  "dependencies": {
+    "@types/ts-expose-internals": "npm:ts-expose-internals@5.1.3",
+    "typescript": "^5.3.3",
+    "ulid": "^2.3.0"
+  }
+}
