@@ -17,6 +17,7 @@ export function buildDeclarationString (syntaxKind: SyntaxKind, typeName: string
     case SyntaxKind.ArrayType:
     case SyntaxKind.ConstructorType:
     case SyntaxKind.ConstructSignature:
+    case SyntaxKind.EnumDeclaration:
     case SyntaxKind.FunctionType:
     case SyntaxKind.IndexedAccessType:
     case SyntaxKind.IndexSignature:
@@ -61,6 +62,27 @@ export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, i
           : T;`
 }
 
+// type Prettify<T> = T extends String | Number | Boolean
+//   ? T
+//   : T extends Array<infer U>
+//     ? Prettify<U>[]
+//     : T extends object
+//       ? { [P in keyof T]: Prettify<T[P]> }
+//       : T
+
+// type IsFunction<T> = T extends (...args: any[]) => any ? true : false;
+// type TestType<T> = T extends object
+//   ? 0
+//   : 1
+
+// // How to use
+
+// class TestClass {
+//   test: string
+// }
+
+// type TestType2 = IsFunction<>
+
 export function formatDeclarationString (declarationString: string, indentation: number): string {
   if (indentation < 1) return declarationString
 
@@ -75,7 +97,13 @@ export function formatDeclarationString (declarationString: string, indentation:
   const lines = splitDeclarationString.split('\n')
 
   for (const line of lines) {
-    const trimmedLine = line.trim()
+    let trimmedLine = line.trim()
+
+    // Remove redudant undefined union
+    if (trimmedLine.includes('?:') && trimmedLine.includes(' | undefined')) {
+      trimmedLine = trimmedLine.replace(' | undefined', '')
+    }
+
     const hasOpenBrace = trimmedLine.includes('{')
     const hasCloseBrace = trimmedLine.includes('}')
 
@@ -95,12 +123,13 @@ export function formatDeclarationString (declarationString: string, indentation:
 
   // Remove empty lines
   result = result.replace(/^\s*[\r\n]/gm, '')
+
   return result
 }
 
 export function washString (str: string): string {
-  // Remove the first line
-  str = str.replace(/.*\n/, '')
+  // Remove the leading word, ex: type, const, interface
+  str = str.replace(/^[a-z]+\s/, '')
 
   // Remove all whitespace, newlines, and semicolons
   return str.replace(/\s/g, '').replace(/\n/g, '').replace(/;/g, '')

@@ -56,7 +56,7 @@
             "Function",
             "Symbol"
           ],
-          "description": "Types that won't be expanded when viewing deeply nested types. These types need to be in the global or local scope, or else the extension will fail."
+          "description": "Types that won't be expanded. Extension will need to be reloaded for changes to take effect."
         }
       }
     },
