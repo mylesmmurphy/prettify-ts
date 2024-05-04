@@ -29,10 +29,18 @@ export function getProject (fileName: string): ProjectCacheEntry {
     return cachedProject
   }
 
-  // Create a new project
   const project = new Project({ tsConfigFilePath })
 
-  // Get the ignored types from the user settings and validate them
+  /**
+   * Get the ignored types from the user settings and validate they are defined
+   * If the type is not defined, it will be removed from the ignored types list for the project
+   *
+   * Dev Note:
+   * This works by creating a temporary source file with the types and getting the diagnostics
+   * Each line looks like this: `let type0: Type;`
+   * If a line in the source file has a diagnostic, it means the type is not defined / has errors
+   * This is hacky, better solutions are welcome
+   */
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
   const settingsIgnoredTypes: string[] = config.get('ignoredNestedTypes', [])
 
@@ -41,7 +49,7 @@ export function getProject (fileName: string): ProjectCacheEntry {
 
   const sourceFileName = ulid()
   const sourceFile = project.createSourceFile(`${sourceFileName}.ts`, testTypes) // Use the type in some code
-  const diagnostics = sourceFile.getPreEmitDiagnostics() // Get the diagnostics to see if the type is defined
+  const diagnostics = sourceFile.getPreEmitDiagnostics() // Get the diagnostics to see if the type is defined / has errors
   project.removeSourceFile(sourceFile)
 
   const invalidTypes = diagnostics.map(diagnostic => {
@@ -52,9 +60,9 @@ export function getProject (fileName: string): ProjectCacheEntry {
     return settingsIgnoredTypes[line - 1]
   })
 
-  const ignoredTypes = settingsIgnoredTypes.filter(type => !invalidTypes.includes(type))
+  const validIgnoredTypes = settingsIgnoredTypes.filter(type => !invalidTypes.includes(type))
 
-  const projectCacheEntry = { project, ignoredTypes }
+  const projectCacheEntry = { project, ignoredTypes: validIgnoredTypes }
   projectCache.set(tsConfigFilePath, projectCacheEntry)
 
   return projectCacheEntry

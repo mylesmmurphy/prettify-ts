@@ -62,27 +62,6 @@ export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, i
           : T;`
 }
 
-// type Prettify<T> = T extends String | Number | Boolean
-//   ? T
-//   : T extends Array<infer U>
-//     ? Prettify<U>[]
-//     : T extends object
-//       ? { [P in keyof T]: Prettify<T[P]> }
-//       : T
-
-// type IsFunction<T> = T extends (...args: any[]) => any ? true : false;
-// type TestType<T> = T extends object
-//   ? 0
-//   : 1
-
-// // How to use
-
-// class TestClass {
-//   test: string
-// }
-
-// type TestType2 = IsFunction<>
-
 export function formatDeclarationString (declarationString: string, indentation: number): string {
   if (indentation < 1) return declarationString
 

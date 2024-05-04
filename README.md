@@ -3,9 +3,13 @@
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable and configurable way.
 
 ## Example
-
+### Unions and Intersections
 ![Example Photo 1](./assets/example1.png)
+
+### Nested Types
 ![Example Photo 2](./assets/example2.png)
+
+### Prettify Menu and Type Viewer
 ![Example Photo 3](./assets/example3.png)
 
 ## Features

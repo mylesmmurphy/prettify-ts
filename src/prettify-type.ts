@@ -1,5 +1,4 @@
 import * as vscode from 'vscode'
-// import { spawn } from 'child_process'
 import { SyntaxKind } from 'ts-morph'
 import { ulid } from 'ulid'
 
