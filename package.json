@@ -53,8 +53,10 @@
             "Boolean",
             "Date",
             "RegExp",
-            "Function",
-            "Symbol"
+            "Symbol",
+            "Element",
+            "React",
+            "React.Component"
           ],
           "description": "Types that won't be expanded. Extension will need to be reloaded for changes to take effect."
         }

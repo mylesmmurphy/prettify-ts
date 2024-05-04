@@ -25,7 +25,7 @@ Prettify TS is a Visual Studio Code extension that enhances your TypeScript deve
 3. Hover over a type, class, interface, etc., to see the prettified declaration in a hover panel.
 4. Or, open the Prettify TS option on the sidebar to view menu options and types.
 
-## Toggle
+## Commands
 
 Use the `Prettify TS: Toggle Hover` command to enable or disable the hover information feature provided by the Prettify-ts extension.
 
