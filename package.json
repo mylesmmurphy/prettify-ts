@@ -4,7 +4,7 @@
   "description": "View \"prettified\" and nested types in hover tooltips and sidebar.",
   "publisher": "MylesMurphy",
   "license": "MIT",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.44.0"
@@ -53,10 +53,12 @@
             "Boolean",
             "Date",
             "RegExp",
-            "Function",
-            "Symbol"
+            "Symbol",
+            "Element",
+            "React",
+            "React.Component"
           ],
-          "description": "Types that won't be expanded when viewing deeply nested types. These types need to be in the global or local scope, or else the extension will fail."
+          "description": "Types that won't be expanded. Extension will need to be reloaded or cache cleared for changes to take effect."
         }
       }
     },

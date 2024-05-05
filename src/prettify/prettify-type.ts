@@ -2,17 +2,17 @@ import * as vscode from 'vscode'
 import { SyntaxKind } from 'ts-morph'
 import { ulid } from 'ulid'
 
-import { EXTENSION_ID } from './consts'
-import { buildDeclarationString, getPrettifyType, formatDeclarationString } from './helpers'
-import { getProject } from './project-cache'
+import { EXTENSION_ID } from '../consts'
+import { buildDeclarationString, getPrettifyType, formatDeclarationString } from './prettify-functions'
+import { getProject } from '../project-cache'
 
 export async function prettifyType (fileName: string, content: string, offset: number): Promise<string | undefined> {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
   const viewNestedTypes = config.get('viewNestedTypes', false)
-  const ignoredNestedTypes: string[] = config.get('ignoredNestedTypes', [])
   const typeIndentation: number = config.get('typeIndentation', 4)
 
-  const project = getProject(fileName)
+  const { project, ignoredTypes } = getProject(fileName)
+
   const sourceFile = project.addSourceFileAtPath(fileName)
 
   // Use the current document's text as the source file's text, supports unsaved changes
@@ -47,7 +47,7 @@ export async function prettifyType (fileName: string, content: string, offset: n
     name: `Prettify_${prettifyId}`,
     typeParameters: [{ name: 'T' }],
     isExported: false,
-    type: getPrettifyType(prettifyId, viewNestedTypes, ignoredNestedTypes)
+    type: getPrettifyType(prettifyId, viewNestedTypes, ignoredTypes)
   })
 
   sourceFile.addTypeAlias({

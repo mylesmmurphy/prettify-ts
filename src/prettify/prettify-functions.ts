@@ -17,6 +17,7 @@ export function buildDeclarationString (syntaxKind: SyntaxKind, typeName: string
     case SyntaxKind.ArrayType:
     case SyntaxKind.ConstructorType:
     case SyntaxKind.ConstructSignature:
+    case SyntaxKind.EnumDeclaration:
     case SyntaxKind.FunctionType:
     case SyntaxKind.IndexedAccessType:
     case SyntaxKind.IndexSignature:
@@ -52,7 +53,7 @@ export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, i
     ? `Prettify_${prettifyId}<T[P]>`
     : 'T[P]'
 
-  return `T extends ${ignoredNestedTypes.join(' | ')}
+  return /* TypeScript */ `T extends ${ignoredNestedTypes.join(' | ')}
       ? T
       : T extends Array<infer U>
         ? Prettify_${prettifyId}<U>[]
@@ -75,7 +76,13 @@ export function formatDeclarationString (declarationString: string, indentation:
   const lines = splitDeclarationString.split('\n')
 
   for (const line of lines) {
-    const trimmedLine = line.trim()
+    let trimmedLine = line.trim()
+
+    // Remove redudant undefined union
+    if (trimmedLine.includes('?:') && trimmedLine.includes(' | undefined')) {
+      trimmedLine = trimmedLine.replace(' | undefined', '')
+    }
+
     const hasOpenBrace = trimmedLine.includes('{')
     const hasCloseBrace = trimmedLine.includes('}')
 
@@ -95,12 +102,13 @@ export function formatDeclarationString (declarationString: string, indentation:
 
   // Remove empty lines
   result = result.replace(/^\s*[\r\n]/gm, '')
+
   return result
 }
 
 export function washString (str: string): string {
-  // Remove the first line
-  str = str.replace(/.*\n/, '')
+  // Remove the leading word, ex: type, const, interface
+  str = str.replace(/^[a-z]+\s/, '')
 
   // Remove all whitespace, newlines, and semicolons
   return str.replace(/\s/g, '').replace(/\n/g, '').replace(/;/g, '')

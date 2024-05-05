@@ -33,5 +33,17 @@ export const buttonCss = /* html */ `
   button.vscode-button:hover {
     background-color: var(--vscode-button-hoverBackground);
   }
+
+  span {
+    text-align: left;
+    text-decoration: none;
+    display: block;
+    font-size: 0.8em;
+    opacity: 0.8;
+    max-width: 300px;
+    width: 100%;
+    box-sizing: border-box;
+    grid-column: 2;
+  }
 </style>
 `

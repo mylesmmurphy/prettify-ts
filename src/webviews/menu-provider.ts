@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import { EXTENSION_ID } from '../consts'
+import { clearCache } from '../project-cache'
 import { buttonCss } from './button-css'
 
 export class MenuProvider implements vscode.WebviewViewProvider {
@@ -31,11 +32,14 @@ export class MenuProvider implements vscode.WebviewViewProvider {
           <div class="button-container">
             <button class="vscode-button" onclick="handleEnableHoverClicked()">${this.enableHover ? 'Disable' : 'Enable'} Hover Type Preview</button>
             <button class="vscode-button" onclick="handleViewNestedTypesClicked()">${this.viewNestedTypes ? 'Hide' : 'Show'} Nested Types</button>
+            <button class="vscode-button" onclick="clearCache()">Clear Cache</button>
+            <span>Note: Sometimes required when dependencies are modified, ex. monorepo packages </span>
           </div>
           <script>
             const vscode = acquireVsCodeApi();
             function handleEnableHoverClicked() { vscode.postMessage({ command: 'enableHoverClicked' }); }
             function handleViewNestedTypesClicked() { vscode.postMessage({ command: 'viewNestedTypesClicked' }); }
+            function clearCache() { vscode.postMessage({ command: 'clearCache' }); }
           </script>
         </body>
         </html>`
@@ -58,6 +62,8 @@ export class MenuProvider implements vscode.WebviewViewProvider {
           return await vscode.commands.executeCommand(`${EXTENSION_ID}.toggleHover`)
         case 'viewNestedTypesClicked':
           return await vscode.commands.executeCommand(`${EXTENSION_ID}.toggleViewNestedTypes`)
+        case 'clearCache':
+          clearCache()
       }
     })
   }
