@@ -2,9 +2,9 @@ import * as vscode from 'vscode'
 import { SyntaxKind } from 'ts-morph'
 import { ulid } from 'ulid'
 
-import { EXTENSION_ID } from './consts'
-import { buildDeclarationString, getPrettifyType, formatDeclarationString } from './helpers'
-import { getProject } from './project-cache'
+import { EXTENSION_ID } from '../consts'
+import { buildDeclarationString, getPrettifyType, formatDeclarationString } from './prettify-functions'
+import { getProject } from '../project-cache'
 
 export async function prettifyType (fileName: string, content: string, offset: number): Promise<string | undefined> {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)

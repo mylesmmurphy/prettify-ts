@@ -1,9 +1,9 @@
 import * as vscode from 'vscode'
 import * as ts from 'typescript'
-import { prettifyType } from './prettify-type'
+import { prettifyType } from './prettify/prettify-type'
 import { EXTENSION_ID, MARKDOWN_MAX_LENGTH } from './consts'
 import { getProject } from './project-cache'
-import { washString } from './helpers'
+import { washString } from './prettify/prettify-functions'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {
   async function provideHover (

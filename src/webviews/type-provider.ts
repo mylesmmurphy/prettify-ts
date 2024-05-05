@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { prettifyType } from '../prettify-type'
+import { prettifyType } from '../prettify/prettify-type'
 import { EXTENSION_ID, IS_DEV } from '../consts'
 
 export class TypeProvider implements vscode.WebviewViewProvider {

@@ -67,3 +67,7 @@ export function getProject (fileName: string): ProjectCacheEntry {
 
   return projectCacheEntry
 }
+
+export function clearCache (): void {
+  projectCache.clear()
+}

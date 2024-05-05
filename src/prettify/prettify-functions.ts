@@ -53,7 +53,7 @@ export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, i
     ? `Prettify_${prettifyId}<T[P]>`
     : 'T[P]'
 
-  return `T extends ${ignoredNestedTypes.join(' | ')}
+  return /* TypeScript */ `T extends ${ignoredNestedTypes.join(' | ')}
       ? T
       : T extends Array<infer U>
         ? Prettify_${prettifyId}<U>[]
