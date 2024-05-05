@@ -1,5 +1,12 @@
 # Prettify TypeScript
 
+**Get useful type information where you need it**
+
+[![Installs](https://img.shields.io/vscode-marketplace/d/MylesMurphy.prettify-ts.svg)](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
+[![GitHub Repo stars](https://img.shields.io/github/stars/mylesmmurphy/prettify-ts?style=social)](https://github.com/mylesmmurphy/prettify-ts)
+[![Marketplace](https://img.shields.io/vscode-marketplace/v/MylesMurphy.prettify-ts.svg)](https://marketplace.visualstudio.com/items?itemName=username.repo)
+[![License](https://img.shields.io/github/license/mylesmmurphy/prettify-ts)](https://github.com/mylesmmurphy/prettify-ts/blob/main/LICENSE)
+
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable and configurable way.
 
 ## Example
@@ -10,13 +17,6 @@ Prettify TS is a Visual Studio Code extension that enhances your TypeScript deve
 - **Hover Information**: Just hover over a type, class, interface, etc., and you'll see a prettified version of its declaration in the hover panel.
 
 - **Sidebar**: Open the Prettify TS sidebar to view menu options and types.
-
-## Usage
-
-1. Install the extension from the Visual Studio Code marketplace.
-2. Open a TypeScript file in Visual Studio Code.
-3. Hover over a type, class, interface, etc., to see the prettified declaration in a hover panel.
-4. Or, open the Prettify TS option on the sidebar to view menu options and types.
 
 ## Extension Settings
 

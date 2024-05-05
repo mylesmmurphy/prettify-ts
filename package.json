@@ -58,7 +58,7 @@
             "React",
             "React.Component"
           ],
-          "description": "Types that won't be expanded. Extension will need to be reloaded for changes to take effect."
+          "description": "Types that won't be expanded. Extension will need to be reloaded or cache cleared for changes to take effect."
         }
       }
     },
