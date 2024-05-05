@@ -19,7 +19,7 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     const offset = document.offsetAt(position)
     const fileName = document.fileName
 
-    let typeString = await prettifyType(fileName, content, offset)
+    let typeString = prettifyType(fileName, content, offset)
 
     if (typeString === undefined) return
 

@@ -6,7 +6,7 @@ import { EXTENSION_ID } from '../consts'
 import { buildDeclarationString, getPrettifyType, formatDeclarationString } from './prettify-functions'
 import { getProject } from '../project-cache'
 
-export async function prettifyType (fileName: string, content: string, offset: number): Promise<string | undefined> {
+export function prettifyType (fileName: string, content: string, offset: number): string | undefined {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
   const viewNestedTypes = config.get('viewNestedTypes', false)
   const typeIndentation: number = config.get('typeIndentation', 4)

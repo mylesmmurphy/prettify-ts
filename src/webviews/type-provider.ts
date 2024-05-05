@@ -74,7 +74,7 @@ export class TypeProvider implements vscode.WebviewViewProvider {
       const offset = document.offsetAt(position)
 
       updateWebview('', true)
-      const formattedTypeString = await prettifyType(fileName, content, offset) ?? ''
+      const formattedTypeString = prettifyType(fileName, content, offset) ?? ''
       updateWebview(formattedTypeString)
     }
 

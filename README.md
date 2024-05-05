@@ -30,13 +30,34 @@ Use the `Prettify TS: Toggle Hover` command to enable or disable the hover infor
 
 Use the `Prettify TS: Toggle View Nested Types` command to show or hide nested type information.
 
+## How it works
+
+The core function of this extension is accomplished by virtually integrating a [`Prettify`](https://www.totaltypescript.com/concepts/the-prettify-helper) generic into your project. This `Prettify` generic acts as a powerful tool that takes TypeScript types and transforms them into a more readable format.
+
+When you pass a TypeScript type through the `Prettify` generic, the extension uses the `ts-morph` library to parse and manipulate the type. Please note that the `Prettify` generic is a virtual construct added by the extension and does not physically exist in your code.
+
+```typescript
+type Prettify<T> = T extends String | Number | Boolean
+    ? T
+    : T extends (...args: infer A) => infer R
+    ? (...args: { [K in keyof A]: Prettify<A[K]> } & unknown) => Prettify<R>
+    : T extends Promise<infer U>
+    ? Promise<Prettify<U>>
+    : T extends Array<infer U>
+    ? Prettify<U>[]
+    : T extends object
+    ? { [P in keyof T]: Prettify<T[P]> } & unknown
+    : T
+
+type Input = Promise<{ a: number, b: string }>;
+type Output = Prettify<Input>;
+// Original Output Hint: Promise<Input>
+// Prettified Output Hint: Promise<{ a: number; b: string; }>
+```
+
 ## Contributing
 
 Contributions are welcome! Please open an issue if you encounter any problems or have a feature request.
-
-## Note from the developer:
-
-Thanks for trying my extension! Special thanks to [@mattpocock](https://github.com/mattpocock) for the Prettify Type, [@willbattel](https://github.com/willbattel) for beta testing, and [@mattiamanzati](https://github.com/mattiamanzati) for help with TypeScript questions.
 
 ## License
 
