@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import { SyntaxKind } from 'ts-morph'
 import { ulid } from 'ulid'
 
-import { EXTENSION_ID } from '../consts'
+import { EXTENSION_ID, MARKDOWN_MAX_LENGTH } from '../consts'
 import { buildDeclarationString, getPrettifyType, formatDeclarationString } from './prettify-functions'
 import { getProject } from '../project-cache'
 import { ScriptElementKind } from 'typescript'
@@ -85,6 +85,10 @@ export function prettifyType (fileName: string, content: string, offset: number)
 
   // Issue: Prettify doesn't always work for functions or complex types
   if (prettifiedTypeString === 'any') return
+
+  if (prettifiedTypeString.length > MARKDOWN_MAX_LENGTH) {
+    prettifiedTypeString = prettifiedTypeString.substring(0, MARKDOWN_MAX_LENGTH) + '...'
+  }
 
   const declarationString = buildDeclarationString(parentNodeKind, nodeText, prettifiedTypeString)
   const typeString = formatDeclarationString(declarationString, typeIndentation)
