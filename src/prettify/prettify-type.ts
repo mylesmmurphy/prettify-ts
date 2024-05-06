@@ -5,13 +5,16 @@ import { ulid } from 'ulid'
 import { EXTENSION_ID } from '../consts'
 import { buildDeclarationString, getPrettifyType, formatDeclarationString } from './prettify-functions'
 import { getProject } from '../project-cache'
+import { ScriptElementKind } from 'typescript'
 
-export async function prettifyType (fileName: string, content: string, offset: number): Promise<string | undefined> {
+export function prettifyType (fileName: string, content: string, offset: number): string | undefined {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
   const viewNestedTypes = config.get('viewNestedTypes', false)
   const typeIndentation: number = config.get('typeIndentation', 4)
 
   const { project, ignoredTypes } = getProject(fileName)
+
+  const languageService = project.getLanguageService().compilerObject
 
   const sourceFile = project.addSourceFileAtPath(fileName)
 
@@ -20,6 +23,14 @@ export async function prettifyType (fileName: string, content: string, offset: n
 
   const node = sourceFile.getDescendantAtPos(offset)
   if (node === undefined) return
+
+  const quickInfo = languageService.getQuickInfoAtPosition(fileName, offset)
+  if (quickInfo === undefined) return
+
+  let typeKind: string | undefined = quickInfo.kind
+  if (typeKind === ScriptElementKind.alias) {
+    typeKind = quickInfo.displayParts?.find(displayPart => displayPart.kind === 'keyword')?.text
+  }
 
   const nodeKind = node.getKind()
   if (nodeKind !== SyntaxKind.Identifier) return
@@ -34,12 +45,14 @@ export async function prettifyType (fileName: string, content: string, offset: n
   const typeChecker = project.getTypeChecker()
   const type = typeChecker.getTypeAtLocation(node)
 
-  const fullTypeText = type.getText()
+  let typeText = type.getText()
 
-  if (fullTypeText === 'any') return
+  // Issue: ts-morph returns 'typeof' for classes and 'new' for constructors, which when prettified, returns the prototype
+  if (typeKind === 'class' || typeKind === 'new') {
+    typeText = typeText.replace(/^typeof /, '')
+  }
 
-  // Issue: Remove typeof prefix from type text?
-  const typeText = fullTypeText.replace(/^typeof /, '')
+  if (typeText === 'any') return
 
   const prettifyId = ulid()
 

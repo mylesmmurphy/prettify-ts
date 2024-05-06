@@ -1,6 +1,47 @@
 import { SyntaxKind } from 'ts-morph'
 
 /**
+ * The Pretify type
+ */
+type Prettify<T> = T extends string | number | boolean
+  ? T
+  : T extends (...args: infer A) => infer R
+    ? (...args: { [K in keyof A]: Prettify<A[K]> } & unknown) => Prettify<R>
+    : T extends Promise<infer U>
+      ? Promise<Prettify<U>>
+      : T extends Array<infer U>
+        ? Array<Prettify<U>>
+        : T extends object
+          ? { [P in keyof T]: Prettify<T[P]> } & unknown
+          : T
+
+/**
+ * Builds the prettify type string depending on user settings
+ */
+export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, ignoredNestedTypes: string[]): string {
+  if (!Array.isArray(ignoredNestedTypes) || ignoredNestedTypes.length === 0) {
+    ignoredNestedTypes = ['undefined']
+  }
+
+  const objectPropType = viewNestedTypes
+    ? `Prettify_${prettifyId}<T[P]>`
+    : 'T[P]'
+
+  return /* TypeScript */ `T extends ${ignoredNestedTypes.join(' | ')}
+    ? T
+    : T extends (...args: infer A) => infer R
+      ? (...args: { [K in keyof A]: Prettify_${prettifyId}<A[K]> } & unknown) => Prettify_${prettifyId}<R>
+      : T extends Promise<infer P>
+        ? Promise<Prettify_${prettifyId}<P>>
+        : T extends Array<infer U>
+          ? Prettify_${prettifyId}<U>[]
+          : T extends object
+            ? { [P in keyof T]: ${objectPropType} } & unknown
+            : T;
+  `
+}
+
+/**
  * Builds a declaration string based on the syntax kind
  */
 export function buildDeclarationString (syntaxKind: SyntaxKind, typeName: string, typeString: string): string {
@@ -39,27 +80,6 @@ export function buildDeclarationString (syntaxKind: SyntaxKind, typeName: string
     default:
       return `const ${typeName}: ${typeString}`
   }
-}
-
-/**
- * Builds the prettify type string depending on user settings
- */
-export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, ignoredNestedTypes: string[]): string {
-  if (!Array.isArray(ignoredNestedTypes) || ignoredNestedTypes.length === 0) {
-    ignoredNestedTypes = ['undefined']
-  }
-
-  const objectPropType = viewNestedTypes
-    ? `Prettify_${prettifyId}<T[P]>`
-    : 'T[P]'
-
-  return /* TypeScript */ `T extends ${ignoredNestedTypes.join(' | ')}
-      ? T
-      : T extends Array<infer U>
-        ? Prettify_${prettifyId}<U>[]
-        : T extends object
-          ? { [P in keyof T]: ${objectPropType} } & unknown
-          : T;`
 }
 
 export function formatDeclarationString (declarationString: string, indentation: number): string {
