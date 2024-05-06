@@ -31,8 +31,8 @@ export function getPrettifyType (prettifyId: string, viewNestedTypes: boolean, i
     ? T
     : T extends (...args: infer A) => infer R
       ? (...args: { [K in keyof A]: Prettify_${prettifyId}<A[K]> } & unknown) => Prettify_${prettifyId}<R>
-      : T extends Promise<infer U>
-        ? Promise<Prettify_${prettifyId}<U>>
+      : T extends Promise<infer P>
+        ? Promise<Prettify_${prettifyId}<P>>
         : T extends Array<infer U>
           ? Prettify_${prettifyId}<U>[]
           : T extends object

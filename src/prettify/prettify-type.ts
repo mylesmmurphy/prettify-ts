@@ -5,6 +5,7 @@ import { ulid } from 'ulid'
 import { EXTENSION_ID } from '../consts'
 import { buildDeclarationString, getPrettifyType, formatDeclarationString } from './prettify-functions'
 import { getProject } from '../project-cache'
+import { ScriptElementKind } from 'typescript'
 
 export function prettifyType (fileName: string, content: string, offset: number): string | undefined {
   const config = vscode.workspace.getConfiguration(EXTENSION_ID)
@@ -13,6 +14,8 @@ export function prettifyType (fileName: string, content: string, offset: number)
 
   const { project, ignoredTypes } = getProject(fileName)
 
+  const languageService = project.getLanguageService().compilerObject
+
   const sourceFile = project.addSourceFileAtPath(fileName)
 
   // Use the current document's text as the source file's text, supports unsaved changes
@@ -20,6 +23,14 @@ export function prettifyType (fileName: string, content: string, offset: number)
 
   const node = sourceFile.getDescendantAtPos(offset)
   if (node === undefined) return
+
+  const quickInfo = languageService.getQuickInfoAtPosition(fileName, offset)
+  if (quickInfo === undefined) return
+
+  let typeKind: string | undefined = quickInfo.kind
+  if (typeKind === ScriptElementKind.alias) {
+    typeKind = quickInfo.displayParts?.find(displayPart => displayPart.kind === 'keyword')?.text
+  }
 
   const nodeKind = node.getKind()
   if (nodeKind !== SyntaxKind.Identifier) return
@@ -34,12 +45,14 @@ export function prettifyType (fileName: string, content: string, offset: number)
   const typeChecker = project.getTypeChecker()
   const type = typeChecker.getTypeAtLocation(node)
 
-  const fullTypeText = type.getText()
+  let typeText = type.getText()
 
-  if (fullTypeText === 'any') return
+  // Issue: ts-morph returns 'typeof' for classes and 'new' for constructors, which when prettified, returns the prototype
+  if (typeKind === 'class' || typeKind === 'new') {
+    typeText = typeText.replace(/^typeof /, '')
+  }
 
-  // Issue: Remove typeof prefix from type text?
-  const typeText = fullTypeText.replace(/^typeof /, '')
+  if (typeText === 'any') return
 
   const prettifyId = ulid()
 
@@ -73,8 +86,10 @@ export function prettifyType (fileName: string, content: string, offset: number)
   // Issue: Prettify doesn't always work for functions or complex types
   if (prettifiedTypeString === 'any') return
 
+  console.time('prettifyType')
   const declarationString = buildDeclarationString(parentNodeKind, nodeText, prettifiedTypeString)
   const typeString = formatDeclarationString(declarationString, typeIndentation)
+  console.timeEnd('prettifyType')
 
   return typeString
 }
