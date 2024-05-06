@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { prettifyType } from '../prettify/prettify-type'
-import { EXTENSION_ID, IS_DEV } from '../consts'
+import { EXTENSION_ID, IS_DEV, MARKDOWN_MAX_LENGTH } from '../consts'
 
 export class TypeProvider implements vscode.WebviewViewProvider {
   private readonly extensionContext: vscode.ExtensionContext
@@ -74,7 +74,11 @@ export class TypeProvider implements vscode.WebviewViewProvider {
       const offset = document.offsetAt(position)
 
       updateWebview('', true)
-      const formattedTypeString = prettifyType(fileName, content, offset) ?? ''
+      let formattedTypeString = prettifyType(fileName, content, offset) ?? ''
+
+      if (formattedTypeString.length > MARKDOWN_MAX_LENGTH) {
+        formattedTypeString = formattedTypeString.substring(0, MARKDOWN_MAX_LENGTH) + '...'
+      }
       updateWebview(formattedTypeString)
     }
 

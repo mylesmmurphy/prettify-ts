@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as ts from 'typescript'
 import { prettifyType } from './prettify/prettify-type'
-import { EXTENSION_ID } from './consts'
+import { EXTENSION_ID, MARKDOWN_MAX_LENGTH } from './consts'
 import { getProject } from './project-cache'
 import { washString } from './prettify/prettify-functions'
 
@@ -19,7 +19,7 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     const offset = document.offsetAt(position)
     const fileName = document.fileName
 
-    const typeString = prettifyType(fileName, content, offset)
+    let typeString = prettifyType(fileName, content, offset)
 
     if (typeString === undefined) return
 
@@ -31,6 +31,10 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
       const quickInfoText = ts.displayPartsToString(quickInfo?.displayParts)
 
       if (washString(quickInfoText).includes(washString(typeString))) return
+    }
+
+    if (typeString.length > MARKDOWN_MAX_LENGTH) {
+      typeString = typeString.substring(0, MARKDOWN_MAX_LENGTH) + '...'
     }
 
     const hoverText = new vscode.MarkdownString()
