@@ -86,10 +86,8 @@ export function prettifyType (fileName: string, content: string, offset: number)
   // Issue: Prettify doesn't always work for functions or complex types
   if (prettifiedTypeString === 'any') return
 
-  console.time('prettifyType')
   const declarationString = buildDeclarationString(parentNodeKind, nodeText, prettifiedTypeString)
   const typeString = formatDeclarationString(declarationString, typeIndentation)
-  console.timeEnd('prettifyType')
 
   return typeString
 }
