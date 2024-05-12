@@ -1,0 +1,53 @@
+{
+  "name": "@prettify-ts/vscode-extension",
+  "displayName": "Prettify TypeScript: Better Type Previews",
+  "description": "View \"prettified\" and nested types in hover tooltips and sidebar.",
+  "publisher": "MylesMurphy",
+  "license": "MIT",
+  "version": "0.0.19",
+  "icon": "assets/logo.png",
+  "engines": {
+    "vscode": "^1.44.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mylesmmurphy/prettify-ts"
+  },
+  "categories": [
+    "Programming Languages",
+    "Debuggers",
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "typescriptServerPlugins": [
+      {
+          "name": "@prettify-ts/typescript-plugin",
+          "enableForWorkspaceTypeScriptVersions": true
+      }
+  ]
+  },
+  "scripts": {
+    "build": "tsc -p ./",
+    "vscode:prepublish": "npm run esbuild && npm run copy-prism",
+    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --external:src/prism --format=cjs --platform=node",
+    "copy-prism": "mkdirp out/src && ncp ./src/prism ./out/src/prism",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.44.0",
+    "esbuild": "^0.19.10",
+    "mkdirp": "^3.0.1",
+    "ncp": "^2.0.0"
+  },
+  "dependencies": {
+    "typescript": "^5.3.3"
+  }
+}
