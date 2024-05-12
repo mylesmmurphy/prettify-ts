@@ -17,6 +17,7 @@ Thumbs.db
 
 # Build
 out
+packages/*/out
 
 # Package Files
 *.vsix

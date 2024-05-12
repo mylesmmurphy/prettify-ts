@@ -13,6 +13,9 @@
     "type": "git",
     "url": "https://github.com/mylesmmurphy/prettify-ts"
   },
+  "scripts": {
+    "build": "npm run build --workspaces"
+  },
   "devDependencies": {
     "@types/node": "18.x",
     "@types/vscode": "^1.44.0",

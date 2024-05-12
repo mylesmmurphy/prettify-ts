@@ -1,45 +1,23 @@
 import * as vscode from 'vscode'
-import * as ts from 'typescript'
-import { prettifyType } from './prettify/prettify-type'
-import { EXTENSION_ID, MARKDOWN_MAX_LENGTH } from './consts'
-import { getProject } from './project-cache'
-import { washString } from './prettify/prettify-functions'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {
   async function provideHover (
     document: vscode.TextDocument,
     position: vscode.Position
   ): Promise<vscode.Hover | undefined> {
-    const config = vscode.workspace.getConfiguration(EXTENSION_ID)
-    const enableHover = config.get('enableHover', true)
-
-    if (!enableHover) return
-
-    const content = document.getText()
-    const offset = document.offsetAt(position)
-    const fileName = document.fileName
-
-    let typeString = prettifyType(fileName, content, offset)
-
-    if (typeString === undefined) return
-
-    // Ignore hover if the type is already displayed from TS quick info
-    if (typeString.startsWith('type') || typeString.startsWith('const')) {
-      const { project } = getProject(fileName)
-      const languageService = project.getLanguageService().compilerObject
-      const quickInfo = languageService.getQuickInfoAtPosition(fileName, offset)
-      const quickInfoText = ts.displayPartsToString(quickInfo?.displayParts)
-
-      if (washString(quickInfoText).includes(washString(typeString))) return
+    const location = {
+      file: document.uri.fsPath,
+      line: position.line + 1,
+      offset: position.character + 1
     }
 
-    if (typeString.length > MARKDOWN_MAX_LENGTH) {
-      typeString = typeString.substring(0, MARKDOWN_MAX_LENGTH) + '...'
-    }
+    const test = await vscode.commands.executeCommand('typescript.tsserverRequest', 'quickinfo-full', location)
+    const test2 = await vscode.commands.executeCommand('typescript.tsserverRequest', 'completionInfo', location)
 
-    const hoverText = new vscode.MarkdownString()
-    hoverText.appendCodeblock(typeString, document.languageId)
-    return new vscode.Hover(hoverText)
+    console.log(test)
+    console.log(test2)
+
+    return undefined
   }
 
   context.subscriptions.push(vscode.languages.registerHoverProvider('typescript', { provideHover }))

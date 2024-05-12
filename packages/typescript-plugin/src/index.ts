@@ -3,6 +3,7 @@ import type * as ts from 'typescript/lib/tsserverlibrary'
 
 function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
   const ts = modules.typescript
+  console.log('Plugin initialized test')
 
   function create (info: ts.server.PluginCreateInfo): ts.LanguageService {
     // Set up decorator object

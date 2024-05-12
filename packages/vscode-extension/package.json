@@ -32,10 +32,9 @@
   ]
   },
   "scripts": {
-    "build": "tsc -p ./",
-    "vscode:prepublish": "npm run esbuild && npm run copy-prism",
-    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --external:src/prism --format=cjs --platform=node",
-    "copy-prism": "mkdirp out/src && ncp ./src/prism ./out/src/prism",
+    "build": "tsc",
+    "vscode:prepublish": "npm run esbuild",
+    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts"
