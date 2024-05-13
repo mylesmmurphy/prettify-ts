@@ -37,16 +37,14 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
 
       if (!sourceFile) return undefined
 
-      const typeInfo = getCompleteTypeInfoAtPosition(typeChecker, sourceFile, position)
+      const prettifyResponse = getCompleteTypeInfoAtPosition(typeChecker, sourceFile, position)
 
       const response: FullPrettifyResponse = {
         isGlobalCompletion: false,
         isMemberCompletion: false,
         isNewIdentifierLocation: false,
         entries: [],
-        __prettifyResponse: {
-          typeInfo
-        }
+        __prettifyResponse: prettifyResponse
       }
 
       return response

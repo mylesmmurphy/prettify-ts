@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
-import type { TypeInfo } from './types'
-import { formatTypeString, getTypeString } from './functions'
+import type { PrettifyResponse } from './types'
+import { formatTypeString, getDeclaration, getTypeString } from './functions'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {
   async function provideHover (
@@ -23,13 +23,17 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
       }
     )
 
-    const typeInfo: TypeInfo = response?.body?.__prettifyResponse?.typeInfo
+    const prettifyResponse: PrettifyResponse | undefined = response?.body?.__prettifyResponse
+    if (!prettifyResponse) return
+
+    const { typeInfo, syntaxKind, name } = prettifyResponse
 
     const typeString = getTypeString(typeInfo)
     const formattedTypeString = formatTypeString(typeString)
+    const declaration = getDeclaration(syntaxKind, name)
 
     const hoverText = new vscode.MarkdownString()
-    hoverText.appendCodeblock(`type test = ${formattedTypeString}`, document.languageId)
+    hoverText.appendCodeblock(`${declaration} ${formattedTypeString}`, document.languageId)
     return new vscode.Hover(hoverText)
   }
 

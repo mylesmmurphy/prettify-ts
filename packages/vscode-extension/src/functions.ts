@@ -1,7 +1,13 @@
+import { SyntaxKind } from 'typescript'
 import { type TypeInfo } from './types'
 
 /**
- * Uses type info to return a string representation of the type for Markdown rendering
+ * Uses type info to return a string representation of the type
+ *
+ * Example:
+ * { kind: 'union', types: [{ kind: 'basic', type: 'string' }, { kind: 'basic', type: 'number' }] }
+ * Yields:
+ * 'string | number'
  */
 export function getTypeString (typeInfo: TypeInfo): string {
   if (typeInfo.kind === 'union') {
@@ -10,11 +16,11 @@ export function getTypeString (typeInfo: TypeInfo): string {
 
   if (typeInfo.kind === 'intersection') {
     const properties = typeInfo.types.flatMap(t => t.kind === 'object' ? t.properties : [])
-    return `{ ${properties.map(p => `${p.name}: ${getTypeString(p.type)}`).join(' ')} }`
+    return `{ ${properties.map(p => `${p.name}: ${getTypeString(p.type)};`).join(' ')} }`
   }
 
   if (typeInfo.kind === 'object') {
-    return `{ ${typeInfo.properties.map(p => `${p.name}: ${getTypeString(p.type)}`).join(' ')} }`
+    return `{ ${typeInfo.properties.map(p => `${p.name}: ${getTypeString(p.type)};`).join(' ')} }`
   }
 
   if (typeInfo.kind === 'array') {
@@ -29,38 +35,93 @@ export function getTypeString (typeInfo: TypeInfo): string {
     return `Promise<${getTypeString(typeInfo.type)}>`
   }
 
-  return `${typeInfo.type};`
+  return `${typeInfo.type}`
+}
+
+/**
+ * Builds a declaration string based on the syntax kind
+ */
+export function getDeclaration (syntaxKind: SyntaxKind, typeName: string): string {
+  switch (syntaxKind) {
+    case SyntaxKind.ClassDeclaration:
+    case SyntaxKind.NewExpression:
+      return `class ${typeName}`
+
+    case SyntaxKind.ExpressionWithTypeArguments:
+    case SyntaxKind.InterfaceDeclaration:
+    case SyntaxKind.QualifiedName:
+      return `interface ${typeName}`
+
+    case SyntaxKind.ArrayType:
+    case SyntaxKind.ConstructorType:
+    case SyntaxKind.ConstructSignature:
+    case SyntaxKind.EnumDeclaration:
+    case SyntaxKind.FunctionType:
+    case SyntaxKind.IndexedAccessType:
+    case SyntaxKind.IndexSignature:
+    case SyntaxKind.IntersectionType:
+    case SyntaxKind.MappedType:
+    case SyntaxKind.PropertySignature:
+    case SyntaxKind.ThisType:
+    case SyntaxKind.TupleType:
+    case SyntaxKind.TypeAliasDeclaration:
+    case SyntaxKind.TypeAssertionExpression:
+    case SyntaxKind.TypeLiteral:
+    case SyntaxKind.TypeOperator:
+    case SyntaxKind.TypePredicate:
+    case SyntaxKind.TypeQuery:
+    case SyntaxKind.TypeReference:
+    case SyntaxKind.UnionType:
+      return `type ${typeName} =`
+
+    case SyntaxKind.FunctionDeclaration:
+    case SyntaxKind.FunctionKeyword:
+    case SyntaxKind.MethodDeclaration:
+    case SyntaxKind.MethodSignature:
+    case SyntaxKind.GetAccessor:
+    case SyntaxKind.SetAccessor:
+      return `function ${typeName}`
+
+    default:
+      return `const ${typeName}:`
+  }
 }
 
 export function formatTypeString (typeString: string, indentation = 2): string {
   if (indentation < 1) return typeString
 
-  // Add newline after { and ;
-  const splitDeclarationString = typeString
+  // Add newline after braces and semicolons
+  const splitTypeString = typeString
     .replace(/{/g, '{\n')
     .replace(/}/g, '\n}')
     .replace(/;/g, ';\n')
 
   let depth = 0
   let result = ''
-  const lines = splitDeclarationString.split('\n')
 
-  for (const line of lines) {
-    let trimmedLine = line.trim()
+  const lines = splitTypeString.split('\n')
 
-    // Remove redudant undefined union
-    if (trimmedLine.includes('?:') && trimmedLine.includes(' | undefined')) {
-      trimmedLine = trimmedLine.replace(' | undefined', '')
+  for (let line of lines) {
+    line = line.trim()
+
+    // Replace : with ?: if line contains undefined union
+    if (line.includes(':') && (line.includes(' | undefined') || line.includes('undefined | '))) {
+      line = line.replace(':', '?:').replace(' | undefined', '').replace('undefined | ', '')
     }
 
-    const hasOpenBrace = trimmedLine.includes('{')
-    const hasCloseBrace = trimmedLine.includes('}')
+    // Move undefined to the end of the line
+    if (line.includes('undefined | ')) {
+      line = line.replace('undefined | ', '') + ' | undefined'
+    }
+
+    const hasOpenBrace = line.includes('{')
+    const hasCloseBrace = line.includes('}')
 
     if (hasCloseBrace) {
       depth--
     }
 
-    result += ' '.repeat(indentation).repeat(depth) + trimmedLine + '\n'
+    result += ' '.repeat(indentation).repeat(depth) + line + '\n'
 
     if (hasOpenBrace) {
       depth++

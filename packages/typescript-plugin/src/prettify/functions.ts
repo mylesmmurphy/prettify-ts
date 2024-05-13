@@ -1,61 +1,81 @@
 import * as ts from 'typescript/lib/tsserverlibrary'
 
-import type { PrettifyRequest, TypeInfo } from './types'
+import type { PrettifyRequest, PrettifyResponse, TypeInfo } from './types'
 import { getDescendantAtRange } from './node'
 
 export function isPrettifyRequest (request: unknown): request is PrettifyRequest {
   return !!request && typeof request === 'object' && 'meta' in request && request['meta'] === 'prettify-request'
 }
 
-function getTypeInfo (type: ts.Type, checker: ts.TypeChecker): TypeInfo {
+/**
+ * Recursively get type information by building a TypeInfo object
+ */
+function getTypeInfo (type: ts.Type, checker: ts.TypeChecker, depth = 0, maxProps = 100): TypeInfo {
+  const typeName = checker.typeToString(type)
+
+  if (depth > 5) return { kind: 'basic', typeName, type: typeName }
+
   if (type.isUnion()) return {
     kind: 'union',
+    typeName,
     types: type.types.map(t => getTypeInfo(t, checker))
   }
 
   if (type.isIntersection()) return {
     kind: 'intersection',
+    typeName,
     types: type.types.map(t => getTypeInfo(t, checker))
   }
 
-  // if (checker.typeToString(type).includes('Promise')) {
-  //   const promiseType = checker.getTypeArguments(type as ts.TypeReference)[0]
-  //   if (!promiseType) return { kind: 'promise', type: { kind: 'any' } }
+  if (typeName.startsWith('Promise<')) {
+    const typeArgument = checker.getTypeArguments(type as ts.TypeReference)[0]
+    return {
+      kind: 'promise',
+      typeName,
+      type: typeArgument ? getTypeInfo(typeArgument, checker) : { kind: 'basic', typeName, type: 'void' }
+    }
+  }
 
-  //   return { kind: 'promise', type: getTypeInfo(promiseType, checker) }
-  // }
+  const signature = type.getCallSignatures()[0]
+  if (signature) return {
+    kind: 'function',
+    typeName,
+    returnType: getTypeInfo(checker.getReturnTypeOfSignature(signature), checker),
+    parameters: signature.parameters.map(symbol => {
+      return { name: symbol.getName(), type: getTypeInfo(checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!), checker) }
+    })
+  }
 
-  // const signature = type.getCallSignatures()[0]
-  // if (signature) return {
-  //   kind: 'function',
-  //   returnType: getTypeInfo(checker.getReturnTypeOfSignature(signature), checker),
-  //   parameters: signature.parameters.map(symbol => {
-  //     return { name: symbol.getName(), type: getTypeInfo(checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!), checker) }
-  //   })
-  // }
+  if (checker.isArrayType(type)) {
+    const arrayType = checker.getTypeArguments(type as ts.TypeReference)[0]
+    if (!arrayType) return {
+      kind: 'array',
+      typeName,
+      elementType: { kind: 'basic', typeName, type: 'any' }
+    }
 
-  // if (checker.isArrayType(type)) {
-  //   const arrayType = checker.getTypeArguments(type as ts.TypeReference)[0]
-  //   if (!arrayType) return { kind: 'array', elementType: { kind: 'any' } }
-
-  //   return {
-  //     kind: 'array',
-  //     elementType: getTypeInfo(arrayType, checker)
-  //   }
-  // }
+    return {
+      kind: 'array',
+      typeName,
+      elementType: getTypeInfo(arrayType, checker)
+    }
+  }
 
   if (type.isClassOrInterface() || (type.flags & ts.TypeFlags.Object)) return {
     kind: 'object',
-    properties: checker.getPropertiesOfType(type).map(symbol => {
+    typeName,
+    properties: type.getApparentProperties().slice(0, maxProps).map(symbol => {
+      const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
       return {
         name: symbol.getName(),
-        type: getTypeInfo(checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!), checker)
+        type: getTypeInfo(symbolType, checker, depth + 1) // Add depth to prevent infinite recursion
       }
     })
   }
 
   return {
-    kind: 'primitive',
+    kind: 'basic',
+    typeName,
     type: checker.typeToString(type)
   }
 }
@@ -64,21 +84,27 @@ export function getCompleteTypeInfoAtPosition (
   typeChecker: ts.TypeChecker,
   sourceFile: ts.SourceFile,
   position: number
-): TypeInfo | undefined {
+): PrettifyResponse | undefined {
   try {
     const node = getDescendantAtRange(sourceFile, [position, position])
 
-    if (!node || node === sourceFile) return undefined
+    if (!node || node === sourceFile || !node.parent) return undefined
 
     const type = typeChecker.getTypeAtLocation(node)
 
-    if (!node.parent) {
-      return undefined
+    const symbol = typeChecker.getSymbolAtLocation(node)
+
+    const declaration = symbol?.declarations?.[0]
+    const syntaxKind = declaration?.kind ?? ts.SyntaxKind.ConstKeyword
+    const name = symbol?.getName() ?? typeChecker.typeToString(type)
+
+    const typeInfo = getTypeInfo(type, typeChecker)
+
+    return {
+      typeInfo,
+      syntaxKind,
+      name
     }
-
-    const result = getTypeInfo(type, typeChecker)
-
-    return result
   } catch (e) {
     return undefined
   }
