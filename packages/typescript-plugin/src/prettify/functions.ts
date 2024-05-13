@@ -10,10 +10,10 @@ export function isPrettifyRequest (request: unknown): request is PrettifyRequest
 /**
  * Recursively get type information by building a TypeInfo object
  */
-function getTypeInfo (type: ts.Type, checker: ts.TypeChecker, depth = 0, maxProps = 100): TypeInfo {
+function getTypeInfo (type: ts.Type, checker: ts.TypeChecker, depth = 0, maxProps = 10): TypeInfo {
   const typeName = checker.typeToString(type)
 
-  if (depth > 5) return { kind: 'basic', typeName, type: typeName }
+  if (depth >= 2) return { kind: 'basic', typeName, type: typeName }
 
   if (type.isUnion()) return {
     kind: 'union',
@@ -90,9 +90,16 @@ export function getCompleteTypeInfoAtPosition (
 
     if (!node || node === sourceFile || !node.parent) return undefined
 
-    const type = typeChecker.getTypeAtLocation(node)
-
     const symbol = typeChecker.getSymbolAtLocation(node)
+    if (!symbol) return undefined
+
+    let type = typeChecker.getTypeOfSymbolAtLocation(symbol, node)
+
+    // If the symbol has a declared type, use that when available
+    const declaredType = typeChecker.getDeclaredTypeOfSymbol(symbol)
+    if (declaredType.flags !== ts.TypeFlags.Any) {
+      type = declaredType
+    }
 
     const declaration = symbol?.declarations?.[0]
     const syntaxKind = declaration?.kind ?? ts.SyntaxKind.ConstKeyword

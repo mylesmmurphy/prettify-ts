@@ -13,7 +13,7 @@
 			],
 			"preLaunchTask": "build root",
 			"env": {
-					"TSS_DEBUG_BRK": "9229"
+					"TSS_DEBUG": "9229"
 			}
 		},
 		{
