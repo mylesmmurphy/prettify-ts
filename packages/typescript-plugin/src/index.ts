@@ -1,10 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type * as ts from 'typescript/lib/tsserverlibrary'
 
+import type { FullPrettifyRequest, FullPrettifyResponse } from './prettify/types'
+import { getCompleteTypeInfoAtPosition, isPrettifyRequest } from './prettify/functions'
+
 function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
   const ts = modules.typescript
-  console.log('Plugin initialized test')
 
+  /**
+   * LSP plugin entry point
+   */
   function create (info: ts.server.PluginCreateInfo): ts.LanguageService {
     // Set up decorator object
     const proxy: ts.LanguageService = Object.create(null)
@@ -14,24 +19,37 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
       proxy[k] = (...args: unknown[]) => x.apply(info.languageService, args)
     }
 
-    // Remove specified entries from completion list
+    /**
+     *
+     */
     proxy.getCompletionsAtPosition = (fileName, position, options) => {
-      const prior = info.languageService.getCompletionsAtPosition(fileName, position, options)
-      if (!prior) return
-
-      const oldLength = prior.entries.length
-      const whatToRemove = ['foo', 'bar']
-      prior.entries = prior.entries.filter(e => !whatToRemove.includes(e.name))
-
-      // Sample logging for diagnostic purposes
-      if (oldLength !== prior.entries.length) {
-        const entriesRemoved = oldLength - prior.entries.length
-        info.project.projectService.logger.info(
-            `Removed ${entriesRemoved} entries from the completion list`
-        )
+      const requestBody = options?.triggerCharacter as FullPrettifyRequest
+      if (!isPrettifyRequest(requestBody)) {
+        return info.languageService.getCompletionsAtPosition(fileName, position, options)
       }
 
-      return prior
+      const program = info.project['program'] as ts.Program | undefined
+
+      if (!program) return undefined
+
+      const typeChecker = program.getTypeChecker()
+      const sourceFile = program.getSourceFile(fileName)
+
+      if (!sourceFile) return undefined
+
+      const typeInfo = getCompleteTypeInfoAtPosition(typeChecker, sourceFile, position)
+
+      const response: FullPrettifyResponse = {
+        isGlobalCompletion: false,
+        isMemberCompletion: false,
+        isNewIdentifierLocation: false,
+        entries: [],
+        __prettifyResponse: {
+          typeInfo
+        }
+      }
+
+      return response
     }
 
     return proxy

@@ -10,6 +10,9 @@
   },
   "rules": {
     "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/strict-boolean-expressions": "off"
+    "@typescript-eslint/strict-boolean-expressions": "off",
+    "@typescript-eslint/dot-notation": "off",
+    "@typescript-eslint/consistent-type-definitions": "off",
+    "curly": "off"
   }
 }
