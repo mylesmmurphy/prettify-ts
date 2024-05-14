@@ -7,24 +7,47 @@ export function isPrettifyRequest (request: unknown): request is PrettifyRequest
   return !!request && typeof request === 'object' && 'meta' in request && request['meta'] === 'prettify-request'
 }
 
+function isPublicProperty (symbol: ts.Symbol): boolean {
+  const declarations = symbol.getDeclarations()
+  if (!declarations) return true
+
+  const name = symbol.getName()
+  if (name.startsWith('_')) return false
+
+  return declarations.every(declaration => {
+    if (!(
+      ts.isMethodDeclaration(declaration) ||
+      ts.isMethodSignature(declaration) ||
+      ts.isPropertyDeclaration(declaration) ||
+      ts.isPropertySignature(declaration)
+    )) return true
+
+    const hasPrivateOrProtectedModifier = (declaration.modifiers ?? []).some(modifier => {
+      return modifier.kind === ts.SyntaxKind.PrivateKeyword || modifier.kind === ts.SyntaxKind.ProtectedKeyword
+    })
+
+    return !hasPrivateOrProtectedModifier
+  })
+}
+
 /**
  * Recursively get type information by building a TypeInfo object
  */
-function getTypeInfo (type: ts.Type, checker: ts.TypeChecker, depth = 0, maxProps = 10): TypeInfo {
+function getTypeInfo (type: ts.Type, checker: ts.TypeChecker, depth = 0, maxProps = 100): TypeInfo {
   const typeName = checker.typeToString(type)
 
-  if (depth >= 2) return { kind: 'basic', typeName, type: typeName }
+  if (depth >= 5) return { kind: 'basic', typeName, type: typeName }
 
   if (type.isUnion()) return {
     kind: 'union',
     typeName,
-    types: type.types.map(t => getTypeInfo(t, checker))
+    types: type.types.map(t => getTypeInfo(t, checker, depth))
   }
 
   if (type.isIntersection()) return {
     kind: 'intersection',
     typeName,
-    types: type.types.map(t => getTypeInfo(t, checker))
+    types: type.types.map(t => getTypeInfo(t, checker, depth))
   }
 
   if (typeName.startsWith('Promise<')) {
@@ -32,7 +55,7 @@ function getTypeInfo (type: ts.Type, checker: ts.TypeChecker, depth = 0, maxProp
     return {
       kind: 'promise',
       typeName,
-      type: typeArgument ? getTypeInfo(typeArgument, checker) : { kind: 'basic', typeName, type: 'void' }
+      type: typeArgument ? getTypeInfo(typeArgument, checker, depth) : { kind: 'basic', typeName, type: 'void' }
     }
   }
 
@@ -40,9 +63,9 @@ function getTypeInfo (type: ts.Type, checker: ts.TypeChecker, depth = 0, maxProp
   if (signature) return {
     kind: 'function',
     typeName,
-    returnType: getTypeInfo(checker.getReturnTypeOfSignature(signature), checker),
+    returnType: getTypeInfo(checker.getReturnTypeOfSignature(signature), checker, depth),
     parameters: signature.parameters.map(symbol => {
-      return { name: symbol.getName(), type: getTypeInfo(checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!), checker) }
+      return { name: symbol.getName(), type: getTypeInfo(checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!), checker, depth + 1) }
     })
   }
 
@@ -57,20 +80,27 @@ function getTypeInfo (type: ts.Type, checker: ts.TypeChecker, depth = 0, maxProp
     return {
       kind: 'array',
       typeName,
-      elementType: getTypeInfo(arrayType, checker)
+      elementType: getTypeInfo(arrayType, checker, depth + 1)
     }
   }
 
-  if (type.isClassOrInterface() || (type.flags & ts.TypeFlags.Object)) return {
-    kind: 'object',
-    typeName,
-    properties: type.getApparentProperties().slice(0, maxProps).map(symbol => {
-      const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
-      return {
-        name: symbol.getName(),
-        type: getTypeInfo(symbolType, checker, depth + 1) // Add depth to prevent infinite recursion
-      }
-    })
+  if (type.isClassOrInterface() || (type.flags & ts.TypeFlags.Object)) {
+    const publicProperties = type
+      .getApparentProperties()
+      .filter(isPublicProperty)
+      .slice(0, maxProps)
+
+    return {
+      kind: 'object',
+      typeName,
+      properties: publicProperties.map(symbol => {
+        const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
+        return {
+          name: symbol.getName(),
+          type: getTypeInfo(symbolType, checker, depth + 1) // Add depth to prevent infinite recursion
+        }
+      })
+    }
   }
 
   return {
