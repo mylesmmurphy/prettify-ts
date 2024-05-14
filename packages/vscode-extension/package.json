@@ -4,7 +4,7 @@
   "description": "View \"prettified\" and nested types in hover tooltips and sidebar.",
   "publisher": "MylesMurphy",
   "license": "MIT",
-  "version": "0.0.19",
+  "version": "0.1.0",
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.44.0"

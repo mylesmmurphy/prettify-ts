@@ -1,13 +1,13 @@
 import * as vscode from 'vscode'
-import type { PrettifyResponse } from './types'
-import { formatTypeString, getDeclaration, getTypeString } from './functions'
+import type { TypeInfo } from './types'
+import { formatTypeString, getDeclaration, getTypeString } from './type-tree-stringify'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {
   async function provideHover (
     document: vscode.TextDocument,
     position: vscode.Position
   ): Promise<vscode.Hover | undefined> {
-    const request = { meta: 'prettify-request' }
+    const request = { meta: 'prettify-type-info-request' }
     const location = {
       file: document.uri.fsPath,
       line: position.line + 1,
@@ -23,12 +23,12 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
       }
     )
 
-    const prettifyResponse: PrettifyResponse | undefined = response?.body?.__prettifyResponse
+    const prettifyResponse: TypeInfo | undefined = response?.body?.__prettifyResponse
     if (!prettifyResponse) return
 
-    const { typeInfo, syntaxKind, name } = prettifyResponse
+    const { typeTree, syntaxKind, name } = prettifyResponse
 
-    const typeString = getTypeString(typeInfo)
+    const typeString = getTypeString(typeTree)
     const formattedTypeString = formatTypeString(typeString)
     const declaration = getDeclaration(syntaxKind, name)
 

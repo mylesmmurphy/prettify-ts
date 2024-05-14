@@ -1,15 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type * as ts from 'typescript/lib/tsserverlibrary'
 
-import type { FullPrettifyRequest, FullPrettifyResponse } from './prettify/types'
-import { getCompleteTypeInfoAtPosition, isPrettifyRequest } from './prettify/functions'
+import { isPrettifyRequest } from './request'
+import type { PrettifyCompletionsTriggerCharacter, PrettifyResponse } from './request'
+import { getTypeTreeAtPosition } from './type-tree'
 
 function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
   const ts = modules.typescript
 
-  /**
-   * LSP plugin entry point
-   */
   function create (info: ts.server.PluginCreateInfo): ts.LanguageService {
     // Set up decorator object
     const proxy: ts.LanguageService = Object.create(null)
@@ -20,26 +18,25 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
     }
 
     /**
-     *
+     * Override getCompletionsAtPosition to provide prettify type information
      */
     proxy.getCompletionsAtPosition = (fileName, position, options) => {
-      const requestBody = options?.triggerCharacter as FullPrettifyRequest
+      const requestBody = options?.triggerCharacter as PrettifyCompletionsTriggerCharacter
       if (!isPrettifyRequest(requestBody)) {
         return info.languageService.getCompletionsAtPosition(fileName, position, options)
       }
 
       const program = info.project['program'] as ts.Program | undefined
-
       if (!program) return undefined
 
-      const typeChecker = program.getTypeChecker()
       const sourceFile = program.getSourceFile(fileName)
-
       if (!sourceFile) return undefined
 
-      const prettifyResponse = getCompleteTypeInfoAtPosition(typeChecker, sourceFile, position)
+      const typeChecker = program.getTypeChecker()
 
-      const response: FullPrettifyResponse = {
+      const prettifyResponse = getTypeTreeAtPosition(ts, typeChecker, sourceFile, position)
+
+      const response: PrettifyResponse = {
         isGlobalCompletion: false,
         isMemberCompletion: false,
         isNewIdentifierLocation: false,

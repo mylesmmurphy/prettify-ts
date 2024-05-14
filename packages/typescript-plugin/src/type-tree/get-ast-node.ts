@@ -1,9 +1,11 @@
-import * as ts from 'typescript/lib/tsserverlibrary'
+import type * as ts from 'typescript'
 
 /**
  * https://github.com/dsherret/ts-ast-viewer/blob/b4be8f2234a1c3c099296bf5d0ad6cc14107367c/site/src/compiler/getDescendantAtRange.ts
+ * https://github.com/mxsdev/ts-type-explorer/blob/main/packages/api/src/util.ts#L763
  */
 export function getDescendantAtRange (
+  typescript: typeof ts,
   sourceFile: ts.SourceFile,
   range: [number, number]
 ): ts.Node | undefined {
@@ -11,6 +13,7 @@ export function getDescendantAtRange (
     node: sourceFile,
     start: sourceFile.getStart(sourceFile)
   }
+
   searchDescendants(sourceFile)
   return bestMatch.node
 
@@ -22,7 +25,7 @@ export function getDescendantAtRange (
     })
 
     for (const child of children) {
-      if (child.kind !== ts.SyntaxKind.SyntaxList) {
+      if (child.kind !== typescript.SyntaxKind.SyntaxList) {
         if (isBeforeRange(child.end)) {
           continue
         }
@@ -33,7 +36,7 @@ export function getDescendantAtRange (
           return
         }
 
-        const isEndOfFileToken = child.kind === ts.SyntaxKind.EndOfFileToken
+        const isEndOfFileToken = child.kind === typescript.SyntaxKind.EndOfFileToken
         const hasSameStart = bestMatch.start === childStart && range[0] === childStart
 
         if (!isEndOfFileToken && !hasSameStart) {

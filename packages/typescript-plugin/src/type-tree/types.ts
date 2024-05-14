@@ -11,7 +11,7 @@ export type TypeTree = { typeName: string } & (
   | { kind: 'function', returnType: TypeTree, parameters: Array<{ name: string, type: TypeTree }> }
   | { kind: 'promise', type: TypeTree }
   | { kind: 'enum', values: string[] }
-  | { kind: 'basic', type: string } // https://www.typescriptlang.org/docs/handbook/basic-types.html
+  | { kind: 'basic' } // https://www.typescriptlang.org/docs/handbook/basic-types.html
 )
 
 /**

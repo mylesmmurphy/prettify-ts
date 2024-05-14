@@ -1,5 +1,5 @@
 import { SyntaxKind } from 'typescript'
-import { type TypeInfo } from './types'
+import { type TypeTree } from './types'
 
 /**
  * Uses type info to return a string representation of the type
@@ -9,33 +9,37 @@ import { type TypeInfo } from './types'
  * Yields:
  * 'string | number'
  */
-export function getTypeString (typeInfo: TypeInfo): string {
-  if (typeInfo.kind === 'union') {
-    return typeInfo.types.map(getTypeString).join(' | ')
+export function getTypeString (typeTree: TypeTree): string {
+  if (typeTree.kind === 'union') {
+    return typeTree.types.map(getTypeString).join(' | ')
   }
 
-  if (typeInfo.kind === 'intersection') {
-    const properties = typeInfo.types.flatMap(t => t.kind === 'object' ? t.properties : [])
+  if (typeTree.kind === 'intersection') {
+    const properties = typeTree.types.flatMap(t => t.kind === 'object' ? t.properties : [])
     return `{ ${properties.map(p => `${p.name}: ${getTypeString(p.type)};`).join(' ')} }`
   }
 
-  if (typeInfo.kind === 'object') {
-    return `{ ${typeInfo.properties.map(p => `${p.name}: ${getTypeString(p.type)};`).join(' ')} }`
+  if (typeTree.kind === 'object') {
+    return `{ ${typeTree.properties.map(p => `${p.name}: ${getTypeString(p.type)};`).join(' ')} }`
   }
 
-  if (typeInfo.kind === 'array') {
-    return `${getTypeString(typeInfo.elementType)}[]`
+  if (typeTree.kind === 'array') {
+    return `${getTypeString(typeTree.elementType)}[]`
   }
 
-  if (typeInfo.kind === 'function') {
-    return `(${typeInfo.parameters.map(p => `${p.name}: ${getTypeString(p.type)}`).join(', ')}) => ${getTypeString(typeInfo.returnType)}`
+  if (typeTree.kind === 'function') {
+    return `(${typeTree.parameters.map(p => `${p.name}: ${getTypeString(p.type)}`).join(', ')}) => ${getTypeString(typeTree.returnType)}`
   }
 
-  if (typeInfo.kind === 'promise') {
-    return `Promise<${getTypeString(typeInfo.type)}>`
+  if (typeTree.kind === 'enum') {
+    return typeTree.values.join(' | ')
   }
 
-  return `${typeInfo.type}`
+  if (typeTree.kind === 'promise') {
+    return `Promise<${getTypeString(typeTree.type)}>`
+  }
+
+  return `${typeTree.typeName}`
 }
 
 /**
@@ -113,6 +117,9 @@ export function formatTypeString (typeString: string, indentation = 2): string {
     if (line.includes('undefined | ')) {
       line = line.replace('undefined | ', '') + ' | undefined'
     }
+
+    // Replace true/false with boolean
+    line = line.replace('false | true', 'boolean').replace('false & true', 'boolean')
 
     const hasOpenBrace = line.includes('{')
     const hasCloseBrace = line.includes('}')
