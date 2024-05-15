@@ -32,7 +32,7 @@ export function getTypeString (typeTree: TypeTree): string {
   }
 
   if (typeTree.kind === 'enum') {
-    return typeTree.values.join(' | ')
+    return typeTree.member
   }
 
   if (typeTree.kind === 'promise') {

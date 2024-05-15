@@ -57,13 +57,24 @@ export function getTypeTreeAtPosition (
 function getTypeTree (type: ts.Type, depth = 0): TypeTree {
   const typeName = checker.typeToString(type)
 
-  if (depth >= maxDepth || isPrimitiveType(type)) return { kind: 'basic', typeName }
+  if (depth >= maxDepth || isPrimitiveType(type)) return {
+    kind: 'basic',
+    typeName
+  }
 
-  // TODO: type.types separates boolean into true and false
   if (type.isUnion()) return {
     kind: 'union',
     typeName,
     types: type.types.map(t => getTypeTree(t, depth))
+  }
+
+  const symbolWithParent = type.symbol as ts.Symbol & { parent?: ts.Symbol }
+  if (type.symbol.flags & typescript.SymbolFlags.EnumMember && symbolWithParent.parent) {
+    return {
+      kind: 'enum',
+      typeName,
+      member: `${symbolWithParent.parent.name}.${symbolWithParent.name}`
+    }
   }
 
   if (type.isIntersection()) return {
@@ -87,7 +98,8 @@ function getTypeTree (type: ts.Type, depth = 0): TypeTree {
     typeName,
     returnType: getTypeTree(checker.getReturnTypeOfSignature(signature), depth),
     parameters: signature.parameters.map(symbol => {
-      return { name: symbol.getName(), type: getTypeTree(checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!), depth + 1) }
+      const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
+      return { name: symbol.getName(), type: getTypeTree(symbolType, depth) }
     })
   }
 
@@ -102,7 +114,7 @@ function getTypeTree (type: ts.Type, depth = 0): TypeTree {
     return {
       kind: 'array',
       typeName,
-      elementType: getTypeTree(arrayType, depth + 1)
+      elementType: getTypeTree(arrayType, depth)
     }
   }
 
