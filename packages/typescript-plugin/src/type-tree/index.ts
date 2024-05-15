@@ -3,8 +3,8 @@ import type * as ts from 'typescript'
 import type { TypeInfo, TypeTree } from './types'
 import { getDescendantAtRange } from './get-ast-node'
 
-const maxProps = 100
-const maxDepth = 5
+const maxProps = 25
+const maxDepth = 3
 
 let typescript: typeof ts
 let checker: ts.TypeChecker
@@ -39,7 +39,7 @@ export function getTypeTreeAtPosition (
     const syntaxKind = symbol?.declarations?.[0]?.kind ?? typescript.SyntaxKind.ConstKeyword
     const name = symbol?.getName() ?? typeChecker.typeToString(type)
 
-    const typeTree = getTypeTree(type)
+    const typeTree = getTypeTree(type, 0, new Set())
 
     return {
       typeTree,
@@ -54,7 +54,7 @@ export function getTypeTreeAtPosition (
 /**
  * Recursively get type information by building a TypeInfo object
  */
-function getTypeTree (type: ts.Type, depth = 0): TypeTree {
+function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): TypeTree {
   const typeName = checker.typeToString(type)
 
   if (depth >= maxDepth || isPrimitiveType(type)) return {
@@ -62,14 +62,21 @@ function getTypeTree (type: ts.Type, depth = 0): TypeTree {
     typeName
   }
 
+  if (visited.has(type)) return {
+    kind: 'basic',
+    typeName
+  }
+
+  visited.add(type)
+
   if (type.isUnion()) return {
     kind: 'union',
     typeName,
-    types: type.types.map(t => getTypeTree(t, depth))
+    types: type.types.map(t => getTypeTree(t, depth, new Set(visited)))
   }
 
   const symbolWithParent = type.symbol as ts.Symbol & { parent?: ts.Symbol }
-  if (type.symbol.flags & typescript.SymbolFlags.EnumMember && symbolWithParent.parent) {
+  if (type?.symbol?.flags & typescript.SymbolFlags.EnumMember && symbolWithParent.parent) {
     return {
       kind: 'enum',
       typeName,
@@ -80,7 +87,7 @@ function getTypeTree (type: ts.Type, depth = 0): TypeTree {
   if (type.isIntersection()) return {
     kind: 'intersection',
     typeName,
-    types: type.types.map(t => getTypeTree(t, depth))
+    types: type.types.map(t => getTypeTree(t, depth, new Set(visited)))
   }
 
   if (typeName.startsWith('Promise<')) {
@@ -88,7 +95,7 @@ function getTypeTree (type: ts.Type, depth = 0): TypeTree {
     return {
       kind: 'promise',
       typeName,
-      type: typeArgument ? getTypeTree(typeArgument, depth) : { kind: 'basic', typeName: 'void' }
+      type: typeArgument ? getTypeTree(typeArgument, depth, new Set(visited)) : { kind: 'basic', typeName: 'void' }
     }
   }
 
@@ -96,10 +103,10 @@ function getTypeTree (type: ts.Type, depth = 0): TypeTree {
   if (signature) return {
     kind: 'function',
     typeName,
-    returnType: getTypeTree(checker.getReturnTypeOfSignature(signature), depth),
+    returnType: getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited)),
     parameters: signature.parameters.map(symbol => {
       const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
-      return { name: symbol.getName(), type: getTypeTree(symbolType, depth) }
+      return { name: symbol.getName(), type: getTypeTree(symbolType, depth, new Set(visited)) }
     })
   }
 
@@ -114,7 +121,7 @@ function getTypeTree (type: ts.Type, depth = 0): TypeTree {
     return {
       kind: 'array',
       typeName,
-      elementType: getTypeTree(arrayType, depth)
+      elementType: getTypeTree(arrayType, depth, new Set(visited))
     }
   }
 
@@ -131,7 +138,7 @@ function getTypeTree (type: ts.Type, depth = 0): TypeTree {
         const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
         return {
           name: symbol.getName(),
-          type: getTypeTree(symbolType, depth + 1) // Add depth to prevent infinite recursion
+          type: getTypeTree(symbolType, depth + 1, new Set(visited)) // Add depth to prevent infinite recursion
         }
       })
     }
