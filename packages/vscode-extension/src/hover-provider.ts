@@ -29,8 +29,12 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     const { typeTree, syntaxKind, name } = prettifyResponse
 
     const typeString = stringifyTypeTree(typeTree)
-    const prettyTypeString = prettyPrintTypeString(typeString)
+    let prettyTypeString = prettyPrintTypeString(typeString)
     const declaration = getSyntaxKindDeclaration(syntaxKind, name)
+
+    if (prettyTypeString.length > 99000) {
+      prettyTypeString = prettyTypeString.substring(0, 99000) + '...'
+    }
 
     const hoverText = new vscode.MarkdownString()
     hoverText.appendCodeblock(`${declaration} ${prettyTypeString}`, document.languageId)

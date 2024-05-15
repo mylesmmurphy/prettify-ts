@@ -3,8 +3,8 @@ import type * as ts from 'typescript'
 import type { TypeInfo, TypeTree } from './types'
 import { getDescendantAtRange } from './get-ast-node'
 
-const maxProps = 100
-const maxDepth = 3
+const maxProps = 20
+const maxDepth = 2
 
 let typescript: typeof ts
 let checker: ts.TypeChecker
@@ -72,7 +72,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   if (type.isUnion()) return {
     kind: 'union',
     typeName,
-    types: type.types.map(t => getTypeTree(t, depth, new Set(visited)))
+    types: type.types.map(t => getTypeTree(t, depth + 1, new Set(visited)))
   }
 
   const symbolWithParent = type.symbol as ts.Symbol & { parent?: ts.Symbol }
@@ -87,7 +87,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   if (type.isIntersection()) return {
     kind: 'intersection',
     typeName,
-    types: type.types.map(t => getTypeTree(t, depth, new Set(visited)))
+    types: type.types.map(t => getTypeTree(t, depth + 1, new Set(visited)))
   }
 
   if (typeName.startsWith('Promise<')) {
@@ -95,7 +95,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     return {
       kind: 'promise',
       typeName,
-      type: typeArgument ? getTypeTree(typeArgument, depth, new Set(visited)) : { kind: 'basic', typeName: 'void' }
+      type: typeArgument ? getTypeTree(typeArgument, depth + 1, new Set(visited)) : { kind: 'basic', typeName: 'void' }
     }
   }
 
@@ -103,10 +103,10 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   if (signature) return {
     kind: 'function',
     typeName,
-    returnType: getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited)),
+    returnType: getTypeTree(checker.getReturnTypeOfSignature(signature), depth + 1, new Set(visited)),
     parameters: signature.parameters.map(symbol => {
       const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
-      return { name: symbol.getName(), type: getTypeTree(symbolType, depth, new Set(visited)) }
+      return { name: symbol.getName(), type: getTypeTree(symbolType, depth + 1, new Set(visited)) }
     })
   }
 
@@ -121,7 +121,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     return {
       kind: 'array',
       typeName,
-      elementType: getTypeTree(arrayType, depth, new Set(visited))
+      elementType: getTypeTree(arrayType, depth + 1, new Set(visited))
     }
   }
 
