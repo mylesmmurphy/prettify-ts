@@ -3,7 +3,7 @@ import type * as ts from 'typescript'
 import type { TypeInfo, TypeTree } from './types'
 import { getDescendantAtRange } from './get-ast-node'
 
-const maxProps = 25
+const maxProps = 100
 const maxDepth = 3
 
 let typescript: typeof ts

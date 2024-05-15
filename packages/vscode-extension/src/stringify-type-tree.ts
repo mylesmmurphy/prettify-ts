@@ -9,26 +9,26 @@ import { type TypeTree } from './types'
  * Yields:
  * 'string | number'
  */
-export function getTypeString (typeTree: TypeTree): string {
+export function stringifyTypeTree (typeTree: TypeTree): string {
   if (typeTree.kind === 'union') {
-    return typeTree.types.map(getTypeString).join(' | ')
+    return typeTree.types.map(stringifyTypeTree).join(' | ')
   }
 
   if (typeTree.kind === 'intersection') {
     const properties = typeTree.types.flatMap(t => t.kind === 'object' ? t.properties : [])
-    return `{ ${properties.map(p => `${p.name}: ${getTypeString(p.type)};`).join(' ')} }`
+    return `{ ${properties.map(p => `${p.name}: ${stringifyTypeTree(p.type)};`).join(' ')} }`
   }
 
   if (typeTree.kind === 'object') {
-    return `{ ${typeTree.properties.map(p => `${p.name}: ${getTypeString(p.type)};`).join(' ')} }`
+    return `{ ${typeTree.properties.map(p => `${p.name}: ${stringifyTypeTree(p.type)};`).join(' ')} }`
   }
 
   if (typeTree.kind === 'array') {
-    return `${getTypeString(typeTree.elementType)}[]`
+    return `${stringifyTypeTree(typeTree.elementType)}[]`
   }
 
   if (typeTree.kind === 'function') {
-    return `(${typeTree.parameters.map(p => `${p.name}: ${getTypeString(p.type)}`).join(', ')}) => ${getTypeString(typeTree.returnType)}`
+    return `(${typeTree.parameters.map(p => `${p.name}: ${stringifyTypeTree(p.type)}`).join(', ')}) => ${stringifyTypeTree(typeTree.returnType)}`
   }
 
   if (typeTree.kind === 'enum') {
@@ -36,7 +36,7 @@ export function getTypeString (typeTree: TypeTree): string {
   }
 
   if (typeTree.kind === 'promise') {
-    return `Promise<${getTypeString(typeTree.type)}>`
+    return `Promise<${stringifyTypeTree(typeTree.type)}>`
   }
 
   return `${typeTree.typeName}`
@@ -45,7 +45,7 @@ export function getTypeString (typeTree: TypeTree): string {
 /**
  * Builds a declaration string based on the syntax kind
  */
-export function getDeclaration (syntaxKind: SyntaxKind, typeName: string): string {
+export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: string): string {
   switch (syntaxKind) {
     case SyntaxKind.ClassDeclaration:
     case SyntaxKind.NewExpression:
@@ -91,7 +91,7 @@ export function getDeclaration (syntaxKind: SyntaxKind, typeName: string): strin
   }
 }
 
-export function formatTypeString (typeString: string, indentation = 2): string {
+export function prettyPrintTypeString (typeString: string, indentation = 2): string {
   if (indentation < 1) return typeString
 
   // Add newline after braces and semicolons
@@ -116,6 +116,14 @@ export function formatTypeString (typeString: string, indentation = 2): string {
     // Move undefined to the end of the line
     if (line.includes('undefined | ')) {
       line = line.replace('undefined | ', '') + ' | undefined'
+    }
+
+    if (line.includes('null | ')) {
+      line = line.replace('null | ', '') + ' | null'
+    }
+
+    if (line.includes('void | ')) {
+      line = line.replace('void | ', '') + ' | void'
     }
 
     // Replace true/false with boolean
