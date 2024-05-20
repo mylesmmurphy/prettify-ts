@@ -113,19 +113,6 @@ export function prettyPrintTypeString (typeString: string, indentation = 2): str
       line = line.replace(':', '?:').replace(' | undefined', '').replace('undefined | ', '')
     }
 
-    // Move undefined to the end of the line
-    if (line.includes('undefined | ')) {
-      line = line.replace('undefined | ', '') + ' | undefined'
-    }
-
-    if (line.includes('null | ')) {
-      line = line.replace('null | ', '') + ' | null'
-    }
-
-    if (line.includes('void | ')) {
-      line = line.replace('void | ', '') + ' | void'
-    }
-
     // Replace true/false with boolean
     line = line.replace('false | true', 'boolean').replace('false & true', 'boolean')
 
