@@ -3,7 +3,7 @@ import type * as ts from 'typescript'
 import type { TypeInfo, TypeTree } from './types'
 import { getDescendantAtRange } from './get-ast-node'
 
-const maxProps = 20
+const maxProps = 999999
 const maxDepth = 2
 
 let typescript: typeof ts
@@ -12,7 +12,7 @@ let checker: ts.TypeChecker
 /**
  * Get type information at a position in a source file
  */
-export function getTypeTreeAtPosition (
+export function getTypeInfoAtPosition (
   typescriptContext: typeof ts,
   typeChecker: ts.TypeChecker,
   sourceFile: ts.SourceFile,
@@ -55,7 +55,8 @@ export function getTypeTreeAtPosition (
  * Recursively get type information by building a TypeInfo object
  */
 function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): TypeTree {
-  const typeName = checker.typeToString(type)
+  const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
+  const apparentType = checker.getApparentType(type)
 
   if (depth >= maxDepth || isPrimitiveType(type)) return {
     kind: 'basic',
@@ -75,12 +76,11 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     types: type.types.map(t => getTypeTree(t, depth, new Set(visited)))
   }
 
-  const symbolWithParent = type.symbol as ts.Symbol & { parent?: ts.Symbol }
-  if (type?.symbol?.flags & typescript.SymbolFlags.EnumMember && symbolWithParent.parent) {
+  if (type?.symbol?.flags & typescript.SymbolFlags.EnumMember && type.symbol.parent) {
     return {
       kind: 'enum',
       typeName,
-      member: `${symbolWithParent.parent.name}.${symbolWithParent.name}`
+      member: `${type.symbol.parent.name}.${type.symbol.name}`
     }
   }
 
@@ -91,56 +91,77 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   }
 
   if (typeName.startsWith('Promise<')) {
-    const typeArgument = checker.getTypeArguments(type as ts.TypeReference)[0]
+    const typeArgument = checker.getTypeArguments(apparentType as ts.TypeReference)[0]
     return {
       kind: 'promise',
       typeName,
-      type: typeArgument ? getTypeTree(typeArgument, depth + 1, new Set(visited)) : { kind: 'basic', typeName: 'void' }
+      type: typeArgument ? getTypeTree(typeArgument, depth, new Set(visited)) : { kind: 'basic', typeName: 'void' }
     }
   }
 
-  const signature = type.getCallSignatures()[0]
-  if (signature) return {
-    kind: 'function',
-    typeName,
-    returnType: getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited)),
-    parameters: signature.parameters.map(symbol => {
-      const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
-      return { name: symbol.getName(), type: getTypeTree(symbolType, depth, new Set(visited)) }
-    })
+  const signature = apparentType.getCallSignatures()[0]
+  if (signature) {
+    const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth + 1, new Set(visited))
+    const parameters = signature.parameters.map(symbol => ({
+      name: symbol.getName(),
+      type: getTypeTree(checker.getTypeOfSymbol(symbol), depth + 1, new Set(visited))
+    }))
+
+    return {
+      kind: 'function',
+      typeName,
+      returnType,
+      parameters
+    }
   }
 
   if (checker.isArrayType(type)) {
     const arrayType = checker.getTypeArguments(type as ts.TypeReference)[0]
-    if (!arrayType) return {
-      kind: 'array',
-      typeName,
-      elementType: { kind: 'basic', typeName: 'any' }
-    }
+    const elementType: TypeTree = arrayType
+      ? getTypeTree(arrayType, depth, new Set(visited))
+      : { kind: 'basic', typeName: 'any' }
 
     return {
       kind: 'array',
       typeName,
-      elementType: getTypeTree(arrayType, depth, new Set(visited))
+      elementType
     }
   }
 
-  if (type.isClassOrInterface() || (type.flags & typescript.TypeFlags.Object)) {
-    const publicProperties = type
+  if (apparentType.isClassOrInterface() || (apparentType.flags & typescript.TypeFlags.Object)) {
+    const publicProperties = apparentType
       .getApparentProperties()
       .filter((symbol) => isPublicProperty(symbol))
       .slice(0, maxProps)
 
+    const properties = publicProperties.map(symbol => {
+      const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
+      return {
+        name: symbol.getName(),
+        type: getTypeTree(symbolType, depth + 1, new Set(visited)) // Add depth to prevent infinite recursion
+      }
+    })
+
+    const stringIndexType = type.getStringIndexType()
+    if (stringIndexType) {
+      properties.push({
+        name: '[key: string]',
+        type: getTypeTree(stringIndexType, depth + 1, new Set(visited))
+      })
+    }
+
+    const numberIndexType = type.getNumberIndexType()
+    if (numberIndexType) {
+      properties.push({
+        name: '[key: number]',
+        type: getTypeTree(numberIndexType, depth + 1, new Set(visited))
+      })
+    }
+
     return {
       kind: 'object',
       typeName,
-      properties: publicProperties.map(symbol => {
-        const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
-        return {
-          name: symbol.getName(),
-          type: getTypeTree(symbolType, depth + 1, new Set(visited)) // Add depth to prevent infinite recursion
-        }
-      })
+      properties
     }
   }
 
@@ -161,7 +182,12 @@ function isPrimitiveType (type: ts.Type): boolean {
     typeFlags & typescript.TypeFlags.Null ||
     typeFlags & typescript.TypeFlags.Void ||
     typeFlags & typescript.TypeFlags.Enum ||
-    typeFlags & typescript.TypeFlags.BigInt
+    typeFlags & typescript.TypeFlags.BigInt ||
+    typeFlags & typescript.TypeFlags.ESSymbol ||
+    typeFlags & typescript.TypeFlags.UniqueESSymbol ||
+    typeFlags & typescript.TypeFlags.Never ||
+    typeFlags & typescript.TypeFlags.Unknown ||
+    typeFlags & typescript.TypeFlags.Any
   )
 }
 

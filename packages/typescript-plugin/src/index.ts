@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import type * as ts from 'typescript/lib/tsserverlibrary'
+import type * as ts from 'typescript'
 
 import { isPrettifyRequest } from './request'
 import type { PrettifyCompletionsTriggerCharacter, PrettifyResponse } from './request'
-import { getTypeTreeAtPosition } from './type-tree'
+import { getTypeInfoAtPosition } from './type-tree'
 
 function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
   const ts = modules.typescript
@@ -15,6 +14,12 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
       const x = info.languageService[k]!
       // @ts-expect-error - JS runtime trickery which is tricky to type tersely
       proxy[k] = (...args: unknown[]) => x.apply(info.languageService, args)
+    }
+
+    proxy.getQuickInfoAtPosition = (fileName, position) => {
+      const original = info.languageService.getQuickInfoAtPosition(fileName, position)
+
+      return original
     }
 
     /**
@@ -34,7 +39,7 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
 
       const typeChecker = program.getTypeChecker()
 
-      const prettifyResponse = getTypeTreeAtPosition(ts, typeChecker, sourceFile, position)
+      const prettifyResponse = getTypeInfoAtPosition(ts, typeChecker, sourceFile, position)
 
       const response: PrettifyResponse = {
         isGlobalCompletion: false,
