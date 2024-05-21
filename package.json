@@ -3,18 +3,13 @@
   "publisher": "MylesMurphy",
   "license": "MIT",
   "version": "0.1.0",
-  "engines": {
-    "vscode": "^1.44.0"
-  },
-  "workspaces": [
-    "packages/*"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mylesmmurphy/prettify-ts"
+  "private": true,
+  "workspaces": {
+    "packages": ["packages/*"]
   },
   "scripts": {
-    "build": "npm run build --workspaces"
+    "build": "yarn workspaces run build",
+    "package": "yarn workspaces run build && yarn && yarn workspace prettify-ts-vscode-extension run package"
   },
   "devDependencies": {
     "@types/node": "18.x",

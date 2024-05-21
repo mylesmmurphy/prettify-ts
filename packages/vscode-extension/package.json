@@ -1,10 +1,33 @@
 {
-  "name": "@prettify-ts/vscode-extension",
-  "displayName": "Prettify TypeScript: Better Type Previews",
-  "description": "View \"prettified\" and nested types in hover tooltips and sidebar.",
+  "name": "prettify-ts-vscode-extension",
   "publisher": "MylesMurphy",
   "license": "MIT",
+  "private": true,
   "version": "0.1.0",
+  "main": "./out/extension.js",
+  "workspaces": {
+    "nohoist": [
+      "**"
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p ./",
+    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --external:src/prism --format=cjs --platform=node",
+    "vscode:prepublish": "yarn run esbuild",
+    "package": "vsce package --yarn --dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.44.0",
+    "esbuild": "^0.19.10"
+  },
+  "dependencies": {
+    "@prettify-ts/typescript-plugin": "*",
+    "typescript": "^5.3.3"
+  },
+  "displayName": "Prettify TypeScript: Better Type Previews",
+  "description": "View \"prettified\" and nested types in hover tooltips and sidebar.",
+  "preview": true,
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.44.0"
@@ -20,14 +43,19 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:typescriptreact",
+    "onLanguage:javascriptreact"
   ],
-  "main": "./out/extension.js",
   "contributes": {
-    "typescriptServerPlugins": [{
+    "typescriptServerPlugins": [
+      {
         "name": "@prettify-ts/typescript-plugin",
         "enableForWorkspaceTypeScriptVersions": true
-    }],
+      }
+    ],
     "configuration": {
       "title": "Prettify TS",
       "properties": {
@@ -46,7 +74,7 @@
         },
         "prettify-ts.maxSubProperties": {
           "type": "number",
-          "default": 5,
+          "default": 10,
           "description": "The maximum number of properties to show in a nested (depth greater than 1) type."
         },
         "prettify-ts.unwrapFunctions": {
@@ -69,7 +97,9 @@
           "items": {
             "type": "string"
           },
-          "default": ["Element"],
+          "default": [
+            "Element"
+          ],
           "description": "Types that won't be unwrapped, by name."
         },
         "prettify-ts.maxCharacters": {
@@ -81,23 +111,5 @@
         }
       }
     }
-  },
-  "scripts": {
-    "build": "tsc",
-    "vscode:prepublish": "npm run esbuild",
-    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts"
-  },
-  "devDependencies": {
-    "@types/node": "18.x",
-    "@types/vscode": "^1.44.0",
-    "esbuild": "^0.19.10",
-    "mkdirp": "^3.0.1",
-    "ncp": "^2.0.0"
-  },
-  "dependencies": {
-    "typescript": "^5.3.3"
   }
 }

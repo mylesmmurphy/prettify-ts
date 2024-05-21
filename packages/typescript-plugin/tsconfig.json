@@ -10,8 +10,5 @@
     "skipLibCheck": true,
     "strictNullChecks": true,
     "noUncheckedIndexedAccess": true
-  },
-  "paths": [
-    "src/**"
-  ]
+  }
 }
