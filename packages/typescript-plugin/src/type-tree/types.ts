@@ -8,7 +8,7 @@ export type TypeProperty = { name: string, readonly: boolean, type: TypeTree }
 export type TypeTree = { typeName: string } & (
   | { kind: 'union', types: TypeTree[] }
   | { kind: 'intersection', types: TypeTree[] }
-  | { kind: 'object', properties: TypeProperty[] }
+  | { kind: 'object', excessProperties: number, properties: TypeProperty[] }
   | { kind: 'array', readonly: boolean, elementType: TypeTree }
   | { kind: 'function', returnType: TypeTree, parameters: TypeProperty[] }
   | { kind: 'promise', type: TypeTree }

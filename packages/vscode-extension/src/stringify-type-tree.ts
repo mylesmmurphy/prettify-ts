@@ -16,19 +16,28 @@ export function stringifyTypeTree (typeTree: TypeTree): string {
 
   if (typeTree.kind === 'intersection') {
     const nonObjectTypeStrings = typeTree.types.filter(t => t.kind !== 'object').map(stringifyTypeTree)
+
+    const objectTypes = typeTree.types.filter((t): t is Extract<TypeTree, { kind: 'object' }> => t.kind === 'object')
+    const objectTypesProperties = objectTypes.flatMap(t => t.properties)
+    const objectTypeExcessProperties = objectTypes.reduce((acc, t) => acc + t.excessProperties, 0)
     const mergedObjectTypeString = stringifyTypeTree({
       kind: 'object',
       typeName: typeTree.typeName,
-      properties: typeTree.types
-        .filter((t): t is Extract<TypeTree, { kind: 'object' }> => t.kind === 'object')
-        .flatMap(t => t.properties)
+      properties: objectTypesProperties,
+      excessProperties: objectTypeExcessProperties
     })
 
     return [mergedObjectTypeString, ...nonObjectTypeStrings].join(' & ')
   }
 
   if (typeTree.kind === 'object') {
-    return `{ ${typeTree.properties.map(p => `${p.readonly ? 'readonly ' : ''}${p.name}: ${stringifyTypeTree(p.type)};`).join(' ')} }`
+    let propertiesString = typeTree.properties.map(p => `${p.readonly ? 'readonly ' : ''}${p.name}: ${stringifyTypeTree(p.type)};`).join(' ')
+
+    if (typeTree.excessProperties > 0) {
+      propertiesString += `... ${typeTree.excessProperties} more;`
+    }
+
+    return `{ ${propertiesString} }`
   }
 
   if (typeTree.kind === 'array') {
@@ -123,6 +132,9 @@ export function prettyPrintTypeString (typeString: string, indentation = 2): str
 
     // Replace true/false with boolean
     line = line.replace('false | true', 'boolean').replace('false & true', 'boolean')
+
+    // Remove semi-colons from excess properties
+    line = line.replace('more;', 'more')
 
     const hasOpenBrace = line.includes('{')
     const hasCloseBrace = line.includes('}')

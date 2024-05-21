@@ -18,7 +18,7 @@ let options: PrettifyOptions = {
 }
 
 // Tracks the properties processed so far
-// let propsCount = 0
+let propertiesCount = 0
 
 /**
  * Get TypeInfo at a position in a source file
@@ -34,7 +34,7 @@ export function getTypeInfoAtPosition (
     typescript = typescriptContext
     checker = typeChecker
     options = prettifyOptions
-    propsCount = 0
+    propertiesCount = 0
 
     const node = getDescendantAtRange(typescript, sourceFile, [position, position])
     if (!node || node === sourceFile || !node.parent) return undefined
@@ -72,7 +72,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
   const apparentType = checker.getApparentType(type)
 
-  if (depth > options.maxDepth || isPrimitiveType(type) || options.skippedTypeNames.includes(typeName)) return {
+  if (depth >= options.maxDepth || isPrimitiveType(type) || options.skippedTypeNames.includes(typeName)) return {
     kind: 'basic',
     typeName
   }
@@ -119,11 +119,11 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   if (signature) {
     if (!options.unwrapFunctions) return { kind: 'basic', typeName }
 
-    const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth + 1, new Set(visited))
+    const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited))
     const parameters = signature.parameters.map(symbol => ({
       name: symbol.getName(),
       readonly: isReadOnly(symbol),
-      type: getTypeTree(checker.getTypeOfSymbol(symbol), depth + 1, new Set(visited))
+      type: getTypeTree(checker.getTypeOfSymbol(symbol), depth, new Set(visited))
     }))
 
     return {
@@ -151,13 +151,20 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   }
 
   if (apparentType.isClassOrInterface() || (apparentType.flags & typescript.TypeFlags.Object)) {
-    const publicProperties = apparentType
-      .getApparentProperties()
-      .filter((symbol) => isPublicProperty(symbol))
-      .slice(0, options.maxProperties)
+    if (propertiesCount >= options.maxProperties) return { kind: 'basic', typeName }
+
+    const remainingProperties = options.maxProperties - propertiesCount
+    const depthMaxProps = depth >= 1 ? options.maxSubProperties : options.maxProperties
+    const allowedPropertiesCount = Math.min(depthMaxProps, remainingProperties)
+
+    const allPublicProperties = apparentType.getProperties().filter((symbol) => isPublicProperty(symbol))
+    const publicProperties = allPublicProperties.slice(0, allowedPropertiesCount)
+
+    propertiesCount += publicProperties.length
+    const excessProperties = Math.max(allPublicProperties.length - publicProperties.length, 0)
 
     const properties: TypeProperty[] = publicProperties.map(symbol => {
-      const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
+      const symbolType = checker.getTypeOfSymbol(symbol)
       return {
         name: symbol.getName(),
         readonly: isReadOnly(symbol),
@@ -186,7 +193,8 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     return {
       kind: 'object',
       typeName,
-      properties
+      properties,
+      excessProperties
     }
   }
 
@@ -246,7 +254,9 @@ function isPublicProperty (symbol: ts.Symbol): boolean {
   })
 }
 
-function isReadOnly (symbol: ts.Symbol): boolean {
+function isReadOnly (symbol: ts.Symbol | undefined): boolean {
+  if (!symbol) return false
+
   const declarations = symbol.getDeclarations()
   if (!declarations) return false
 

@@ -42,24 +42,27 @@
         "prettify-ts.maxProperties": {
           "type": "number",
           "default": 100,
-          "description": "The maximum number of properties (including sub-properties) to show in a type preview."
+          "description": "The maximum number of properties (including sub-properties) to show in a type preview. The number of lines shown will be at most this number."
         },
         "prettify-ts.maxSubProperties": {
           "type": "number",
           "default": 5,
-          "description": "The maximum number of properties to show in a nested type."
+          "description": "The maximum number of properties to show in a nested (depth greater than 1) type."
         },
         "prettify-ts.unwrapFunctions": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Prettify function parameters and return types."
         },
         "prettify-ts.unwrapArrays": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Prettify array element types."
         },
         "prettify-ts.unwrapPromises": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Prettify the resolved type of a promise."
         },
         "prettify-ts.skippedTypeNames": {
           "type": "array",
@@ -74,7 +77,7 @@
           "default": 20000,
           "minimum": 0,
           "maximum": 99000,
-          "description": "The maximum number of characters to show in a type preview. Max  (High performance impact)"
+          "description": "The maximum number of string characters to show in a type preview before cutting off. (High performance impact)"
         }
       }
     }
