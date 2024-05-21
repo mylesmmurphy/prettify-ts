@@ -16,12 +16,6 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
       proxy[k] = (...args: unknown[]) => x.apply(info.languageService, args)
     }
 
-    proxy.getQuickInfoAtPosition = (fileName, position) => {
-      const original = info.languageService.getQuickInfoAtPosition(fileName, position)
-
-      return original
-    }
-
     /**
      * Override getCompletionsAtPosition to provide prettify type information
      */
@@ -37,9 +31,9 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
       const sourceFile = program.getSourceFile(fileName)
       if (!sourceFile) return undefined
 
-      const typeChecker = program.getTypeChecker()
+      const checker = program.getTypeChecker()
 
-      const prettifyResponse = getTypeInfoAtPosition(ts, typeChecker, sourceFile, position)
+      const prettifyResponse = getTypeInfoAtPosition(ts, checker, sourceFile, position)
 
       const response: PrettifyResponse = {
         isGlobalCompletion: false,

@@ -1,13 +1,16 @@
 import type * as ts from 'typescript'
 
-import type { TypeInfo, TypeTree } from './types'
+import type { TypeInfo, TypeProperty, TypeTree } from './types'
 import { getDescendantAtRange } from './get-ast-node'
-
-const maxProps = 999999
-const maxDepth = 2
 
 let typescript: typeof ts
 let checker: ts.TypeChecker
+
+// Configuration Parameters
+let maxProps = 100
+let maxDepth = 2
+
+let propsCount = 0
 
 /**
  * Get type information at a position in a source file
@@ -104,6 +107,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth + 1, new Set(visited))
     const parameters = signature.parameters.map(symbol => ({
       name: symbol.getName(),
+      readonly: isReadOnly(symbol),
       type: getTypeTree(checker.getTypeOfSymbol(symbol), depth + 1, new Set(visited))
     }))
 
@@ -124,6 +128,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     return {
       kind: 'array',
       typeName,
+      readonly: type.getSymbol()?.getName() === 'ReadonlyArray',
       elementType
     }
   }
@@ -134,10 +139,11 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       .filter((symbol) => isPublicProperty(symbol))
       .slice(0, maxProps)
 
-    const properties = publicProperties.map(symbol => {
+    const properties: TypeProperty[] = publicProperties.map(symbol => {
       const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
       return {
         name: symbol.getName(),
+        readonly: isReadOnly(symbol),
         type: getTypeTree(symbolType, depth + 1, new Set(visited)) // Add depth to prevent infinite recursion
       }
     })
@@ -146,6 +152,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     if (stringIndexType) {
       properties.push({
         name: '[key: string]',
+        readonly: isReadOnly(stringIndexType.symbol),
         type: getTypeTree(stringIndexType, depth + 1, new Set(visited))
       })
     }
@@ -154,6 +161,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     if (numberIndexType) {
       properties.push({
         name: '[key: number]',
+        readonly: isReadOnly(numberIndexType.symbol),
         type: getTypeTree(numberIndexType, depth + 1, new Set(visited))
       })
     }
@@ -222,4 +230,17 @@ function isPublicProperty (symbol: ts.Symbol): boolean {
 
     return !hasPrivateOrProtectedModifier
   })
+}
+
+function isReadOnly (symbol: ts.Symbol): boolean {
+  const declarations = symbol.getDeclarations()
+  if (!declarations) return false
+
+  return declarations.some(declaration => (
+    (
+      typescript.isParameter(declaration) ||
+      typescript.isPropertyDeclaration(declaration) ||
+      typescript.isMethodDeclaration(declaration)
+    ) &&
+    declaration.modifiers?.some(modifier => modifier.kind === typescript.SyntaxKind.ReadonlyKeyword)))
 }

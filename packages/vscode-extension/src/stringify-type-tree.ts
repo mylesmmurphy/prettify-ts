@@ -1,5 +1,5 @@
 import { SyntaxKind } from 'typescript'
-import { type TypeTree } from './types'
+import type { TypeTree } from './types'
 
 /**
  * Uses type info to return a string representation of the type
@@ -15,16 +15,24 @@ export function stringifyTypeTree (typeTree: TypeTree): string {
   }
 
   if (typeTree.kind === 'intersection') {
-    const properties = typeTree.types.flatMap(t => t.kind === 'object' ? t.properties : [])
-    return `{ ${properties.map(p => `${p.name}: ${stringifyTypeTree(p.type)};`).join(' ')} }`
+    const nonObjectTypeStrings = typeTree.types.filter(t => t.kind !== 'object').map(stringifyTypeTree)
+    const mergedObjectTypeString = stringifyTypeTree({
+      kind: 'object',
+      typeName: typeTree.typeName,
+      properties: typeTree.types
+        .filter((t): t is Extract<TypeTree, { kind: 'object' }> => t.kind === 'object')
+        .flatMap(t => t.properties)
+    })
+
+    return [mergedObjectTypeString, ...nonObjectTypeStrings].join(' & ')
   }
 
   if (typeTree.kind === 'object') {
-    return `{ ${typeTree.properties.map(p => `${p.name}: ${stringifyTypeTree(p.type)};`).join(' ')} }`
+    return `{ ${typeTree.properties.map(p => `${p.readonly ? 'readonly ' : ''}${p.name}: ${stringifyTypeTree(p.type)};`).join(' ')} }`
   }
 
   if (typeTree.kind === 'array') {
-    return `${stringifyTypeTree(typeTree.elementType)}[]`
+    return `${typeTree.readonly ? 'readonly ' : ''}${stringifyTypeTree(typeTree.elementType)}[]`
   }
 
   if (typeTree.kind === 'function') {
@@ -39,7 +47,7 @@ export function stringifyTypeTree (typeTree: TypeTree): string {
     return `Promise<${stringifyTypeTree(typeTree.type)}>`
   }
 
-  return `${typeTree.typeName}`
+  return typeTree.typeName
 }
 
 /**
