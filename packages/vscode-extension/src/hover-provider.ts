@@ -2,13 +2,11 @@ import * as vscode from 'vscode'
 import type { PrettifyRequest, TypeInfo } from './types'
 import { prettyPrintTypeString, getSyntaxKindDeclaration, stringifyTypeTree } from './stringify-type-tree'
 
-export function registerHoverProvider (context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel): void {
+export function registerHoverProvider (context: vscode.ExtensionContext): void {
   async function provideHover (
     document: vscode.TextDocument,
     position: vscode.Position
   ): Promise<vscode.Hover | undefined> {
-    outputChannel.appendLine(`hoverProvider: ${document.uri.fsPath} ${position.line + 1}:${position.character + 1}`)
-
     const config = vscode.workspace.getConfiguration('prettify-ts')
     const indentation = config.get('typeIndentation', 4)
     const maxCharacters = config.get('maxCharacters', 20000)
@@ -22,8 +20,6 @@ export function registerHoverProvider (context: vscode.ExtensionContext, outputC
       unwrapPromises: config.get('unwrapPromises', true),
       skippedTypeNames: config.get('skippedTypeNames', [])
     }
-
-    outputChannel.appendLine(`options: ${JSON.stringify(options)}`)
 
     const request: PrettifyRequest = {
       meta: 'prettify-type-info-request',
@@ -44,8 +40,6 @@ export function registerHoverProvider (context: vscode.ExtensionContext, outputC
         triggerCharacter: request
       }
     )
-
-    outputChannel.appendLine(`response: ${JSON.stringify(response)}`)
 
     const prettifyResponse: TypeInfo | undefined = response?.body?.__prettifyResponse
     if (!prettifyResponse) return

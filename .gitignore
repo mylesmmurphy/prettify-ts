@@ -1,8 +1,6 @@
 # Ignore node_modules directory
 node_modules/
-
-# Ignore build output
-dist/
+packages/*/node_modules/
 
 # Ignore IDE and editor files
 .idea/
@@ -13,6 +11,7 @@ dist/
 
 # Ignore OS generated files
 .DS_Store
+**/.DS_Store
 Thumbs.db
 
 # Build
