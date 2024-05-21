@@ -72,6 +72,15 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
   const apparentType = checker.getApparentType(type)
 
+  // Handle enum members first since they can be triggered by the isPrimitiveType check
+  if (type?.symbol?.flags & typescript.SymbolFlags.EnumMember && type.symbol.parent) {
+    return {
+      kind: 'enum',
+      typeName,
+      member: `${type.symbol.parent.name}.${type.symbol.name}`
+    }
+  }
+
   if (depth >= options.maxDepth || isPrimitiveType(type) || options.skippedTypeNames.includes(typeName)) return {
     kind: 'basic',
     typeName
@@ -88,14 +97,6 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     kind: 'union',
     typeName,
     types: type.types.map(t => getTypeTree(t, depth, new Set(visited)))
-  }
-
-  if (type?.symbol?.flags & typescript.SymbolFlags.EnumMember && type.symbol.parent) {
-    return {
-      kind: 'enum',
-      typeName,
-      member: `${type.symbol.parent.name}.${type.symbol.name}`
-    }
   }
 
   if (type.isIntersection()) return {
@@ -218,8 +219,6 @@ function isPrimitiveType (type: ts.Type): boolean {
     typeFlags & typescript.TypeFlags.Undefined ||
     typeFlags & typescript.TypeFlags.Null ||
     typeFlags & typescript.TypeFlags.Void ||
-    typeFlags & typescript.TypeFlags.Enum ||
-    typeFlags & typescript.TypeFlags.EnumLiteral ||
     typeFlags & typescript.TypeFlags.BigInt ||
     typeFlags & typescript.TypeFlags.BigIntLiteral ||
     typeFlags & typescript.TypeFlags.ESSymbol ||
