@@ -59,20 +59,24 @@
       "properties": {
         "prettify-ts.typeIndentation": {
           "type": "number",
-          "default": 4
+          "default": 4,
+          "minimum": 0
         },
         "prettify-ts.maxDepth": {
           "type": "number",
-          "default": 2
+          "default": 2,
+          "minimum": 0
         },
         "prettify-ts.maxProperties": {
           "type": "number",
           "default": 100,
+          "minimum": 1,
           "description": "The maximum number of properties (including sub-properties) to show in a type preview. The number of lines shown will be at most this number."
         },
         "prettify-ts.maxSubProperties": {
           "type": "number",
           "default": 10,
+          "minimum": 1,
           "description": "The maximum number of properties to show in a nested (depth greater than 1) type."
         },
         "prettify-ts.unwrapFunctions": {
