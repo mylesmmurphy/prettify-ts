@@ -158,3 +158,11 @@ export function prettyPrintTypeString (typeString: string, indentation = 2): str
 
   return result
 }
+
+export function washString (str: string): string {
+  // Remove the leading word, ex: type, const, interface
+  str = str.replace(/^[a-z]+\s/, '')
+
+  // Remove all whitespace, newlines, and semicolons
+  return str.replace(/\s/g, '').replace(/\n/g, '').replace(/;/g, '')
+}

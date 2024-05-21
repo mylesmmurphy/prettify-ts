@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import type { PrettifyRequest, TypeInfo } from './types'
-import { prettyPrintTypeString, getSyntaxKindDeclaration, stringifyTypeTree } from './stringify-type-tree'
+import { prettyPrintTypeString, getSyntaxKindDeclaration, stringifyTypeTree, washString } from './stringify-type-tree'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {
   async function provideHover (
@@ -52,6 +52,14 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
 
     if (prettyTypeString.length > maxCharacters) {
       prettyTypeString = prettyTypeString.substring(0, maxCharacters) + '...'
+    }
+
+    // Ignore hover if the type is already displayed from TS quick info
+    if (declaration.startsWith('type') || declaration.startsWith('const')) {
+      const quickInfo: any = await vscode.commands.executeCommand('typescript.tsserverRequest', 'quickinfo', location)
+      const quickInfoDisplayString: string = quickInfo?.body?.displayString
+
+      if (washString(quickInfoDisplayString).includes(washString(typeString))) return
     }
 
     const hoverText = new vscode.MarkdownString()

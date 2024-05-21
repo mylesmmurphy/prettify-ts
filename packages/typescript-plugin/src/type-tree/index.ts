@@ -158,7 +158,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     const allowedPropertiesCount = Math.min(depthMaxProps, remainingProperties)
 
     const allPublicProperties = apparentType.getProperties().filter((symbol) => isPublicProperty(symbol))
-    const publicProperties = allPublicProperties.slice(0, allowedPropertiesCount - 1)
+    const publicProperties = allPublicProperties.slice(0, allowedPropertiesCount)
 
     propertiesCount += publicProperties.length
     const excessProperties = Math.max(allPublicProperties.length - publicProperties.length, 0)
