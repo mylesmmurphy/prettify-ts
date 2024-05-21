@@ -33,7 +33,7 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
 
       const checker = program.getTypeChecker()
 
-      const prettifyResponse = getTypeInfoAtPosition(ts, checker, sourceFile, position)
+      const prettifyResponse = getTypeInfoAtPosition(ts, checker, sourceFile, position, requestBody.options)
 
       const response: PrettifyResponse = {
         isGlobalCompletion: false,

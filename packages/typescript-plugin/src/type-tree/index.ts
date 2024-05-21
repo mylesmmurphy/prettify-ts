@@ -2,28 +2,39 @@ import type * as ts from 'typescript'
 
 import type { TypeInfo, TypeProperty, TypeTree } from './types'
 import { getDescendantAtRange } from './get-ast-node'
+import type { PrettifyOptions } from '../request'
 
 let typescript: typeof ts
 let checker: ts.TypeChecker
 
-// Configuration Parameters
-let maxProps = 100
-let maxDepth = 2
+let options: PrettifyOptions = {
+  maxDepth: 2,
+  maxProperties: 100,
+  maxSubProperties: 5,
+  unwrapFunctions: true,
+  unwrapArrays: true,
+  unwrapPromises: true,
+  skippedTypeNames: []
+}
 
-let propsCount = 0
+// Tracks the properties processed so far
+// let propsCount = 0
 
 /**
- * Get type information at a position in a source file
+ * Get TypeInfo at a position in a source file
  */
 export function getTypeInfoAtPosition (
   typescriptContext: typeof ts,
   typeChecker: ts.TypeChecker,
   sourceFile: ts.SourceFile,
-  position: number
+  position: number,
+  prettifyOptions: PrettifyOptions
 ): TypeInfo | undefined {
   try {
     typescript = typescriptContext
     checker = typeChecker
+    options = prettifyOptions
+    propsCount = 0
 
     const node = getDescendantAtRange(typescript, sourceFile, [position, position])
     if (!node || node === sourceFile || !node.parent) return undefined
@@ -61,7 +72,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
   const apparentType = checker.getApparentType(type)
 
-  if (depth > maxDepth || isPrimitiveType(type)) return {
+  if (depth > options.maxDepth || isPrimitiveType(type) || options.skippedTypeNames.includes(typeName)) return {
     kind: 'basic',
     typeName
   }
@@ -94,6 +105,8 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   }
 
   if (typeName.startsWith('Promise<')) {
+    if (!options.unwrapPromises) return { kind: 'basic', typeName }
+
     const typeArgument = checker.getTypeArguments(apparentType as ts.TypeReference)[0]
     return {
       kind: 'promise',
@@ -104,6 +117,8 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
 
   const signature = apparentType.getCallSignatures()[0]
   if (signature) {
+    if (!options.unwrapFunctions) return { kind: 'basic', typeName }
+
     const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth + 1, new Set(visited))
     const parameters = signature.parameters.map(symbol => ({
       name: symbol.getName(),
@@ -120,6 +135,8 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   }
 
   if (checker.isArrayType(type)) {
+    if (!options.unwrapArrays) return { kind: 'basic', typeName }
+
     const arrayType = checker.getTypeArguments(type as ts.TypeReference)[0]
     const elementType: TypeTree = arrayType
       ? getTypeTree(arrayType, depth, new Set(visited))
@@ -137,7 +154,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     const publicProperties = apparentType
       .getApparentProperties()
       .filter((symbol) => isPublicProperty(symbol))
-      .slice(0, maxProps)
+      .slice(0, options.maxProperties)
 
     const properties: TypeProperty[] = publicProperties.map(symbol => {
       const symbolType = checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
@@ -205,9 +222,6 @@ function isPrimitiveType (type: ts.Type): boolean {
   )
 }
 
-/**
- * Check if a symbol is public
- */
 function isPublicProperty (symbol: ts.Symbol): boolean {
   const declarations = symbol.getDeclarations()
   if (!declarations) return true
@@ -238,7 +252,6 @@ function isReadOnly (symbol: ts.Symbol): boolean {
 
   return declarations.some(declaration => (
     (
-      typescript.isParameter(declaration) ||
       typescript.isPropertyDeclaration(declaration) ||
       typescript.isMethodDeclaration(declaration)
     ) &&

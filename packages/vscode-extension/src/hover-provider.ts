@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import type { TypeInfo } from './types'
+import type { PrettifyRequest, TypeInfo } from './types'
 import { prettyPrintTypeString, getSyntaxKindDeclaration, stringifyTypeTree } from './stringify-type-tree'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {
@@ -7,7 +7,25 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     document: vscode.TextDocument,
     position: vscode.Position
   ): Promise<vscode.Hover | undefined> {
-    const request = { meta: 'prettify-type-info-request' }
+    const config = vscode.workspace.getConfiguration('prettify-ts')
+    const indentation = config.get('typeIndentation', 4)
+    const maxCharacters = config.get('maxCharacters', 20000)
+
+    const options = {
+      maxDepth: config.get('maxDepth', 2),
+      maxProperties: config.get('maxProperties', 100),
+      maxSubProperties: config.get('maxSubProperties', 5),
+      unwrapFunctions: config.get('unwrapFunctions', true),
+      unwrapArrays: config.get('unwrapArrays', true),
+      unwrapPromises: config.get('unwrapPromises', true),
+      skippedTypeNames: config.get('skippedTypeNames', [])
+    }
+
+    const request: PrettifyRequest = {
+      meta: 'prettify-type-info-request',
+      options
+    }
+
     const location = {
       file: document.uri.fsPath,
       line: position.line + 1,
@@ -29,11 +47,11 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     const { typeTree, syntaxKind, name } = prettifyResponse
 
     const typeString = stringifyTypeTree(typeTree)
-    let prettyTypeString = prettyPrintTypeString(typeString)
+    let prettyTypeString = prettyPrintTypeString(typeString, indentation)
     const declaration = getSyntaxKindDeclaration(syntaxKind, name)
 
-    if (prettyTypeString.length > 20000) {
-      prettyTypeString = prettyTypeString.substring(0, 20000) + '...'
+    if (prettyTypeString.length > maxCharacters) {
+      prettyTypeString = prettyTypeString.substring(0, maxCharacters) + '...'
     }
 
     const hoverText = new vscode.MarkdownString()

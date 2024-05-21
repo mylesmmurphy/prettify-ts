@@ -24,3 +24,18 @@ export type TypeInfo = {
   syntaxKind: ts.SyntaxKind
   name: string
 }
+
+export type PrettifyOptions = {
+  maxDepth: number
+  maxProperties: number
+  maxSubProperties: number
+  unwrapFunctions: boolean
+  unwrapArrays: boolean
+  unwrapPromises: boolean
+  skippedTypeNames: string[]
+}
+
+export type PrettifyRequest = {
+  meta: 'prettify-type-info-request'
+  options: PrettifyOptions
+}

@@ -24,12 +24,60 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "typescriptServerPlugins": [
-      {
-          "name": "@prettify-ts/typescript-plugin",
-          "enableForWorkspaceTypeScriptVersions": true
+    "typescriptServerPlugins": [{
+        "name": "@prettify-ts/typescript-plugin",
+        "enableForWorkspaceTypeScriptVersions": true
+    }],
+    "configuration": {
+      "title": "Prettify TS",
+      "properties": {
+        "prettify-ts.typeIndentation": {
+          "type": "number",
+          "default": 4
+        },
+        "prettify-ts.maxDepth": {
+          "type": "number",
+          "default": 2
+        },
+        "prettify-ts.maxProperties": {
+          "type": "number",
+          "default": 100,
+          "description": "The maximum number of properties (including sub-properties) to show in a type preview."
+        },
+        "prettify-ts.maxSubProperties": {
+          "type": "number",
+          "default": 5,
+          "description": "The maximum number of properties to show in a nested type."
+        },
+        "prettify-ts.unwrapFunctions": {
+          "type": "boolean",
+          "default": true
+        },
+        "prettify-ts.unwrapArrays": {
+          "type": "boolean",
+          "default": true
+        },
+        "prettify-ts.unwrapPromises": {
+          "type": "boolean",
+          "default": true
+        },
+        "prettify-ts.skippedTypeNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["Element"],
+          "description": "Types that won't be unwrapped, by name."
+        },
+        "prettify-ts.maxCharacters": {
+          "type": "number",
+          "default": 20000,
+          "minimum": 0,
+          "maximum": 99000,
+          "description": "The maximum number of characters to show in a type preview. Max  (High performance impact)"
+        }
       }
-  ]
+    }
   },
   "scripts": {
     "build": "tsc",
