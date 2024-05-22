@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "yarn workspaces run build",
-    "package": "yarn workspaces run build && yarn && yarn workspace prettify-ts-vscode-extension run package"
+    "package": "yarn workspaces run build && yarn && yarn workspace prettify-ts run package"
   },
   "devDependencies": {
     "@types/node": "18.x",
