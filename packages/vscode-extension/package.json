@@ -9,7 +9,7 @@
     "nohoist": ["**"]
   },
   "scripts": {
-    "build": "tsc -p ./",
+    "build": "tsc",
     "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --external:src/prism --format=cjs --platform=node",
     "vscode:prepublish": "yarn run esbuild",
     "package": "vsce package --yarn --dependencies"
@@ -64,12 +64,12 @@
         },
         "prettify-ts.maxDepth": {
           "type": "number",
-          "default": 2,
+          "default": 1,
           "minimum": 0
         },
         "prettify-ts.maxProperties": {
           "type": "number",
-          "default": 100,
+          "default": 1000,
           "minimum": 1,
           "description": "The maximum number of properties (including sub-properties) to show in a type preview. The number of lines shown will be at most this number."
         },

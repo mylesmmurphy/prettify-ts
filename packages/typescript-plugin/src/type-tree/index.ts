@@ -66,7 +66,7 @@ export function getTypeInfoAtPosition (
 }
 
 /**
- * Recursively get type information by building a TypeInfo object
+ * Recursively get type information by building a TypeTree object from the given type
  */
 function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): TypeTree {
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
@@ -153,6 +153,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   if (apparentType.isClassOrInterface() || (apparentType.flags & typescript.TypeFlags.Object)) {
     if (propertiesCount >= options.maxProperties) return { kind: 'basic', typeName }
 
+    // Resolve how many properties to show based on the maxProperties option
     const remainingProperties = options.maxProperties - propertiesCount
     const depthMaxProps = depth >= 1 ? options.maxSubProperties : options.maxProperties
     const allowedPropertiesCount = Math.min(depthMaxProps, remainingProperties)
@@ -168,7 +169,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       return {
         name: symbol.getName(),
         readonly: isReadOnly(symbol),
-        type: getTypeTree(symbolType, depth + 1, new Set(visited)) // Add depth to prevent infinite recursion
+        type: getTypeTree(symbolType, depth + 1, new Set(visited)) // Add depth for sub-properties
       }
     })
 

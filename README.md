@@ -11,7 +11,7 @@ Prettify TS is a Visual Studio Code extension that enhances your TypeScript deve
 
 ## Developer Notes
 
-This README is for Development of Prettify. The VSCode Extension README can be found [here](./packages/vscode-extension/README.md).
+This README is for Development of Prettify TS. The VSCode Extension README can be found [here](./packages/vscode-extension/README.md).
 
 ## Scripts
 
