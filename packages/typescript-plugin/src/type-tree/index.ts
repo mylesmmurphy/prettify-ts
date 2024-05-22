@@ -211,17 +211,12 @@ function isPrimitiveType (type: ts.Type): boolean {
 
   return Boolean(
     typeFlags & typescript.TypeFlags.String ||
-    typeFlags & typescript.TypeFlags.StringLiteral ||
     typeFlags & typescript.TypeFlags.Number ||
-    typeFlags & typescript.TypeFlags.NumberLiteral ||
     typeFlags & typescript.TypeFlags.Boolean ||
-    typeFlags & typescript.TypeFlags.BooleanLike ||
-    typeFlags & typescript.TypeFlags.BooleanLiteral ||
     typeFlags & typescript.TypeFlags.Undefined ||
     typeFlags & typescript.TypeFlags.Null ||
     typeFlags & typescript.TypeFlags.Void ||
     typeFlags & typescript.TypeFlags.BigInt ||
-    typeFlags & typescript.TypeFlags.BigIntLiteral ||
     typeFlags & typescript.TypeFlags.ESSymbol ||
     typeFlags & typescript.TypeFlags.UniqueESSymbol ||
     typeFlags & typescript.TypeFlags.Never ||
