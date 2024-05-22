@@ -68,7 +68,9 @@ export function getTypeInfoAtPosition (
 /**
  * Recursively get type information by building a TypeTree object from the given type
  */
-function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): TypeTree {
+function getTypeTree (typeInput: ts.Type, depth: number, visited: Set<ts.Type>): TypeTree {
+  const type = getTypeInfoType(typeInput)
+
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
   const apparentType = checker.getApparentType(type)
 
@@ -205,6 +207,16 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   }
 }
 
+function getTypeInfoType (type: ts.Type): ts.Type {
+  const typeSymbol = type.getSymbol()
+  if (!typeSymbol) return type
+
+  const declaredType = checker.getDeclaredTypeOfSymbol(typeSymbol)
+  if (declaredType.flags === typescript.TypeFlags.Any) return type
+
+  return declaredType
+}
+
 function isPrimitiveType (type: ts.Type): boolean {
   const typeFlags = type.flags
 
@@ -231,7 +243,7 @@ function isPublicProperty (symbol: ts.Symbol): boolean {
   if (!declarations) return true
 
   const name = symbol.getName()
-  if (name.startsWith('_')) return false
+  if (name.startsWith('_') || name.startsWith('#')) return false
 
   return declarations.every(declaration => {
     if (!(

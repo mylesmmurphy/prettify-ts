@@ -27,7 +27,7 @@ export function stringifyTypeTree (typeTree: TypeTree): string {
       excessProperties: objectTypeExcessProperties
     })
 
-    return [mergedObjectTypeString, ...nonObjectTypeStrings].join(' & ')
+    return [...nonObjectTypeStrings, mergedObjectTypeString].join(' & ').replace(/} & {/, ' ')
   }
 
   if (typeTree.kind === 'object') {
@@ -115,7 +115,7 @@ export function prettyPrintTypeString (typeString: string, indentation = 2): str
   const splitTypeString = typeString
     .replace(/{/g, '{\n')
     .replace(/}/g, '\n}')
-    .replace(/;/g, ';\n')
+    .replace(/(\S); /g, '$1;\n ')
 
   let depth = 0
   let result = ''
