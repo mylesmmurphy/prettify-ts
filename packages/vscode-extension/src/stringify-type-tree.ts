@@ -27,7 +27,7 @@ export function stringifyTypeTree (typeTree: TypeTree): string {
       excessProperties: objectTypeExcessProperties
     })
 
-    return [...nonObjectTypeStrings, mergedObjectTypeString].join(' & ').replace(/} & {/, ' ')
+    return [...nonObjectTypeStrings, mergedObjectTypeString].join(' & ')
   }
 
   if (typeTree.kind === 'object') {
@@ -110,7 +110,9 @@ export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: stri
 
 export function prettyPrintTypeString (typeStringInput: string, indentation = 2): string {
   // Replace typeof import("...node_modules/MODULE_NAME") with: typeof import("MODULE_NAME")
-  const typeString = typeStringInput.replace(/typeof import\(".*?node_modules\/(.*?)"\)/g, 'typeof import("$1")')
+  const typeString = typeStringInput
+    .replace(/typeof import\(".*?node_modules\/(.*?)"\)/g, 'typeof import("$1")')
+    .replace(/ } & { /g, ' ')
 
   if (indentation < 1) return typeString
 
@@ -162,7 +164,7 @@ export function prettyPrintTypeString (typeStringInput: string, indentation = 2)
   return result
 }
 
-export function washString (str: string): string {
+export function sanitizeString (str: string): string {
   // Remove the leading word, ex: type, const, interface
   str = str.replace(/^[a-z]+\s/, '')
 

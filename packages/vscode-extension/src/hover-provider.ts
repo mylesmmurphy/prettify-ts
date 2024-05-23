@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import type { PrettifyRequest, TypeInfo } from './types'
-import { prettyPrintTypeString, getSyntaxKindDeclaration, stringifyTypeTree, washString } from './stringify-type-tree'
+import { prettyPrintTypeString, getSyntaxKindDeclaration, stringifyTypeTree, sanitizeString } from './stringify-type-tree'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {
   async function provideHover (
@@ -59,7 +59,10 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
       const quickInfo: any = await vscode.commands.executeCommand('typescript.tsserverRequest', 'quickinfo', location)
       const quickInfoDisplayString: string = quickInfo?.body?.displayString
 
-      if (washString(quickInfoDisplayString).includes(washString(typeString))) return
+      const washedQuickInfo = sanitizeString(quickInfoDisplayString)
+      const washedType = sanitizeString(typeString.replace(/ } & { /g, ' '))
+
+      if (washedQuickInfo.includes(washedType)) return
     }
 
     const hoverText = new vscode.MarkdownString()
