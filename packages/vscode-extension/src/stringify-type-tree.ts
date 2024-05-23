@@ -31,7 +31,21 @@ export function stringifyTypeTree (typeTree: TypeTree): string {
   }
 
   if (typeTree.kind === 'object') {
-    let propertiesString = typeTree.properties.map(p => `${p.readonly ? 'readonly ' : ''}${p.name}: ${stringifyTypeTree(p.type)};`).join(' ')
+    let propertiesString = typeTree.properties.map(p => {
+      const readonly = (p.readonly) ? 'readonly ' : ''
+
+      let optional = ''
+      if (p.type.kind === 'union') {
+        const hasUndefined = p.type.types.some(t => t.kind === 'basic' && t.typeName === 'undefined')
+        if (hasUndefined) {
+          optional = '?'
+        }
+        // Remove undefined from union
+        p.type.types = p.type.types.filter(t => t.kind !== 'basic' || t.typeName !== 'undefined')
+      }
+
+      return `${readonly}${p.name}${optional}: ${stringifyTypeTree(p.type)};`
+    }).join(' ')
 
     if (typeTree.excessProperties > 0) {
       propertiesString += `... ${typeTree.excessProperties} more;`
@@ -131,7 +145,7 @@ export function prettyPrintTypeString (typeStringInput: string, indentation = 2)
     line = line.trim()
 
     // Replace : with ?: if line contains undefined union
-    if (line.includes(':') && (line.includes(' | undefined') || line.includes('undefined | '))) {
+    if (line.includes(':') && !line.includes('?:') && (line.includes(' | undefined') || line.includes('undefined | '))) {
       line = line.replace(':', '?:').replace(' | undefined', '').replace('undefined | ', '')
     }
 
