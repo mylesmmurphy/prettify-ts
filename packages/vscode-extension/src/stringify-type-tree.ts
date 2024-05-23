@@ -108,7 +108,10 @@ export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: stri
   }
 }
 
-export function prettyPrintTypeString (typeString: string, indentation = 2): string {
+export function prettyPrintTypeString (typeStringInput: string, indentation = 2): string {
+  // Replace typeof import("...node_modules/MODULE_NAME") with: typeof import("MODULE_NAME")
+  const typeString = typeStringInput.replace(/typeof import\(".*?node_modules\/(.*?)"\)/g, 'typeof import("$1")')
+
   if (indentation < 1) return typeString
 
   // Add newline after braces and semicolons
