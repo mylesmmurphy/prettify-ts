@@ -124,7 +124,7 @@ export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: stri
 
 export function prettyPrintTypeString (typeStringInput: string, indentation = 2): string {
   // Replace typeof import("...node_modules/MODULE_NAME") with: typeof import("MODULE_NAME")
-  const typeString = transformUndefinedUnions(typeStringInput)
+  const typeString = typeStringInput
     .replace(/typeof import\(".*?node_modules\/(.*?)"\)/g, 'typeof import("$1")')
     .replace(/ } & { /g, ' ')
 
@@ -180,56 +180,4 @@ export function sanitizeString (str: string): string {
 
   // Remove all whitespace, newlines, and semicolons
   return str.replace(/\s/g, '').replace(/\n/g, '').replace(/;/g, '')
-}
-
-/**
- * Transforms union types with undefined to optional properties in object types
- * Example:
- * { a: string | undefined, b: number | undefined }
- * Yields:
- * { a?: string, b?: number }
- */
-export function transformUndefinedUnions (typeString: string): string {
-  if (!typeString.includes('undefined') || !typeString.startsWith('{')) return typeString
-
-  const properties = typeString.split(':')
-
-  // Track the index of the last property at each depth
-  const propertyDepthIndex: Record<number, number> = {}
-
-  let depth = 0
-
-  for (let index = 0; index < properties.length; index++) {
-    const property = properties[index]
-
-    const undefinedIndex = property.indexOf(' | undefined') || property.indexOf('undefined | ')
-    if (undefinedIndex > -1) {
-      const undefinedDepthSubstring = property.substring(0, undefinedIndex)
-
-      // The depth where the undefined is located
-      const undefinedDepth = depth + (undefinedDepthSubstring.match(/{/g) ?? []).length - (undefinedDepthSubstring.match(/}/g) ?? []).length
-
-      // The index of the last property at the same depth as the undefined union
-      const propertyIndex = propertyDepthIndex[undefinedDepth]
-
-      // Add ? to the previous property at the same depth
-      if (!properties[propertyIndex].endsWith('?')) {
-        properties[propertyIndex] = properties[propertyIndex] + '?'
-      }
-
-      // Remove | undefined from the current property
-      properties[index] = property.replace(' | undefined', '').replace('undefined | ', '')
-    }
-
-    depth += (property.match(/{/g) ?? []).length
-    depth -= (property.match(/}/g) ?? []).length
-    propertyDepthIndex[depth] = index
-  }
-
-  // let depth = 0;
-  // for (let index = 0;)
-
-  const transformedProperties = properties.join(':')
-
-  return transformedProperties
 }
