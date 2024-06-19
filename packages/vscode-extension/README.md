@@ -32,7 +32,7 @@ The following settings are available:
 - **Skipped Type Names**: A list of type names that should not be expanded.
 - **Max Characters**: Sets the maximum number of characters for the prettified output. If the output exceeds this limit, it will be truncated.
 
-## Sidebar Type View
+## Sidebar Type View (Deprecated)
 
 As of v0.1.0, Prettify TS has been rescoped to hover previews only and no longer supports a VSCode Type Preview View Container. For feature rich projects offering TypeScript Type View Containers, check out the following:
 
