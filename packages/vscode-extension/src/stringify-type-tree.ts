@@ -144,6 +144,11 @@ export function prettyPrintTypeString (typeStringInput: string, indentation = 2)
   for (let line of lines) {
     line = line.trim()
 
+    // Replace : with ?: if line contains undefined union
+    if (line.includes(':') && (line.includes(' | undefined') || line.includes('undefined | '))) {
+      line = line.replace(':', '?:').replace(' | undefined', '').replace('undefined | ', '').replace('??', '?')
+    }
+
     // Replace true/false with boolean
     line = line.replace('false | true', 'boolean')
 
