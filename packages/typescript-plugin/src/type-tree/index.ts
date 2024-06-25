@@ -87,7 +87,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   if (type.isUnion()) return {
     kind: 'union',
     typeName,
-    types: type.types.map(t => getTypeTree(t, depth, new Set(visited)))
+    types: type.types.sort(sortUnionTypes).map(t => getTypeTree(t, depth, new Set(visited)))
   }
 
   if (type?.symbol?.flags & typescript.SymbolFlags.EnumMember && type.symbol.parent) {
@@ -229,6 +229,58 @@ function isPrimitiveType (type: ts.Type): boolean {
     typeFlags & typescript.TypeFlags.Unknown ||
     typeFlags & typescript.TypeFlags.Any
   )
+}
+
+function isIntrinsicType (type: ts.Type): type is ts.IntrinsicType {
+  return (type.flags & typescript.TypeFlags.Intrinsic) !== 0
+}
+
+/**
+ * Sort union types by intrinsic types order, following ts quick info order
+ * Ex.
+ * string, number, bigint, { a: string }, null, undefined
+ */
+function sortUnionTypes (a: ts.Type, b: ts.Type): number {
+  const primitiveTypesOrder = ['string', 'number', 'bigint', 'boolean', 'symbol']
+  const falsyTypesOrder = ['null', 'undefined']
+
+  const aIntrinsicName = isIntrinsicType(a) ? a.intrinsicName : ''
+  const bIntrinsicName = isIntrinsicType(b) ? b.intrinsicName : ''
+
+  const aPrimitiveIndex = primitiveTypesOrder.indexOf(aIntrinsicName)
+  const bPrimitiveIndex = primitiveTypesOrder.indexOf(bIntrinsicName)
+  const aFalsyIndex = falsyTypesOrder.indexOf(aIntrinsicName)
+  const bFalsyIndex = falsyTypesOrder.indexOf(bIntrinsicName)
+
+  // If both types are primitive, sort based on the order in primitiveTypesOrder
+  if (aPrimitiveIndex !== -1 && bPrimitiveIndex !== -1) {
+    return aPrimitiveIndex - bPrimitiveIndex
+  }
+
+  // If one type is primitive and the other is not, the primitive type should come first
+  if (aPrimitiveIndex !== -1) {
+    return -1
+  }
+
+  if (bPrimitiveIndex !== -1) {
+    return 1
+  }
+
+  // If both types are falsy, sort based on the order in falsyTypesOrder
+  if (aFalsyIndex !== -1 && bFalsyIndex !== -1) {
+    return aFalsyIndex - bFalsyIndex
+  }
+
+  // If one type is falsy and the other is not, the falsy type should come last
+  if (aFalsyIndex !== -1) {
+    return 1
+  }
+  if (bFalsyIndex !== -1) {
+    return -1
+  }
+
+  // If neither type is primitive or falsy, maintain the original order
+  return 0
 }
 
 function isPublicProperty (symbol: ts.Symbol): boolean {
