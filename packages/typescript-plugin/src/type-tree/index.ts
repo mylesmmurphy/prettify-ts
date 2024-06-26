@@ -117,7 +117,9 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
 
   const signature = apparentType.getCallSignatures()[0]
   if (signature) {
-    if (!options.unwrapFunctions) return { kind: 'basic', typeName }
+    if (!options.unwrapFunctions) {
+      depth = options.maxDepth
+    }
 
     const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited))
     const parameters = signature.parameters.map(symbol => ({
