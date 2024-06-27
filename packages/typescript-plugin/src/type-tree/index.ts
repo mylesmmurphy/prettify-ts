@@ -45,8 +45,10 @@ export function getTypeInfoAtPosition (
     let type = typeChecker.getTypeOfSymbolAtLocation(symbol, node)
 
     // If the symbol has a declared type, use that when available
+    // Don't use declared type for variable declarations
+    const shouldUseDeclaredType = symbol.declarations?.every(d => d.kind !== typescript.SyntaxKind.VariableDeclaration)
     const declaredType = typeChecker.getDeclaredTypeOfSymbol(symbol)
-    if (declaredType.flags !== typescript.TypeFlags.Any) {
+    if (declaredType.flags !== typescript.TypeFlags.Any && shouldUseDeclaredType) {
       type = declaredType
     }
 

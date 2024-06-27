@@ -46,7 +46,7 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
 
     const { typeTree, syntaxKind, name } = prettifyResponse
 
-    const typeString = stringifyTypeTree(typeTree)
+    const typeString = stringifyTypeTree(typeTree, false)
     let prettyTypeString = prettyPrintTypeString(typeString, indentation)
     const declaration = getSyntaxKindDeclaration(syntaxKind, name)
 
@@ -55,7 +55,7 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     }
 
     // Ignore hover if the type is already displayed from TS quick info
-    if (declaration.startsWith('type') || declaration.startsWith('const')) {
+    if (declaration.startsWith('type') || declaration.startsWith('const') || declaration.startsWith('function')) {
       const quickInfo: any = await vscode.commands.executeCommand('typescript.tsserverRequest', 'quickinfo', location)
       const quickInfoDisplayString: string = quickInfo?.body?.displayString
 
@@ -66,7 +66,7 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     }
 
     const hoverText = new vscode.MarkdownString()
-    hoverText.appendCodeblock(`${declaration} ${prettyTypeString}`, document.languageId)
+    hoverText.appendCodeblock(`${declaration}${prettyTypeString}`, document.languageId)
     return new vscode.Hover(hoverText)
   }
 

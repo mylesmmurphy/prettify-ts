@@ -9,13 +9,13 @@ import type { TypeTree } from './types'
  * Yields:
  * 'string | number'
  */
-export function stringifyTypeTree (typeTree: TypeTree): string {
+export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true): string {
   if (typeTree.kind === 'union') {
-    return typeTree.types.map(stringifyTypeTree).join(' | ')
+    return typeTree.types.map(t => stringifyTypeTree(t)).join(' | ')
   }
 
   if (typeTree.kind === 'intersection') {
-    const nonObjectTypeStrings = typeTree.types.filter(t => t.kind !== 'object').map(stringifyTypeTree)
+    const nonObjectTypeStrings = typeTree.types.filter(t => t.kind !== 'object').map(t => stringifyTypeTree(t))
 
     const objectTypes = typeTree.types.filter((t): t is Extract<TypeTree, { kind: 'object' }> => t.kind === 'object')
     const objectTypesProperties = objectTypes.flatMap(t => t.properties)
@@ -59,7 +59,8 @@ export function stringifyTypeTree (typeTree: TypeTree): string {
   }
 
   if (typeTree.kind === 'function') {
-    return `(${typeTree.parameters.map(p => `${p.name}: ${stringifyTypeTree(p.type)}`).join(', ')}) => ${stringifyTypeTree(typeTree.returnType)}`
+    const returnTypeChar = anonymousFunction ? ' =>' : ':'
+    return `(${typeTree.parameters.map(p => `${p.name}: ${stringifyTypeTree(p.type)}`).join(', ')})${returnTypeChar} ${stringifyTypeTree(typeTree.returnType)}`
   }
 
   if (typeTree.kind === 'enum') {
@@ -80,12 +81,12 @@ export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: stri
   switch (syntaxKind) {
     case SyntaxKind.ClassDeclaration:
     case SyntaxKind.NewExpression:
-      return `class ${typeName}`
+      return `class ${typeName} `
 
     case SyntaxKind.ExpressionWithTypeArguments:
     case SyntaxKind.InterfaceDeclaration:
     case SyntaxKind.QualifiedName:
-      return `interface ${typeName}`
+      return `interface ${typeName} `
 
     case SyntaxKind.ArrayType:
     case SyntaxKind.ConstructorType:
@@ -107,7 +108,7 @@ export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: stri
     case SyntaxKind.TypeQuery:
     case SyntaxKind.TypeReference:
     case SyntaxKind.UnionType:
-      return `type ${typeName} =`
+      return `type ${typeName} = `
 
     case SyntaxKind.FunctionDeclaration:
     case SyntaxKind.FunctionKeyword:
@@ -118,7 +119,7 @@ export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: stri
       return `function ${typeName}`
 
     default:
-      return `const ${typeName}:`
+      return `const ${typeName}: `
   }
 }
 
