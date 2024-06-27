@@ -168,11 +168,15 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     const depthMaxProps = depth >= 1 ? options.maxSubProperties : options.maxProperties
     const allowedPropertiesCount = Math.min(depthMaxProps, remainingProperties)
 
-    const allPublicProperties = apparentType.getProperties().filter((symbol) => isPublicProperty(symbol))
-    const publicProperties = allPublicProperties.slice(0, allowedPropertiesCount)
+    let typeProperties = apparentType.getProperties()
+    if (options.hidePrivateProperties) {
+      typeProperties = typeProperties.filter((symbol) => isPublicProperty(symbol))
+    }
+
+    const publicProperties = typeProperties.slice(0, allowedPropertiesCount)
 
     propertiesCount += publicProperties.length
-    const excessProperties = Math.max(allPublicProperties.length - publicProperties.length, 0)
+    const excessProperties = Math.max(typeProperties.length - publicProperties.length, 0)
 
     const properties: TypeProperty[] = publicProperties.map(symbol => {
       const symbolType = checker.getTypeOfSymbol(symbol)
