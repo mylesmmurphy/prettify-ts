@@ -60,7 +60,18 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
 
   if (typeTree.kind === 'function') {
     const returnTypeChar = anonymousFunction ? ' =>' : ':'
-    return `(${typeTree.parameters.map(p => `${p.name}: ${stringifyTypeTree(p.type)}`).join(', ')})${returnTypeChar} ${stringifyTypeTree(typeTree.returnType)}`
+
+    const signatures = typeTree.signatures.map(s => {
+      const { parameters, returnType } = s
+      return `(${parameters.map(p => `${p.name}: ${stringifyTypeTree(p.type)}`).join(', ')})${returnTypeChar} ${stringifyTypeTree(returnType)}`
+    })
+
+    // If there are multiple signatures, wrap them in braces with semi-colons at the end of each line
+    if (signatures.length > 1) {
+      return `{${signatures.join('; ')};}`
+    }
+
+    return signatures[0]
   }
 
   if (typeTree.kind === 'enum') {

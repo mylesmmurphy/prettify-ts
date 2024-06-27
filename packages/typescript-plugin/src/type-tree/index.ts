@@ -1,6 +1,6 @@
 import type * as ts from 'typescript'
 
-import type { TypeInfo, TypeProperty, TypeTree } from './types'
+import type { TypeFunctionSignature, TypeInfo, TypeProperty, TypeTree } from './types'
 import { getDescendantAtRange } from './get-ast-node'
 import type { PrettifyOptions } from '../request'
 
@@ -117,24 +117,27 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     }
   }
 
-  const signature = apparentType.getCallSignatures()[0]
-  if (signature) {
+  const callSignatures = apparentType.getCallSignatures()
+  if (callSignatures.length > 0) {
     if (!options.unwrapFunctions) {
       depth = options.maxDepth
     }
 
-    const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited))
-    const parameters = signature.parameters.map(symbol => ({
-      name: symbol.getName(),
-      readonly: isReadOnly(symbol),
-      type: getTypeTree(checker.getTypeOfSymbol(symbol), depth, new Set(visited))
-    }))
+    const signatures: TypeFunctionSignature[] = callSignatures.map(signature => {
+      const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited))
+      const parameters = signature.parameters.map(symbol => ({
+        name: symbol.getName(),
+        readonly: isReadOnly(symbol),
+        type: getTypeTree(checker.getTypeOfSymbol(symbol), depth, new Set(visited))
+      }))
+
+      return { returnType, parameters }
+    })
 
     return {
       kind: 'function',
       typeName,
-      returnType,
-      parameters
+      signatures
     }
   }
 

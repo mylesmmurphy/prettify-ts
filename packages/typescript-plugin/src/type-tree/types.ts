@@ -1,6 +1,7 @@
 import type * as ts from 'typescript'
 
 export type TypeProperty = { name: string, readonly: boolean, type: TypeTree }
+export type TypeFunctionSignature = { returnType: TypeTree, parameters: TypeProperty[] }
 
 /**
  * TypeTree is a tree representation of a TypeScript type.
@@ -10,7 +11,7 @@ export type TypeTree = { typeName: string } & (
   | { kind: 'intersection', types: TypeTree[] }
   | { kind: 'object', excessProperties: number, properties: TypeProperty[] }
   | { kind: 'array', readonly: boolean, elementType: TypeTree }
-  | { kind: 'function', returnType: TypeTree, parameters: TypeProperty[] }
+  | { kind: 'function', signatures: TypeFunctionSignature[] }
   | { kind: 'promise', type: TypeTree }
   | { kind: 'enum', member: string }
   | { kind: 'basic' } // https://www.typescriptlang.org/docs/handbook/basic-types.html
