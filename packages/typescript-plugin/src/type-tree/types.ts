@@ -7,7 +7,7 @@ export type TypeFunctionSignature = { returnType: TypeTree, parameters: TypeProp
  * TypeTree is a tree representation of a TypeScript type.
  */
 export type TypeTree = { typeName: string } & (
-  | { kind: 'union', types: TypeTree[] }
+  | { kind: 'union', excessMembers: number, types: TypeTree[] }
   | { kind: 'intersection', types: TypeTree[] }
   | { kind: 'object', excessProperties: number, properties: TypeProperty[] }
   | { kind: 'array', readonly: boolean, elementType: TypeTree }

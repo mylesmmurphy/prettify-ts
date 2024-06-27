@@ -79,6 +79,17 @@
           "minimum": 1,
           "description": "The maximum number of properties to show in a nested (depth greater than 1) type."
         },
+        "prettify-ts.maxUnionMembers": {
+          "type": "number",
+          "default": 15,
+          "minimum": 1,
+          "description": "The maximum number of members to show in a union."
+        },
+        "prettify-ts.hidePrivateProperties": {
+          "type": "boolean",
+          "default": true,
+          "description": "Hide private properties on an object."
+        },
         "prettify-ts.unwrapFunctions": {
           "type": "boolean",
           "default": true,
@@ -100,7 +111,18 @@
             "type": "string"
           },
           "default": [
-            "Element"
+            "Array",
+            "ArrayBuffer",
+            "Buffer",
+            "Date",
+            "Element",
+            "Error",
+            "Map",
+            "Number",
+            "RegExp",
+            "Set",
+            "String",
+            "Symbol"
           ],
           "description": "Types that won't be unwrapped, by name."
         },

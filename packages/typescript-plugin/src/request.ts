@@ -3,13 +3,15 @@ import type * as ts from 'typescript'
 import type { TypeInfo } from './type-tree/types'
 
 export type PrettifyOptions = {
+  hidePrivateProperties: boolean
   maxDepth: number
   maxProperties: number
   maxSubProperties: number
-  unwrapFunctions: boolean
-  unwrapArrays: boolean
-  unwrapPromises: boolean
+  maxUnionMembers: number
   skippedTypeNames: string[]
+  unwrapArrays: boolean
+  unwrapFunctions: boolean
+  unwrapPromises: boolean
 }
 
 export type PrettifyRequest = {

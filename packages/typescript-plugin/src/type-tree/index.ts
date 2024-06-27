@@ -8,13 +8,15 @@ let typescript: typeof ts
 let checker: ts.TypeChecker
 
 let options: PrettifyOptions = {
+  hidePrivateProperties: true,
   maxDepth: 2,
   maxProperties: 100,
   maxSubProperties: 5,
-  unwrapFunctions: true,
+  maxUnionMembers: 15,
+  skippedTypeNames: [],
   unwrapArrays: true,
-  unwrapPromises: true,
-  skippedTypeNames: []
+  unwrapFunctions: true,
+  unwrapPromises: true
 }
 
 // Tracks the properties processed so far
@@ -89,7 +91,8 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   if (type.isUnion()) return {
     kind: 'union',
     typeName,
-    types: type.types.sort(sortUnionTypes).map(t => getTypeTree(t, depth, new Set(visited)))
+    excessMembers: Math.max(0, type.types.length - options.maxUnionMembers),
+    types: type.types.slice(0, options.maxUnionMembers).sort(sortUnionTypes).map(t => getTypeTree(t, depth, new Set(visited)))
   }
 
   if (type?.symbol?.flags & typescript.SymbolFlags.EnumMember && type.symbol.parent) {

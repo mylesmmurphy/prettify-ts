@@ -12,13 +12,15 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     const maxCharacters = config.get('maxCharacters', 20000)
 
     const options = {
+      hidePrivateProperties: config.get('hidePrivateProperties', true),
       maxDepth: config.get('maxDepth', 2),
       maxProperties: config.get('maxProperties', 100),
       maxSubProperties: config.get('maxSubProperties', 5),
-      unwrapFunctions: config.get('unwrapFunctions', true),
+      maxUnionMembers: config.get('maxUnionMembers', 15),
+      skippedTypeNames: config.get('skippedTypeNames', []),
       unwrapArrays: config.get('unwrapArrays', true),
-      unwrapPromises: config.get('unwrapPromises', true),
-      skippedTypeNames: config.get('skippedTypeNames', [])
+      unwrapFunctions: config.get('unwrapFunctions', true),
+      unwrapPromises: config.get('unwrapPromises', true)
     }
 
     const request: PrettifyRequest = {

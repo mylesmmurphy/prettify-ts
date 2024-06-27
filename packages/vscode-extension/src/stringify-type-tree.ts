@@ -11,7 +11,12 @@ import type { TypeTree } from './types'
  */
 export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true): string {
   if (typeTree.kind === 'union') {
-    return typeTree.types.map(t => stringifyTypeTree(t)).join(' | ')
+    const unionString = typeTree.types.map(t => stringifyTypeTree(t)).join(' | ')
+    if (typeTree.excessMembers > 0) {
+      return `${unionString} | ... ${typeTree.excessMembers} more`
+    }
+
+    return unionString
   }
 
   if (typeTree.kind === 'intersection') {
