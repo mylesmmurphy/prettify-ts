@@ -68,7 +68,7 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
 
     const signatures = typeTree.signatures.map(s => {
       const { parameters, returnType } = s
-      return `(${parameters.map(p => `${p.name}: ${stringifyTypeTree(p.type)}`).join(', ')})${returnTypeChar} ${stringifyTypeTree(returnType)}`
+      return `(${parameters.map(p => `${p.isRestParameter ? '...' : ''}${p.name}: ${stringifyTypeTree(p.type)}`).join(', ')})${returnTypeChar} ${stringifyTypeTree(returnType)}`
     })
 
     // If there are multiple signatures, wrap them in braces with semi-colons at the end of each line

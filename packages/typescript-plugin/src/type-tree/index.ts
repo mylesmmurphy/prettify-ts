@@ -128,11 +128,16 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
 
     const signatures: TypeFunctionSignature[] = callSignatures.map(signature => {
       const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited))
-      const parameters = signature.parameters.map(symbol => ({
-        name: symbol.getName(),
-        readonly: isReadOnly(symbol),
-        type: getTypeTree(checker.getTypeOfSymbol(symbol), depth, new Set(visited))
-      }))
+      const parameters = signature.parameters.map(symbol => {
+        const declaration = symbol.declarations?.[0]
+        const isRestParameter = Boolean(declaration && typescript.isParameter(declaration) && !!declaration.dotDotDotToken)
+
+        return {
+          name: symbol.getName(),
+          isRestParameter,
+          type: getTypeTree(checker.getTypeOfSymbol(symbol), depth, new Set(visited))
+        }
+      })
 
       return { returnType, parameters }
     })

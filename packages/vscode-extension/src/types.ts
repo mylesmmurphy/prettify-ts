@@ -1,7 +1,8 @@
 import type * as ts from 'typescript'
 
 export type TypeProperty = { name: string, readonly: boolean, type: TypeTree }
-export type TypeFunctionSignature = { returnType: TypeTree, parameters: TypeProperty[] }
+export type TypeFunctionParameter = { name: string, isRestParameter: boolean, type: TypeTree }
+export type TypeFunctionSignature = { returnType: TypeTree, parameters: TypeFunctionParameter[] }
 
 /**
  * TypeTree is a tree representation of a TypeScript type.
