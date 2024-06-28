@@ -19,26 +19,57 @@ This approach allows us to leverage the existing communication channel between t
 The response from the plugin includes a `TypeInfo` object, which contains detailed type information about a TypeScript node. Here's a breakdown of its structure:
 
 ```typescript
-export type TypeProperty = { name: string, readonly: boolean, type: TypeTree }
-
-/**
- * TypeTree is a tree representation of a TypeScript type.
- */
-export type TypeTree = { typeName: string } & (
-  | { kind: 'union', types: TypeTree[] }
-  | { kind: 'intersection', types: TypeTree[] }
-  | { kind: 'object', excessProperties: number, properties: TypeProperty[] }
-  | { kind: 'array', readonly: boolean, elementType: TypeTree }
-  | { kind: 'function', returnType: TypeTree, parameters: TypeProperty[] }
-  | { kind: 'promise', type: TypeTree }
-  | { kind: 'enum', member: string }
-  | { kind: 'basic' } // https://www.typescriptlang.org/docs/handbook/basic-types.html
-)
+type TypeTree = {
+    typeName: string;
+    kind: "union";
+    excessMembers: number;
+    types: TypeTree[];
+} | {
+    typeName: string;
+    kind: "intersection";
+    types: TypeTree[];
+} | {
+    typeName: string;
+    kind: "object";
+    excessProperties: number;
+    properties: {
+        name: string;
+        readonly: boolean;
+        type: TypeTree;
+    }[];
+} | {
+    typeName: string;
+    kind: "array";
+    readonly: boolean;
+    elementType: TypeTree;
+} | {
+    typeName: string;
+    kind: "function";
+    signatures: {
+        returnType: TypeTree;
+        parameters: {
+            name: string;
+            isRestParameter: boolean;
+            type: TypeTree;
+        }[];
+    }[];
+} | {
+    typeName: string;
+    kind: "promise";
+    type: TypeTree;
+} | {
+    typeName: string;
+    kind: "enum";
+    member: string;
+} | {
+    typeName: string;
+    kind: "basic";
+}
 
 /**
  * TypeInfo contains the type information of a TypeScript node.
  */
-export type TypeInfo = {
+type TypeInfo = {
   typeTree: TypeTree
   syntaxKind: ts.SyntaxKind
   name: string
