@@ -53,7 +53,7 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     }).join(' ')
 
     if (typeTree.excessProperties > 0) {
-      propertiesString += `... ${typeTree.excessProperties} more;`
+      propertiesString += ` ... ${typeTree.excessProperties} more;`
     }
 
     return `{ ${propertiesString} }`
