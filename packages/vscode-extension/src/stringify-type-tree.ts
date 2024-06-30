@@ -68,7 +68,21 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
 
     const signatures = typeTree.signatures.map(s => {
       const { parameters, returnType } = s
-      return `(${parameters.map(p => `${p.isRestParameter ? '...' : ''}${p.name}: ${stringifyTypeTree(p.type)}`).join(', ')})${returnTypeChar} ${stringifyTypeTree(returnType)}`
+      const parametersString = parameters.map(p => {
+        let optional = ''
+        if (p.type.kind === 'union') {
+          const hasUndefined = p.type.types.some(t => t.kind === 'basic' && t.typeName === 'undefined')
+          if (hasUndefined) {
+            optional = '?'
+          }
+          // Remove undefined from union
+          p.type.types = p.type.types.filter(t => t.kind !== 'basic' || t.typeName !== 'undefined')
+        }
+
+        return `${p.isRestParameter ? '...' : ''}${p.name}${optional}: ${stringifyTypeTree(p.type)}`
+      }).join(', ')
+
+      return `(${parametersString})${returnTypeChar} ${stringifyTypeTree(returnType)}`
     })
 
     // If there are multiple signatures, wrap them in braces with semi-colons at the end of each line
@@ -162,9 +176,9 @@ export function prettyPrintTypeString (typeStringInput: string, indentation = 2)
     line = line.trim()
 
     // Replace : with ?: if line contains undefined union
-    if (line.includes(':') && (line.includes(' | undefined') || line.includes('undefined | '))) {
-      line = line.replace(':', '?:').replace(' | undefined', '').replace('undefined | ', '').replace('??', '?')
-    }
+    // if (line.includes(':') && (line.includes(' | undefined') || line.includes('undefined | '))) {
+    //   line = line.replace(':', '?:').replace(' | undefined', '').replace('undefined | ', '').replace('??', '?')
+    // }
 
     // Replace true/false with boolean
     line = line.replace('false | true', 'boolean')
