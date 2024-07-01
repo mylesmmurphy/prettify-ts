@@ -14,3 +14,5 @@
 ../**
 !**/node_modules/@prettify-ts/**
 !./node_modules/@prettify-ts/**
+!**/assets/example.png
+!./assets/example.
