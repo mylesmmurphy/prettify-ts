@@ -9,59 +9,56 @@
 
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable and configurable way.
 
-## Example
-![Example Photo](./assets/example.png)
+## Developer Notes
 
-## Features
+This README is for Development of Prettify TS. The VSCode Extension README can be found [here](./packages/vscode-extension/README.md).
 
-- **Hover Information**: Just hover over a type, class, interface, etc., and you'll see a prettified version of its declaration in the hover panel.
+## Scripts
 
-- **Sidebar**: Open the Prettify TS sidebar to view menu options and types.
+This project provides several Yarn scripts that you can use to manage the development process:
 
-## Extension Settings
+- `yarn install`: Installs all the dependencies for the project. This command should be run after cloning the repository or whenever a new package is added to the `package.json` file.
 
-Prettify TS can be configured to customize your TypeScript development experience. Some settings are available in the extension's menu panel on the sidebar, allow you to easily adjust certain options.
+- `yarn build`: Compiles the TypeScript code in the project. This command should be run before testing the extension or preparing it for distribution.
 
-For more advanced settings, like ignoring specific types from Prettification, you can access the Visual Studio Code extension settings. Visual Studio Code extension settings can be found by navigating to the Settings editor and searching for the specific extension by name.
+- `yarn package`: Packages the Visual Studio Code extension for distribution. This command should be run when you're ready to create a `.vsix` file that can be installed in Visual Studio Code.
 
-## Commands
+You can run these commands from the terminal in the root directory of the project.
 
-Use the `Prettify TS: Toggle Hover` command to enable or disable the hover information feature provided by the Prettify-ts extension.
+## Development and Debugging
 
-Use the `Prettify TS: Toggle View Nested Types` command to show or hide nested type information.
+In the `.vscode/launch.json` file, we have:
 
-## How it works
+- **Run Extension**: Starts a new VS Code instance with the extension loaded. It runs the "build root" task before launching and allows attaching a debugger to the VSCode extension code.
 
-The core function of this extension is accomplished by virtually integrating a [`Prettify`](https://www.totaltypescript.com/concepts/the-prettify-helper) generic into your project. This generic acts as a powerful tool that takes TypeScript types and transforms them into a more readable format.
+- **Attach to TSServer**: Attaches the debugger to the TypeScript server running in the extension's context. Use this to debug the TypeScript server's Language Service Plugin.
 
-To achieve this, Prettify TS utilizes the ts-morph library to pass your type to the generic in a virtual replica of your code. It's important to note that the Prettify generic is only added to this virtual copy, and not to your actual codebase.
+You can execute these tasks in Visual Studio Code by navigating to the Run view (View > Run), selecting the desired task from the dropdown menu, and pressing the green play button.
 
-```typescript
-type Prettify<T> = T extends String | Number | Boolean
-    ? T
-    : T extends (...args: infer A) => infer R
-    ? (...args: { [K in keyof A]: Prettify<A[K]> } & unknown) => Prettify<R>
-    : T extends Promise<infer U>
-    ? Promise<Prettify<U>>
-    : T extends Array<infer U>
-    ? Prettify<U>[]
-    : T extends object
-    ? { [P in keyof T]: Prettify<T[P]> } & unknown
-    : T
+## Monorepo Structure
 
-type Input = Promise<{ a: number, b: string }>;
-type Output = Prettify<Input>;
-// Original Output Hint: Promise<Input>
-// Prettified Output Hint: Promise<{ a: number; b: string; }>
-```
+This project is organized as a monorepo, meaning it hosts multiple packages within a single repository. Yarn is required for it's advanced monorepo customizability, specifically it's `nohoist` functionality.
 
-## Contributing
+### Packages
 
-Contributions are welcome! Please open an issue if you encounter any problems or have a feature request.
+The monorepo includes the following packages:
 
-## Acknowledgements
+- `vscode-extension`: This package is the Visual Studio Code extension that integrates the TypeScript Plugin into the editor. It provides the user interface for interacting with Prettify TS.
 
-Thank you for trying out this extension! A special mention to [@mattpocock](https://github.com/mattpocock) for the Prettify Type, [@willbattel](https://github.com/willbattel) for beta testing, and [@mattiamanzati](https://github.com/mattiamanzati) for their TypeScript expertise.
+- `typescript-plugin`: This package is a TypeScript language service plugin. It enhances the TypeScript language service with the capabilities of Prettify TS.
+
+### Nohoist and Packaging
+
+In this monorepo, we use Yarn's `nohoist` option for the packages. This is necessary because the Visual Studio Code extension packaging tool (`vsce`) expects all of the extension's dependencies to be located directly in the extension's `node_modules` directory.
+
+Nohoist allows specific dependencies to avoid being hoisted to the root `node_modules` directory, which is the default behavior in a Yarn workspace. Instead, these dependencies are installed directly into the `node_modules` directory of the package that depends on them.
+
+## Roadmap / To-Do
+
+1. Show/Hide Private Properties setting
+2. Show/Hide default TS previews (explore moving completely over to overriding)
+3. Svelte Support
+4. JetBrains Extension
 
 ## License
 

@@ -1,0 +1,17 @@
+{
+  "name": "@prettify-ts/typescript-plugin",
+  "version": "0.1.5",
+  "main": "./out",
+  "license": "MIT",
+  "private": "true",
+  "workspaces": {
+    "nohoist": ["**"]
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/ts-expose-internals": "npm:ts-expose-internals@5.4.5"
+  }
+}

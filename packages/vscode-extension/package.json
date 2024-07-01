@@ -1,0 +1,139 @@
+{
+  "name": "prettify-ts",
+  "publisher": "MylesMurphy",
+  "license": "MIT",
+  "private": true,
+  "version": "0.1.5",
+  "main": "./out/extension.js",
+  "workspaces": {
+    "nohoist": ["**"]
+  },
+  "scripts": {
+    "build": "tsc",
+    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --external:src/prism --format=cjs --platform=node",
+    "vscode:prepublish": "yarn run esbuild",
+    "package": "vsce package --yarn --dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.44.0",
+    "esbuild": "^0.19.10"
+  },
+  "dependencies": {
+    "@prettify-ts/typescript-plugin": "*",
+    "typescript": "^5.3.3"
+  },
+  "displayName": "Prettify TypeScript: Better Type Previews",
+  "description": "View \"prettified\" and nested types in hover tooltips and sidebar.",
+  "preview": true,
+  "icon": "assets/logo.png",
+  "engines": {
+    "vscode": "^1.44.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mylesmmurphy/prettify-ts"
+  },
+  "categories": [
+    "Programming Languages",
+    "Debuggers",
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:typescriptreact",
+    "onLanguage:javascriptreact"
+  ],
+  "contributes": {
+    "typescriptServerPlugins": [
+      {
+        "name": "@prettify-ts/typescript-plugin",
+        "enableForWorkspaceTypeScriptVersions": true
+      }
+    ],
+    "configuration": {
+      "title": "Prettify TS",
+      "properties": {
+        "prettify-ts.typeIndentation": {
+          "type": "number",
+          "default": 4,
+          "minimum": 0
+        },
+        "prettify-ts.maxDepth": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0
+        },
+        "prettify-ts.maxProperties": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 1,
+          "description": "The maximum number of properties (including sub-properties) to show in a type preview. The number of lines shown will be at most this number."
+        },
+        "prettify-ts.maxSubProperties": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "description": "The maximum number of properties to show in a nested (depth greater than 1) type."
+        },
+        "prettify-ts.maxUnionMembers": {
+          "type": "number",
+          "default": 15,
+          "minimum": 1,
+          "description": "The maximum number of members to show in a union."
+        },
+        "prettify-ts.hidePrivateProperties": {
+          "type": "boolean",
+          "default": true,
+          "description": "Hide private properties on an object."
+        },
+        "prettify-ts.unwrapFunctions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prettify function parameters and return types."
+        },
+        "prettify-ts.unwrapArrays": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prettify array element types."
+        },
+        "prettify-ts.unwrapPromises": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prettify the resolved type of a promise."
+        },
+        "prettify-ts.skippedTypeNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "Array",
+            "ArrayBuffer",
+            "Buffer",
+            "Date",
+            "Element",
+            "Error",
+            "Map",
+            "Number",
+            "RegExp",
+            "Set",
+            "String",
+            "Symbol"
+          ],
+          "description": "Types that won't be unwrapped, by name."
+        },
+        "prettify-ts.maxCharacters": {
+          "type": "number",
+          "default": 20000,
+          "minimum": 0,
+          "maximum": 99000,
+          "description": "The maximum number of string characters to show in a type preview before cutting off. (High performance impact)"
+        }
+      }
+    }
+  }
+}

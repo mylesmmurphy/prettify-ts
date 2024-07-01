@@ -1,0 +1,16 @@
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+**/*.ts
+**/*.tsx
+**/*.js.map
+**/.DS_Store
+**/package-lock.json
+**/package.json
+**/.eslintrc.json
+**/*.log
+../../**
+../**
+!**/node_modules/@prettify-ts/**
+!./node_modules/@prettify-ts/**
