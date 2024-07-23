@@ -206,6 +206,7 @@ export function prettyPrintTypeString (typeStringInput: string, indentation = 2)
   result = result
     .replace(/{\s*\n*\s*}/g, '{}')
     .replace(/^\s*[\r\n]/gm, '')
+    .replace(/{\s*\.\.\.\s*([0-9]+)\s*more\s*}/g, '{ ... $1 more }')
 
   return result
 }

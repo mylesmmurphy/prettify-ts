@@ -19,9 +19,6 @@ let options: PrettifyOptions = {
   unwrapPromises: true
 }
 
-// Tracks the properties processed so far
-let propertiesCount = 0
-
 /**
  * Get TypeInfo at a position in a source file
  */
@@ -36,7 +33,6 @@ export function getTypeInfoAtPosition (
     typescript = typescriptContext
     checker = typeChecker
     options = prettifyOptions
-    propertiesCount = 0
 
     const node = getDescendantAtRange(typescript, sourceFile, [position, position])
     if (!node || node === sourceFile || !node.parent) return undefined
@@ -76,7 +72,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
   const apparentType = checker.getApparentType(type)
 
-  if (depth >= options.maxDepth || isPrimitiveType(type) || options.skippedTypeNames.includes(typeName)) return {
+  if (isPrimitiveType(type) || options.skippedTypeNames.includes(typeName)) return {
     kind: 'basic',
     typeName
   }
@@ -166,24 +162,32 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   }
 
   if (apparentType.isClassOrInterface() || (apparentType.flags & typescript.TypeFlags.Object)) {
-    if (propertiesCount >= options.maxProperties) return { kind: 'basic', typeName }
-
     // Resolve how many properties to show based on the maxProperties option
-    const remainingProperties = options.maxProperties - propertiesCount
     const depthMaxProps = depth >= 1 ? options.maxSubProperties : options.maxProperties
-    const allowedPropertiesCount = Math.min(depthMaxProps, remainingProperties)
 
     let typeProperties = apparentType.getProperties()
     if (options.hidePrivateProperties) {
       typeProperties = typeProperties.filter((symbol) => isPublicProperty(symbol))
     }
 
-    const publicProperties = typeProperties.slice(0, allowedPropertiesCount)
+    const excessProperties = Math.max(0, typeProperties.length - depthMaxProps)
+    typeProperties = typeProperties.slice(0, depthMaxProps)
 
-    propertiesCount += publicProperties.length
-    const excessProperties = Math.max(typeProperties.length - publicProperties.length, 0)
+    if (depth >= options.maxDepth) {
+      if (typeName.startsWith('{')) return {
+        kind: 'object',
+        typeName,
+        properties: [],
+        excessProperties: typeProperties.length
+      }
 
-    const properties: TypeProperty[] = publicProperties.map(symbol => {
+      return {
+        kind: 'basic',
+        typeName
+      }
+    }
+
+    const properties: TypeProperty[] = typeProperties.map(symbol => {
       const symbolType = checker.getTypeOfSymbol(symbol)
       return {
         name: symbol.getName(),
