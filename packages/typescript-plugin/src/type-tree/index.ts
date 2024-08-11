@@ -183,6 +183,11 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       // If we've reached the max depth and has a type alias, return it as a basic type
       // Otherwise, return an object with the properties count
       // If it has index signatures, add it to the properties as "..."
+      if (!typeName.includes('{')) return {
+        kind: 'basic',
+        typeName
+      }
+
       const indexProperties: TypeProperty[] = []
 
       if (stringIndexType) {
@@ -201,16 +206,11 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
         })
       }
 
-      if (typeName.includes('{')) return {
+      return {
         kind: 'object',
         typeName,
         properties: indexProperties,
-        excessProperties: typeProperties.length
-      }
-
-      return {
-        kind: 'basic',
-        typeName
+        excessProperties: typeProperties.length // Return all properties as excess to avoid deeper nesting
       }
     }
 
