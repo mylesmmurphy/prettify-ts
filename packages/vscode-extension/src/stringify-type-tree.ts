@@ -64,7 +64,12 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
   }
 
   if (typeTree.kind === 'array') {
-    return `${typeTree.readonly ? 'readonly ' : ''}${stringifyTypeTree(typeTree.elementType)}[]`
+    let elementTypeString = stringifyTypeTree(typeTree.elementType)
+    if (elementTypeString.includes('|') || elementTypeString.includes('&')) {
+      elementTypeString = `(${elementTypeString})`
+    }
+
+    return `${typeTree.readonly ? 'readonly ' : ''}${elementTypeString}[]`
   }
 
   if (typeTree.kind === 'function') {
