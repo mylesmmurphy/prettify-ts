@@ -19,9 +19,6 @@ let options: PrettifyOptions = {
   unwrapPromises: true
 }
 
-// Tracks the properties processed so far
-let propertiesCount = 0
-
 /**
  * Get TypeInfo at a position in a source file
  */
@@ -36,7 +33,6 @@ export function getTypeInfoAtPosition (
     typescript = typescriptContext
     checker = typeChecker
     options = prettifyOptions
-    propertiesCount = 0
 
     const node = getDescendantAtRange(typescript, sourceFile, [position, position])
     if (!node || node === sourceFile || !node.parent) return undefined
@@ -76,7 +72,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
   const apparentType = checker.getApparentType(type)
 
-  if (depth >= options.maxDepth || isPrimitiveType(type) || options.skippedTypeNames.includes(typeName)) return {
+  if (isPrimitiveType(type) || options.skippedTypeNames.includes(typeName)) return {
     kind: 'basic',
     typeName
   }
@@ -166,24 +162,59 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   }
 
   if (apparentType.isClassOrInterface() || (apparentType.flags & typescript.TypeFlags.Object)) {
-    if (propertiesCount >= options.maxProperties) return { kind: 'basic', typeName }
-
     // Resolve how many properties to show based on the maxProperties option
-    const remainingProperties = options.maxProperties - propertiesCount
     const depthMaxProps = depth >= 1 ? options.maxSubProperties : options.maxProperties
-    const allowedPropertiesCount = Math.min(depthMaxProps, remainingProperties)
 
     let typeProperties = apparentType.getProperties()
     if (options.hidePrivateProperties) {
       typeProperties = typeProperties.filter((symbol) => isPublicProperty(symbol))
     }
 
-    const publicProperties = typeProperties.slice(0, allowedPropertiesCount)
+    const excessProperties = Math.max(0, typeProperties.length - depthMaxProps)
+    typeProperties = typeProperties.slice(0, depthMaxProps)
 
-    propertiesCount += publicProperties.length
-    const excessProperties = Math.max(typeProperties.length - publicProperties.length, 0)
+    const stringIndexType = type.getStringIndexType()
+    const stringIndexIdentifierName = getIndexIdentifierName(type, 'string')
 
-    const properties: TypeProperty[] = publicProperties.map(symbol => {
+    const numberIndexType = type.getNumberIndexType()
+    const numberIndexIdentifierName = getIndexIdentifierName(type, 'number')
+
+    if (depth >= options.maxDepth) {
+      // If we've reached the max depth and has a type alias, return it as a basic type
+      // Otherwise, return an object with the properties count
+      // If it has index signatures, add it to the properties as "..."
+      if (!typeName.includes('{')) return {
+        kind: 'basic',
+        typeName
+      }
+
+      const indexProperties: TypeProperty[] = []
+
+      if (stringIndexType) {
+        indexProperties.push({
+          name: `[${stringIndexIdentifierName}: string]`,
+          readonly: isReadOnly(stringIndexType.symbol),
+          type: { kind: 'basic', typeName: '...' }
+        })
+      }
+
+      if (numberIndexType) {
+        indexProperties.push({
+          name: `[${numberIndexIdentifierName}: number]`,
+          readonly: isReadOnly(numberIndexType.symbol),
+          type: { kind: 'basic', typeName: '...' }
+        })
+      }
+
+      return {
+        kind: 'object',
+        typeName,
+        properties: indexProperties,
+        excessProperties: typeProperties.length // Return all properties as excess to avoid deeper nesting
+      }
+    }
+
+    const properties: TypeProperty[] = typeProperties.map(symbol => {
       const symbolType = checker.getTypeOfSymbol(symbol)
       return {
         name: symbol.getName(),
@@ -192,19 +223,17 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       }
     })
 
-    const stringIndexType = type.getStringIndexType()
     if (stringIndexType) {
       properties.push({
-        name: '[key: string]',
+        name: `[${stringIndexIdentifierName}: string]`,
         readonly: isReadOnly(stringIndexType.symbol),
         type: getTypeTree(stringIndexType, depth + 1, new Set(visited))
       })
     }
 
-    const numberIndexType = type.getNumberIndexType()
     if (numberIndexType) {
       properties.push({
-        name: '[key: number]',
+        name: `[${numberIndexIdentifierName}: number]`,
         readonly: isReadOnly(numberIndexType.symbol),
         type: getTypeTree(numberIndexType, depth + 1, new Set(visited))
       })
@@ -338,4 +367,28 @@ function isReadOnly (symbol: ts.Symbol | undefined): boolean {
       typescript.isMethodDeclaration(declaration)
     ) &&
     declaration.modifiers?.some(modifier => modifier.kind === typescript.SyntaxKind.ReadonlyKeyword)))
+}
+
+function hasMembers (declaration: ts.Declaration): declaration is ts.InterfaceDeclaration | ts.ClassDeclaration | ts.TypeLiteralNode {
+  return typescript.isInterfaceDeclaration(declaration) || typescript.isClassDeclaration(declaration) || typescript.isTypeLiteralNode(declaration)
+}
+
+function getIndexIdentifierName (type: ts.Type | undefined, signature: 'string' | 'number'): string {
+  const declarations = type?.getSymbol()?.getDeclarations()?.filter(hasMembers) ?? []
+  const members = declarations.flatMap(declaration => declaration.members as ts.NodeArray<ts.Node>)
+  if (!members.length) return 'key'
+
+  const indexSignatures = members.filter(typescript.isIndexSignatureDeclaration)
+
+  for (const indexSignature of indexSignatures) {
+    const parameter = indexSignature.parameters[0]
+    if (!parameter) continue
+
+    const signatureKind = parameter.getChildren()?.[2]?.getText()
+    if (signatureKind !== signature) continue
+
+    return parameter?.name?.getText() ?? 'key'
+  }
+
+  return 'key'
 }
