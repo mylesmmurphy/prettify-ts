@@ -173,11 +173,38 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     const excessProperties = Math.max(0, typeProperties.length - depthMaxProps)
     typeProperties = typeProperties.slice(0, depthMaxProps)
 
+    const stringIndexType = type.getStringIndexType()
+    const stringIndexIdentifierName = getIndexIdentifierName(type, 'string')
+
+    const numberIndexType = type.getNumberIndexType()
+    const numberIndexIdentifierName = getIndexIdentifierName(type, 'number')
+
     if (depth >= options.maxDepth) {
-      if (typeName.startsWith('{')) return {
+      // If we've reached the max depth and has a type alias, return it as a basic type
+      // Otherwise, return an object with the properties count
+      // If it has index signatures, add it to the properties as "..."
+      const indexProperties: TypeProperty[] = []
+
+      if (stringIndexType) {
+        indexProperties.push({
+          name: `[${stringIndexIdentifierName}: string]`,
+          readonly: isReadOnly(stringIndexType.symbol),
+          type: { kind: 'basic', typeName: '...' }
+        })
+      }
+
+      if (numberIndexType) {
+        indexProperties.push({
+          name: `[${numberIndexIdentifierName}: number]`,
+          readonly: isReadOnly(numberIndexType.symbol),
+          type: { kind: 'basic', typeName: '...' }
+        })
+      }
+
+      if (typeName.includes('{')) return {
         kind: 'object',
         typeName,
-        properties: [],
+        properties: indexProperties,
         excessProperties: typeProperties.length
       }
 
@@ -196,19 +223,17 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       }
     })
 
-    const stringIndexType = type.getStringIndexType()
     if (stringIndexType) {
       properties.push({
-        name: '[key: string]',
+        name: `[${stringIndexIdentifierName}: string]`,
         readonly: isReadOnly(stringIndexType.symbol),
         type: getTypeTree(stringIndexType, depth + 1, new Set(visited))
       })
     }
 
-    const numberIndexType = type.getNumberIndexType()
     if (numberIndexType) {
       properties.push({
-        name: '[key: number]',
+        name: `[${numberIndexIdentifierName}: number]`,
         readonly: isReadOnly(numberIndexType.symbol),
         type: getTypeTree(numberIndexType, depth + 1, new Set(visited))
       })
@@ -342,4 +367,28 @@ function isReadOnly (symbol: ts.Symbol | undefined): boolean {
       typescript.isMethodDeclaration(declaration)
     ) &&
     declaration.modifiers?.some(modifier => modifier.kind === typescript.SyntaxKind.ReadonlyKeyword)))
+}
+
+function hasMembers (declaration: ts.Declaration): declaration is ts.InterfaceDeclaration | ts.ClassDeclaration | ts.TypeLiteralNode {
+  return typescript.isInterfaceDeclaration(declaration) || typescript.isClassDeclaration(declaration) || typescript.isTypeLiteralNode(declaration)
+}
+
+function getIndexIdentifierName (type: ts.Type | undefined, signature: 'string' | 'number'): string {
+  const declarations = type?.getSymbol()?.getDeclarations()?.filter(hasMembers) ?? []
+  const members = declarations.flatMap(declaration => declaration.members as ts.NodeArray<ts.Node>)
+  if (!members.length) return 'key'
+
+  const indexSignatures = members.filter(typescript.isIndexSignatureDeclaration)
+
+  for (const indexSignature of indexSignatures) {
+    const parameter = indexSignature.parameters[0]
+    if (!parameter) continue
+
+    const signatureKind = parameter.getChildren()?.[2]?.getText()
+    if (signatureKind !== signature) continue
+
+    return parameter?.name?.getText() ?? 'key'
+  }
+
+  return 'key'
 }

@@ -21,8 +21,12 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
 
   if (typeTree.kind === 'intersection') {
     const nonObjectTypeStrings = typeTree.types.filter(t => t.kind !== 'object').map(t => stringifyTypeTree(t))
-
     const objectTypes = typeTree.types.filter((t): t is Extract<TypeTree, { kind: 'object' }> => t.kind === 'object')
+
+    if (objectTypes.length === 0) {
+      return nonObjectTypeStrings.join(' & ')
+    }
+
     const objectTypesProperties = objectTypes.flatMap(t => t.properties)
     const objectTypeExcessProperties = objectTypes.reduce((acc, t) => acc + t.excessProperties, 0)
     const mergedObjectTypeString = stringifyTypeTree({
@@ -202,19 +206,21 @@ export function prettyPrintTypeString (typeStringInput: string, indentation = 2)
     }
   }
 
-  // Remove empty braces newlines and empty newlines
   result = result
-    .replace(/{\s*\n*\s*}/g, '{}')
-    .replace(/^\s*[\r\n]/gm, '')
-    .replace(/{\s*\.\.\.\s*([0-9]+)\s*more\s*}/g, '{ ... $1 more }')
+    .replace(/{\s*\n*\s*}/g, '{}') // Remove empty braces newlines
+    .replace(/^\s*[\r\n]/gm, '') // Remove empty newlines
+    .replace(/{\s*\.\.\.\s*([0-9]+)\s*more\s*}/g, '{ ... $1 more }') // Replace only excess properties into one line
 
   return result
 }
 
+/**
+ * Sanitizes a string by removing leading words, whitespace, newlines, and semicolons
+ */
 export function sanitizeString (str: string): string {
-  // Remove the leading word, ex: type, const, interface
-  str = str.replace(/^[a-z]+\s/, '')
-
-  // Remove all whitespace, newlines, and semicolons
-  return str.replace(/\s/g, '').replace(/\n/g, '').replace(/;/g, '')
+  return str
+    .replace(/^[a-z]+\s/, '') // Remove the leading word, ex: type, const, interface
+    .replace(/\s/g, '') // Remove all whitespace
+    .replace(/\n/g, '') // Remove all newlines
+    .replace(/;/g, '') // Remove all semicolons
 }
