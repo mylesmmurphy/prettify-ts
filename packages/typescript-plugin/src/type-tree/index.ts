@@ -72,14 +72,18 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
   const apparentType = checker.getApparentType(type)
 
-  if (isPrimitiveType(type) || options.skippedTypeNames.includes(typeName)) return {
-    kind: 'basic',
-    typeName
+  if (isPrimitiveType(type)) return {
+    kind: 'primitive',
+    typeName,
+    depth
   }
 
-  if (visited.has(type)) return {
-    kind: 'basic',
-    typeName
+  // Prevent infinite recursion when encountering circular references
+  // Guarantueed to be a reference if the type has been visited before
+  if (visited.has(type) || options.skippedTypeNames.includes(typeName)) return {
+    kind: 'reference',
+    typeName,
+    depth
   }
 
   visited.add(type)
@@ -87,6 +91,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   if (type.isUnion()) return {
     kind: 'union',
     typeName,
+    depth,
     excessMembers: Math.max(0, type.types.length - options.maxUnionMembers),
     types: type.types.slice(0, options.maxUnionMembers).sort(sortUnionTypes).map(t => getTypeTree(t, depth, new Set(visited)))
   }
@@ -95,6 +100,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     return {
       kind: 'enum',
       typeName,
+      depth,
       member: `${type.symbol.parent.name}.${type.symbol.name}`
     }
   }
@@ -102,17 +108,27 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   if (type.isIntersection()) return {
     kind: 'intersection',
     typeName,
+    depth,
     types: type.types.map(t => getTypeTree(t, depth, new Set(visited)))
   }
 
   if (typeName.startsWith('Promise<')) {
-    if (!options.unwrapPromises) return { kind: 'basic', typeName }
+    if (!options.unwrapPromises) return {
+      kind: 'reference',
+      typeName,
+      depth
+    }
 
     const typeArgument = checker.getTypeArguments(apparentType as ts.TypeReference)[0]
+    const promiseType: TypeTree = typeArgument
+      ? getTypeTree(typeArgument, depth, new Set(visited))
+      : { kind: 'primitive', typeName: 'void', depth }
+
     return {
       kind: 'promise',
       typeName,
-      type: typeArgument ? getTypeTree(typeArgument, depth, new Set(visited)) : { kind: 'basic', typeName: 'void' }
+      depth,
+      type: promiseType
     }
   }
 
@@ -170,49 +186,33 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       typeProperties = typeProperties.filter((symbol) => isPublicProperty(symbol))
     }
 
-    const excessProperties = Math.max(0, typeProperties.length - depthMaxProps)
-    typeProperties = typeProperties.slice(0, depthMaxProps)
-
     const stringIndexType = type.getStringIndexType()
-    const stringIndexIdentifierName = getIndexIdentifierName(type, 'string')
-
     const numberIndexType = type.getNumberIndexType()
-    const numberIndexIdentifierName = getIndexIdentifierName(type, 'number')
 
     if (depth >= options.maxDepth) {
       // If we've reached the max depth and has a type alias, return it as a basic type
       // Otherwise, return an object with the properties count
-      // If it has index signatures, add it to the properties as "..."
+      // Example: { ... 3 more } or A & B
       if (!typeName.includes('{')) return {
         kind: 'basic',
         typeName
       }
 
-      const indexProperties: TypeProperty[] = []
-
-      if (stringIndexType) {
-        indexProperties.push({
-          name: `[${stringIndexIdentifierName}: string]`,
-          readonly: isReadOnly(stringIndexType.symbol),
-          type: { kind: 'basic', typeName: '...' }
-        })
-      }
-
-      if (numberIndexType) {
-        indexProperties.push({
-          name: `[${numberIndexIdentifierName}: number]`,
-          readonly: isReadOnly(numberIndexType.symbol),
-          type: { kind: 'basic', typeName: '...' }
-        })
-      }
+      let propertiesCount = typeProperties.length
+      if (stringIndexType) propertiesCount += 1
+      if (numberIndexType) propertiesCount += 1
 
       return {
         kind: 'object',
         typeName,
-        properties: indexProperties,
-        excessProperties: typeProperties.length // Return all properties as excess to avoid deeper nesting
+        properties: [],
+        excessProperties: propertiesCount // Return all properties as excess to avoid deeper nesting
       }
     }
+
+    // Track how many properties are being cut off from the maxProperties option
+    let excessProperties = typeProperties.length - depthMaxProps
+    typeProperties = typeProperties.slice(0, depthMaxProps)
 
     const properties: TypeProperty[] = typeProperties.map(symbol => {
       const symbolType = checker.getTypeOfSymbol(symbol)
@@ -224,26 +224,37 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     })
 
     if (stringIndexType) {
-      properties.push({
-        name: `[${stringIndexIdentifierName}: string]`,
-        readonly: isReadOnly(stringIndexType.symbol),
-        type: getTypeTree(stringIndexType, depth + 1, new Set(visited))
-      })
+      // If under max properties allowance, add the string index type as a property
+      if (excessProperties < 0) {
+        const stringIndexIdentifierName = getIndexIdentifierName(type, 'string')
+        properties.push({
+          name: `[${stringIndexIdentifierName}: string]`,
+          readonly: isReadOnly(stringIndexType.symbol),
+          type: getTypeTree(stringIndexType, depth + 1, new Set(visited))
+        })
+      }
+
+      excessProperties += 1 // Track the string index type as an excess property
     }
 
     if (numberIndexType) {
-      properties.push({
-        name: `[${numberIndexIdentifierName}: number]`,
-        readonly: isReadOnly(numberIndexType.symbol),
-        type: getTypeTree(numberIndexType, depth + 1, new Set(visited))
-      })
+      if (excessProperties < 0) {
+        const numberIndexIdentifierName = getIndexIdentifierName(type, 'number')
+        properties.push({
+          name: `[${numberIndexIdentifierName}: number]`,
+          readonly: isReadOnly(numberIndexType.symbol),
+          type: getTypeTree(numberIndexType, depth + 1, new Set(visited))
+        })
+      }
+
+      excessProperties += 1
     }
 
     return {
       kind: 'object',
       typeName,
       properties,
-      excessProperties
+      excessProperties: Math.max(0, excessProperties)
     }
   }
 

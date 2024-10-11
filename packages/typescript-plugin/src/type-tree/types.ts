@@ -6,8 +6,12 @@ export type TypeFunctionSignature = { returnType: TypeTree, parameters: TypeFunc
 
 /**
  * TypeTree is a tree representation of a TypeScript type.
+ * Discriminated by the `kind` field.
  */
-export type TypeTree = { typeName: string } & (
+export type TypeTree = {
+  typeName: string
+  depth: number
+} & (
   | { kind: 'union', excessMembers: number, types: TypeTree[] }
   | { kind: 'intersection', types: TypeTree[] }
   | { kind: 'object', excessProperties: number, properties: TypeProperty[] }
@@ -15,7 +19,8 @@ export type TypeTree = { typeName: string } & (
   | { kind: 'function', signatures: TypeFunctionSignature[] }
   | { kind: 'promise', type: TypeTree }
   | { kind: 'enum', member: string }
-  | { kind: 'basic' } // https://www.typescriptlang.org/docs/handbook/basic-types.html
+  | { kind: 'primitive' } // string, number, boolean, symbol, bigint, undefined, null, void, never, any
+  | { kind: 'reference' } // Named types like classes, interfaces, type aliases, etc. when maxDepth is reached
 )
 
 /**
