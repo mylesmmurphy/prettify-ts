@@ -109,7 +109,7 @@ function getConstructorTypeInfo (type: ts.Type, typeChecker: ts.TypeChecker, nam
   const params = type.getConstructSignatures()[0]!.parameters
   const paramTypes = params.map(p => typeChecker.getTypeOfSymbol(p))
   const parameters = paramTypes.map((t, index) => {
-    const declaration = t.symbol?.declarations?.[0]
+    const declaration = params[index]?.declarations?.[0]
     const isRestParameter = Boolean(declaration && typescript.isParameter(declaration) && !!declaration.dotDotDotToken)
     const optional = Boolean(declaration && typescript.isParameter(declaration) && !!declaration.questionToken)
 

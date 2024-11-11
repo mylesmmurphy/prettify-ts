@@ -13,7 +13,7 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
   if (typeTree.kind === 'union') {
     const unionString = typeTree.types.map(t => stringifyTypeTree(t)).join(' | ')
     if (typeTree.excessMembers > 0) {
-      return `${unionString} | ... ${typeTree.excessMembers} more;`
+      return `${unionString} | ... ${typeTree.excessMembers} more`
     }
 
     return unionString
