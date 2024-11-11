@@ -280,6 +280,20 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     }
   }
 
+  if (checker.isTupleType(type)) {
+    const elementTypes = checker
+      .getTypeArguments(type as ts.TupleTypeReference)
+      .map(t => getTypeTree(t, depth, new Set(visited)))
+    const readonly = (type as ts.TupleTypeReference)?.target?.readonly ?? false
+
+    return {
+      kind: 'tuple',
+      typeName,
+      readonly,
+      elementTypes
+    }
+  }
+
   if (checker.isArrayType(type)) {
     if (!options.unwrapArrays) {
       depth = options.maxDepth

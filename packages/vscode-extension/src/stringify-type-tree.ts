@@ -44,6 +44,12 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     return `{ ${propertiesString} }`
   }
 
+  if (typeTree.kind === 'tuple') {
+    const elementTypesString = typeTree.elementTypes.map(t => stringifyTypeTree(t)).join(', ')
+
+    return `${typeTree.readonly ? 'readonly ' : ''}[${elementTypesString}]`
+  }
+
   if (typeTree.kind === 'array') {
     let elementTypeString = stringifyTypeTree(typeTree.elementType)
     if (elementTypeString.includes('|') || elementTypeString.includes('&')) {
