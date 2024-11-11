@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
-import type { PrettifyRequest, TypeInfo } from './types'
+import type { PrettifyRequest } from './types'
+import type { TypeInfo } from '@prettify-ts/typescript-plugin/src/type-tree/types'
 import { prettyPrintTypeString, getSyntaxKindDeclaration, stringifyTypeTree, sanitizeString } from './stringify-type-tree'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {

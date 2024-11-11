@@ -9,50 +9,25 @@ export function getDescendantAtRange (
   sourceFile: ts.SourceFile,
   range: [number, number]
 ): ts.Node | undefined {
-  let bestMatch: { node: ts.Node, start: number } = {
+  let bestMatch: { node: ts.Node, start: number, end: number } = {
     node: sourceFile,
-    start: sourceFile.getStart(sourceFile)
+    start: sourceFile.getStart(sourceFile),
+    end: sourceFile.getEnd()
   }
 
   searchDescendants(sourceFile)
   return bestMatch.node
 
-  function searchDescendants (node: ts.Node): ts.Node | undefined {
-    const children: ts.Node[] = []
-    node.forEachChild((child) => {
-      children.push(child)
-      return undefined
-    })
+  function searchDescendants (node: ts.Node): void {
+    const start = node.getStart(sourceFile)
+    const end = node.getEnd()
 
-    for (const child of children) {
-      if (child.kind !== typescript.SyntaxKind.SyntaxList) {
-        if (isBeforeRange(child.end)) {
-          continue
-        }
-
-        const childStart = child.getStart(sourceFile)
-
-        if (isAfterRange(childStart)) {
-          return
-        }
-
-        const isEndOfFileToken = child.kind === typescript.SyntaxKind.EndOfFileToken
-        const hasSameStart = bestMatch.start === childStart && range[0] === childStart
-
-        if (!isEndOfFileToken && !hasSameStart) {
-          bestMatch = { node: child, start: childStart }
-        }
+    if (start <= range[0] && end >= range[1]) {
+      if (start >= bestMatch.start && end <= bestMatch.end) {
+        bestMatch = { node, start, end }
       }
-
-      searchDescendants(child)
     }
-  }
 
-  function isBeforeRange (pos: number): boolean {
-    return pos < range[0]
-  }
-
-  function isAfterRange (nodeEnd: number): boolean {
-    return nodeEnd >= range[0] && nodeEnd > range[1]
+    node.forEachChild(child => { searchDescendants(child) })
   }
 }
