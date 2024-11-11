@@ -54,9 +54,18 @@
         "enableForWorkspaceTypeScriptVersions": true
       }
     ],
+    "commands": [{
+      "command": "prettify-ts.toggle",
+      "title": "Prettify: Toggle"
+    }],
     "configuration": {
       "title": "Prettify TS",
       "properties": {
+        "prettify-ts.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable Prettify TS."
+        },
         "prettify-ts.typeIndentation": {
           "type": "number",
           "default": 4,
