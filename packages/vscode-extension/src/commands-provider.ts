@@ -5,7 +5,7 @@ export function registerCommands (context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('prettify-ts.toggle', async (option?: boolean) => {
       const config = vscode.workspace.getConfiguration('prettify-ts')
       if (option === true || option === false) {
-        await config.update('enableHover', option, vscode.ConfigurationTarget.Global)
+        await config.update('enabled', option, vscode.ConfigurationTarget.Global)
         return
       }
 

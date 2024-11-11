@@ -56,7 +56,7 @@
     ],
     "commands": [{
       "command": "prettify-ts.toggle",
-      "title": "Prettify: Toggle"
+      "title": "Prettify TS: Toggle Preview"
     }],
     "configuration": {
       "title": "Prettify TS",
