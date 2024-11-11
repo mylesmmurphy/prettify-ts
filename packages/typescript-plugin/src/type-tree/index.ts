@@ -54,11 +54,13 @@ export function getTypeInfoAtPosition (
 
     const name = symbol?.getName() ?? typeChecker.typeToString(type)
 
-    // Display constructor information for classes
+    // Display constructor information for classes being instantiated
+    // Don't display constructor information for classes being extended, imported, or part of an import statement
     if (
-      syntaxKind === typescript.SyntaxKind.ClassDeclaration &&
-      !typescript.isClassDeclaration(node.parent) &&
-      type.getConstructSignatures().length > 0
+      syntaxKind === typescript.SyntaxKind.ClassDeclaration && // Confirm the node is a class
+      !typescript.isClassDeclaration(node.parent) && // Confirm the node is not part of a class definition
+      !isPartOfImportStatement(node) && // Confirm the node is not part of an import statement
+      type.getConstructSignatures().length > 0 // Confirm the class has a constructor
     ) {
       return {
         typeTree: getConstructorTypeInfo(type, typeChecker, name),
@@ -88,6 +90,16 @@ export function getTypeInfoAtPosition (
   } catch (e) {
     return undefined
   }
+}
+
+function isPartOfImportStatement (node: ts.Node): boolean {
+  while (node) {
+    if (typescript.isImportDeclaration(node) || typescript.isImportSpecifier(node) || typescript.isImportClause(node)) {
+      return true
+    }
+    node = node.parent
+  }
+  return false
 }
 
 function getVariableDeclarationKind (node: ts.VariableDeclaration): number {
