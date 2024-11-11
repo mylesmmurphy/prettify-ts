@@ -28,6 +28,5 @@ export type TypeTree = { typeName: string } & (
 export type TypeInfo = {
   typeTree: TypeTree
   syntaxKind: ts.SyntaxKind
-  variableDeclarationKind?: 'let' | 'const' | 'var'
   name: string
 }
