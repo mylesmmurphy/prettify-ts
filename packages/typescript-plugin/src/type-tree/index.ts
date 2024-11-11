@@ -47,6 +47,22 @@ export function getTypeInfoAtPosition (
 
     let type = typeChecker.getTypeOfSymbolAtLocation(symbol, node)
 
+    let syntaxKind = symbol?.declarations?.[0]?.kind ?? typescript.SyntaxKind.ConstKeyword
+    if (typescript.isVariableDeclaration(node.parent)) {
+      syntaxKind = getVariableDeclarationKind(node.parent)
+    }
+
+    const name = symbol?.getName() ?? typeChecker.typeToString(type)
+
+    // Display constructor information for classes
+    if (syntaxKind === typescript.SyntaxKind.ClassDeclaration && type.getConstructSignatures().length > 0) {
+      return {
+        typeTree: getConstructorTypeInfo(type, typeChecker, name),
+        syntaxKind: typescript.SyntaxKind.Constructor,
+        name
+      }
+    }
+
     // If the symbol has a declared type, use that when available
     // Don't use declared type for variable declarations
     // TODO: Determine best method, check all or just the first
@@ -57,13 +73,6 @@ export function getTypeInfoAtPosition (
     if (declaredType.flags !== typescript.TypeFlags.Any && shouldUseDeclaredType) {
       type = declaredType
     }
-
-    let syntaxKind = symbol?.declarations?.[0]?.kind ?? typescript.SyntaxKind.ConstKeyword
-    if (typescript.isVariableDeclaration(node.parent)) {
-      syntaxKind = getVariableDeclarationKind(node.parent)
-    }
-
-    const name = symbol?.getName() ?? typeChecker.typeToString(type)
 
     const typeTree = getTypeTree(type, 0, new Set())
 
@@ -90,6 +99,28 @@ function getVariableDeclarationKind (node: ts.VariableDeclaration): number {
   }
 
   return typescript.SyntaxKind.VarKeyword
+}
+
+function getConstructorTypeInfo (type: ts.Type, typeChecker: ts.TypeChecker, name: string): TypeTree {
+  const params = type.getConstructSignatures()[0]!.parameters
+  const paramTypes = params.map(p => typeChecker.getTypeOfSymbol(p))
+  const parameters = paramTypes.map((t, index) => {
+    return {
+      name: params[index]?.getName() ?? `param${index}`,
+      isRestParameter: false,
+      optional: false,
+      type: getTypeTree(t, 0, new Set())
+    }
+  })
+
+  return {
+    kind: 'function',
+    typeName: name,
+    signatures: [{
+      returnType: { kind: 'reference', typeName: name },
+      parameters
+    }]
+  }
 }
 
 /**

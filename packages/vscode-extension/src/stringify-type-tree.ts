@@ -136,6 +136,7 @@ export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: stri
     case SyntaxKind.MethodSignature:
     case SyntaxKind.GetAccessor:
     case SyntaxKind.SetAccessor:
+    case SyntaxKind.Constructor:
       return `function ${typeName}`
 
     case SyntaxKind.LetKeyword:
