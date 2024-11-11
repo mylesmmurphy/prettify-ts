@@ -1,11 +1,11 @@
 import { SyntaxKind } from 'typescript'
-import type { TypeTree } from './types'
+import type { TypeTree } from '@prettify-ts/typescript-plugin/src/type-tree/types'
 
 /**
  * Uses type info to return a string representation of the type
  *
  * Example:
- * { kind: 'union', types: [{ kind: 'basic', type: 'string' }, { kind: 'basic', type: 'number' }] }
+ * { kind: 'union', types: [{ kind: 'primitive', type: 'string' }, { kind: 'primitive', type: 'number' }] }
  * Yields:
  * 'string | number'
  */
@@ -13,30 +13,14 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
   if (typeTree.kind === 'union') {
     const unionString = typeTree.types.map(t => stringifyTypeTree(t)).join(' | ')
     if (typeTree.excessMembers > 0) {
-      return `${unionString} | ... ${typeTree.excessMembers} more`
+      return `${unionString} | ... ${typeTree.excessMembers} more;`
     }
 
     return unionString
   }
 
   if (typeTree.kind === 'intersection') {
-    const nonObjectTypeStrings = typeTree.types.filter(t => t.kind !== 'object').map(t => stringifyTypeTree(t))
-    const objectTypes = typeTree.types.filter((t): t is Extract<TypeTree, { kind: 'object' }> => t.kind === 'object')
-
-    if (objectTypes.length === 0) {
-      return nonObjectTypeStrings.join(' & ')
-    }
-
-    const objectTypesProperties = objectTypes.flatMap(t => t.properties)
-    const objectTypeExcessProperties = objectTypes.reduce((acc, t) => acc + t.excessProperties, 0)
-    const mergedObjectTypeString = stringifyTypeTree({
-      kind: 'object',
-      typeName: typeTree.typeName,
-      properties: objectTypesProperties,
-      excessProperties: objectTypeExcessProperties
-    })
-
-    return [...nonObjectTypeStrings, mergedObjectTypeString].join(' & ')
+    return typeTree.types.map(t => stringifyTypeTree(t)).join(' & ')
   }
 
   if (typeTree.kind === 'object') {
@@ -44,13 +28,10 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
       const readonly = (p.readonly) ? 'readonly ' : ''
 
       let optional = ''
-      if (p.type.kind === 'union') {
-        const hasUndefined = p.type.types.some(t => t.kind === 'basic' && t.typeName === 'undefined')
-        if (hasUndefined) {
-          optional = '?'
-        }
-        // Remove undefined from union
-        p.type.types = p.type.types.filter(t => t.kind !== 'basic' || t.typeName !== 'undefined')
+      if (p.optional && p.type.kind === 'union') {
+        optional = '?'
+        // Remove undefined from union if optional
+        p.type.types = p.type.types.filter(t => t.typeName !== 'undefined')
       }
 
       return `${readonly}${p.name}${optional}: ${stringifyTypeTree(p.type)};`
@@ -78,17 +59,16 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     const signatures = typeTree.signatures.map(s => {
       const { parameters, returnType } = s
       const parametersString = parameters.map(p => {
+        const rest = p.isRestParameter ? '...' : ''
+
         let optional = ''
-        if (p.type.kind === 'union') {
-          const hasUndefined = p.type.types.some(t => t.kind === 'basic' && t.typeName === 'undefined')
-          if (hasUndefined) {
-            optional = '?'
-          }
-          // Remove undefined from union
-          p.type.types = p.type.types.filter(t => t.kind !== 'basic' || t.typeName !== 'undefined')
+        if (p.optional && p.type.kind === 'union') {
+          optional = '?'
+          // Remove undefined from union if optional
+          p.type.types = p.type.types.filter(t => t.typeName !== 'undefined')
         }
 
-        return `${p.isRestParameter ? '...' : ''}${p.name}${optional}: ${stringifyTypeTree(p.type)}`
+        return `${rest}${p.name}${optional}: ${stringifyTypeTree(p.type)}`
       }).join(', ')
 
       return `(${parametersString})${returnTypeChar} ${stringifyTypeTree(returnType)}`
@@ -110,6 +90,7 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     return `Promise<${stringifyTypeTree(typeTree.type)}>`
   }
 
+  // Primitive or reference type
   return typeTree.typeName
 }
 
@@ -157,6 +138,12 @@ export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: stri
     case SyntaxKind.SetAccessor:
       return `function ${typeName}`
 
+    case SyntaxKind.LetKeyword:
+      return `let ${typeName}: `
+
+    case SyntaxKind.VarKeyword:
+      return `var ${typeName}: `
+
     default:
       return `const ${typeName}: `
   }
@@ -184,18 +171,8 @@ export function prettyPrintTypeString (typeStringInput: string, indentation = 2)
   for (let line of lines) {
     line = line.trim()
 
-    // Replace : with ?: if line contains undefined union
-    // if (line.includes(':') && (line.includes(' | undefined') || line.includes('undefined | '))) {
-    //   line = line.replace(':', '?:').replace(' | undefined', '').replace('undefined | ', '').replace('??', '?')
-    // }
-
     // Replace true/false with boolean
     line = line.replace('false | true', 'boolean')
-
-    // Remove semi-colons from excess properties
-    if (line.includes('...')) {
-      line = line.replace('more;', 'more')
-    }
 
     const hasOpenBrace = line.includes('{')
     const hasCloseBrace = line.includes('}')
@@ -214,7 +191,7 @@ export function prettyPrintTypeString (typeStringInput: string, indentation = 2)
   result = result
     .replace(/{\s*\n*\s*}/g, '{}') // Remove empty braces newlines
     .replace(/^\s*[\r\n]/gm, '') // Remove empty newlines
-    .replace(/{\s*\.\.\.\s*([0-9]+)\s*more\s*}/g, '{ ... $1 more }') // Replace only excess properties into one line
+    .replace(/{\s*\.\.\.\s*([0-9]+)\s*more;\s*}/g, '{ ... $1 more }') // Replace only excess properties into one line
 
   return result
 }

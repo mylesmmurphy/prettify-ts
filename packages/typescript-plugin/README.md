@@ -2,7 +2,7 @@
 
 This project is a TypeScript Language Server Plugin that generates a tree-like structure representing the type information of TypeScript entities. It recursively traverses the types and builds a comprehensive tree, providing a structured view of the types and their relationships.
 
-The plugin handles various TypeScript types including basic types, union types, and complex object types. It also takes care of circular references to prevent infinite recursion. The depth of recursion is configurable, and certain types can be skipped if needed.
+The plugin handles various TypeScript types including references types, union types, and complex object types. It also takes care of circular references to prevent infinite recursion. The depth of recursion is configurable, and certain types can be skipped if needed.
 
 This tool is particularly useful for understanding complex type structures in TypeScript projects, aiding in debugging, documentation, and code comprehension.
 
