@@ -37,15 +37,23 @@ export function getTypeInfoAtPosition (
     const node = getDescendantAtRange(typescript, sourceFile, [position, position])
     if (!node || node === sourceFile || !node.parent) return undefined
 
-    const symbol = typeChecker.getSymbolAtLocation(node)
+    let symbol = typeChecker.getSymbolAtLocation(node)
     if (!symbol) return undefined
+
+    // Handle ImportSpecifier
+    if (symbol.flags & typescript.SymbolFlags.Alias) {
+      symbol = typeChecker.getAliasedSymbol(symbol)
+    }
 
     let type = typeChecker.getTypeOfSymbolAtLocation(symbol, node)
 
     // If the symbol has a declared type, use that when available
     // Don't use declared type for variable declarations
-    const shouldUseDeclaredType = symbol.declarations?.every(d => d.kind !== typescript.SyntaxKind.VariableDeclaration)
+    // TODO: Determine best method, check all or just the first
+    // const shouldUseDeclaredType = symbol.declarations?.every(d => d.kind !== typescript.SyntaxKind.VariableDeclaration)
+    const shouldUseDeclaredType = symbol.declarations?.[0]?.kind !== typescript.SyntaxKind.VariableDeclaration
     const declaredType = typeChecker.getDeclaredTypeOfSymbol(symbol)
+
     if (declaredType.flags !== typescript.TypeFlags.Any && shouldUseDeclaredType) {
       type = declaredType
     }
