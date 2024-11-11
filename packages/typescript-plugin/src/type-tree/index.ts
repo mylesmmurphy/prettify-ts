@@ -47,6 +47,28 @@ export function getTypeInfoAtPosition (
 
     let type = typeChecker.getTypeOfSymbolAtLocation(symbol, node)
 
+    let syntaxKind = symbol?.declarations?.[0]?.kind ?? typescript.SyntaxKind.ConstKeyword
+    if (typescript.isVariableDeclaration(node.parent)) {
+      syntaxKind = getVariableDeclarationKind(node.parent)
+    }
+
+    const name = symbol?.getName() ?? typeChecker.typeToString(type)
+
+    // Display constructor information for classes being instantiated
+    // Don't display constructor information for classes being extended, imported, or part of an import statement
+    if (
+      syntaxKind === typescript.SyntaxKind.ClassDeclaration && // Confirm the node is a class
+      !typescript.isClassDeclaration(node.parent) && // Confirm the node is not part of a class definition
+      !isPartOfImportStatement(node) && // Confirm the node is not part of an import statement
+      type.getConstructSignatures().length > 0 // Confirm the class has a constructor
+    ) {
+      return {
+        typeTree: getConstructorTypeInfo(type, typeChecker, name),
+        syntaxKind: typescript.SyntaxKind.Constructor,
+        name
+      }
+    }
+
     // If the symbol has a declared type, use that when available
     // Don't use declared type for variable declarations
     // TODO: Determine best method, check all or just the first
@@ -58,13 +80,6 @@ export function getTypeInfoAtPosition (
       type = declaredType
     }
 
-    let syntaxKind = symbol?.declarations?.[0]?.kind ?? typescript.SyntaxKind.ConstKeyword
-    if (typescript.isVariableDeclaration(node.parent)) {
-      syntaxKind = getVariableDeclarationKind(node.parent)
-    }
-
-    const name = symbol?.getName() ?? typeChecker.typeToString(type)
-
     const typeTree = getTypeTree(type, 0, new Set())
 
     return {
@@ -75,6 +90,16 @@ export function getTypeInfoAtPosition (
   } catch (e) {
     return undefined
   }
+}
+
+function isPartOfImportStatement (node: ts.Node): boolean {
+  while (node) {
+    if (typescript.isImportDeclaration(node) || typescript.isImportSpecifier(node) || typescript.isImportClause(node)) {
+      return true
+    }
+    node = node.parent
+  }
+  return false
 }
 
 function getVariableDeclarationKind (node: ts.VariableDeclaration): number {
@@ -90,6 +115,32 @@ function getVariableDeclarationKind (node: ts.VariableDeclaration): number {
   }
 
   return typescript.SyntaxKind.VarKeyword
+}
+
+function getConstructorTypeInfo (type: ts.Type, typeChecker: ts.TypeChecker, name: string): TypeTree {
+  const params = type.getConstructSignatures()[0]!.parameters
+  const paramTypes = params.map(p => typeChecker.getTypeOfSymbol(p))
+  const parameters = paramTypes.map((t, index) => {
+    const declaration = params[index]?.declarations?.[0]
+    const isRestParameter = Boolean(declaration && typescript.isParameter(declaration) && !!declaration.dotDotDotToken)
+    const optional = Boolean(declaration && typescript.isParameter(declaration) && !!declaration.questionToken)
+
+    return {
+      name: params[index]?.getName() ?? `param${index}`,
+      isRestParameter,
+      optional,
+      type: getTypeTree(t, 0, new Set())
+    }
+  })
+
+  return {
+    kind: 'function',
+    typeName: name,
+    signatures: [{
+      returnType: { kind: 'reference', typeName: name },
+      parameters
+    }]
+  }
 }
 
 /**
