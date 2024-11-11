@@ -55,7 +55,11 @@ export function getTypeInfoAtPosition (
     const name = symbol?.getName() ?? typeChecker.typeToString(type)
 
     // Display constructor information for classes
-    if (syntaxKind === typescript.SyntaxKind.ClassDeclaration && type.getConstructSignatures().length > 0) {
+    if (
+      syntaxKind === typescript.SyntaxKind.ClassDeclaration &&
+      !typescript.isClassDeclaration(node.parent) &&
+      type.getConstructSignatures().length > 0
+    ) {
       return {
         typeTree: getConstructorTypeInfo(type, typeChecker, name),
         syntaxKind: typescript.SyntaxKind.Constructor,
@@ -105,10 +109,14 @@ function getConstructorTypeInfo (type: ts.Type, typeChecker: ts.TypeChecker, nam
   const params = type.getConstructSignatures()[0]!.parameters
   const paramTypes = params.map(p => typeChecker.getTypeOfSymbol(p))
   const parameters = paramTypes.map((t, index) => {
+    const declaration = t.symbol?.declarations?.[0]
+    const isRestParameter = Boolean(declaration && typescript.isParameter(declaration) && !!declaration.dotDotDotToken)
+    const optional = Boolean(declaration && typescript.isParameter(declaration) && !!declaration.questionToken)
+
     return {
       name: params[index]?.getName() ?? `param${index}`,
-      isRestParameter: false,
-      optional: false,
+      isRestParameter,
+      optional,
       type: getTypeTree(t, 0, new Set())
     }
   })
