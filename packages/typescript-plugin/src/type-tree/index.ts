@@ -150,27 +150,51 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
   const apparentType = checker.getApparentType(type)
 
-  if (isPrimitiveType(type)) {
+  if (isPrimitiveType(type) || isPrimitiveType(apparentType)) {
     return {
       kind: 'primitive',
       typeName
     }
   }
 
-  // Prevent infinite recursion when encountering circular references
-  // Guarantueed to be a reference if the type has been visited before
-  if (visited.has(type) || options.skippedTypeNames.includes(typeName)) {
+  if (options.skippedTypeNames.includes(typeName)) {
     return {
       kind: 'reference',
       typeName
     }
   }
 
+  // Prevent infinite recursion when encountering circular references
+  // Guarantueed to be a reference if the type has been visited before
+  if (visited.has(type)) {
+    if (typeName.includes('{') && apparentType.getProperties().length > 0) {
+      const typeProperties = apparentType.getProperties()
+      const stringIndexType = apparentType.getStringIndexType()
+      const numberIndexType = apparentType.getNumberIndexType()
+
+      let propertiesCount = typeProperties.length
+      if (stringIndexType) propertiesCount += 1
+      if (numberIndexType) propertiesCount += 1
+
+      return {
+        kind: 'object',
+        typeName,
+        properties: [],
+        excessProperties: propertiesCount // Return all properties as excess to avoid deeper nesting
+      }
+    }
+
+    return {
+      kind: 'reference',
+      typeName: checker.typeToString(apparentType, undefined, typescript.TypeFormatFlags.NoTruncation)
+    }
+  }
+
   visited.add(type)
 
-  if (type.isUnion()) {
-    const excessMembers = Math.max(0, type.types.length - options.maxUnionMembers)
-    const types = type.types
+  if (apparentType.isUnion()) {
+    const excessMembers = Math.max(0, apparentType.types.length - options.maxUnionMembers)
+    const types = apparentType.types
       .slice(0, options.maxUnionMembers)
       .sort(sortUnionTypes)
       .map(t => getTypeTree(t, depth, new Set(visited)))
@@ -183,15 +207,19 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     }
   }
 
-  if (type?.symbol?.flags & typescript.SymbolFlags.EnumMember && type.symbol.parent) {
+  if (apparentType?.symbol?.flags & typescript.SymbolFlags.EnumMember && apparentType.symbol.parent) {
     return {
       kind: 'enum',
       typeName,
-      member: `${type.symbol.parent.name}.${type.symbol.name}`
+      member: `${apparentType.symbol.parent.name}.${apparentType.symbol.name}`
     }
   }
 
-  if (type.isIntersection()) {
+  // Is an intersection and one of the types is a primitive type or one of the types is on the skipped list
+  if (
+    type.isIntersection() &&
+    (type.types.some(isPrimitiveType) || type.types.some(t => options.skippedTypeNames.includes(checker.typeToString(t))))
+  ) {
     const intersectionTypes = type.types.map(t => getTypeTree(t, depth, new Set(visited)))
 
     // Combine intersection objects into a single object, if possible
@@ -216,7 +244,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       // Limit properties to the maximum allowed
       properties = properties.slice(0, depthMaxProps)
 
-      types.push({
+      types.unshift({
         kind: 'object',
         typeName,
         properties,
@@ -280,11 +308,11 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     }
   }
 
-  if (checker.isTupleType(type)) {
+  if (checker.isTupleType(apparentType)) {
     const elementTypes = checker
-      .getTypeArguments(type as ts.TupleTypeReference)
+      .getTypeArguments(apparentType as ts.TupleTypeReference)
       .map(t => getTypeTree(t, depth, new Set(visited)))
-    const readonly = (type as ts.TupleTypeReference)?.target?.readonly ?? false
+    const readonly = (apparentType as ts.TupleTypeReference)?.target?.readonly ?? false
 
     return {
       kind: 'tuple',
@@ -294,12 +322,12 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     }
   }
 
-  if (checker.isArrayType(type)) {
+  if (checker.isArrayType(apparentType)) {
     if (!options.unwrapArrays) {
       depth = options.maxDepth
     }
 
-    const arrayType = checker.getTypeArguments(type as ts.TypeReference)[0]
+    const arrayType = checker.getTypeArguments(apparentType as ts.TypeReference)[0]
     const elementType: TypeTree = arrayType
       ? getTypeTree(arrayType, depth, new Set(visited))
       : { kind: 'primitive', typeName: 'any' }
@@ -307,12 +335,16 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     return {
       kind: 'array',
       typeName,
-      readonly: type.getSymbol()?.getName() === 'ReadonlyArray',
+      readonly: apparentType.getSymbol()?.getName() === 'ReadonlyArray',
       elementType
     }
   }
 
-  if (apparentType.isClassOrInterface() || (apparentType.flags & typescript.TypeFlags.Object)) {
+  if (
+    apparentType.isClassOrInterface() ||
+    (apparentType.flags & typescript.TypeFlags.Object) ||
+    apparentType.getProperties().length > 0
+  ) {
     // Resolve how many properties to show based on the maxProperties option
     const depthMaxProps = depth >= 1 ? options.maxSubProperties : options.maxProperties
 
@@ -321,8 +353,8 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       typeProperties = typeProperties.filter((symbol) => isPublicProperty(symbol))
     }
 
-    const stringIndexType = type.getStringIndexType()
-    const numberIndexType = type.getNumberIndexType()
+    const stringIndexType = apparentType.getStringIndexType()
+    const numberIndexType = apparentType.getNumberIndexType()
 
     if (depth >= options.maxDepth) {
       // If we've reached the max depth and has a type alias, return it as a reference type
@@ -362,7 +394,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     if (stringIndexType) {
       // If under max properties allowance, add the string index type as a property
       if (excessProperties < 0) {
-        const stringIndexIdentifierName = getIndexIdentifierName(type, 'string')
+        const stringIndexIdentifierName = getIndexIdentifierName(apparentType, 'string')
         properties.push({
           name: `[${stringIndexIdentifierName}: string]`,
           optional: false,
@@ -376,7 +408,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
 
     if (numberIndexType) {
       if (excessProperties < 0) {
-        const numberIndexIdentifierName = getIndexIdentifierName(type, 'number')
+        const numberIndexIdentifierName = getIndexIdentifierName(apparentType, 'number')
         properties.push({
           name: `[${numberIndexIdentifierName}: number]`,
           optional: false,
