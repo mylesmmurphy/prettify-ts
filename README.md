@@ -1,3 +1,9 @@
+## Potential Deprecation Notice
+
+**Important:** The `prettify-ts` package is currently under consideration for deprecation. For the latest updates and discussions regarding this decision, please refer to the [GitHub issue #59](https://github.com/mylesmmurphy/prettify-ts/issues/59).
+
+We recommend monitoring this issue to stay informed about the future of the package and to plan accordingly.
+
 # Prettify TypeScript
 
 **Get useful type information where you need it**
