@@ -19,10 +19,6 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     return unionString
   }
 
-  if (typeTree.kind === 'intersection') {
-    return typeTree.types.map(t => stringifyTypeTree(t)).join(' & ')
-  }
-
   if (typeTree.kind === 'object') {
     let propertiesString = typeTree.properties.map(p => {
       const readonly = (p.readonly) ? 'readonly ' : ''

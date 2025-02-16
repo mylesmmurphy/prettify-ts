@@ -204,50 +204,6 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     }
   }
 
-  // Is an intersection and one of the types is a primitive type or one of the types is on the skipped list
-  if (
-    type.isIntersection() &&
-    (type.types.some(isPrimitiveType) || type.types.some(t => options.skippedTypeNames.includes(checker.typeToString(t))))
-  ) {
-    const intersectionTypes = type.types.map(t => getTypeTree(t, depth, new Set(visited)))
-
-    // Combine intersection objects into a single object, if possible
-    // Example: { a: string } & { b: number } => { a: string, b: number }
-    // If the intersection contains a primitive type, return as a reference
-    // Example: { a: string } & number => A & number
-    const types: TypeTree[] = intersectionTypes.filter(t => t.kind !== 'object')
-
-    const objectTypes = intersectionTypes
-      .filter((t): t is Extract<TypeTree, { kind: 'object' }> => t.kind === 'object')
-
-    if (objectTypes.length) {
-      const depthMaxProps = depth >= 1 ? options.maxSubProperties : options.maxProperties
-
-      // Combine all properties from object types
-      let properties = objectTypes.flatMap(t => t.properties)
-
-      // Calculate excess properties to hide
-      let excessProperties = objectTypes.reduce((acc, t) => acc + t.excessProperties, 0)
-      excessProperties += Math.max(0, properties.length - depthMaxProps)
-
-      // Limit properties to the maximum allowed
-      properties = properties.slice(0, depthMaxProps)
-
-      types.unshift({
-        kind: 'object',
-        typeName,
-        properties,
-        excessProperties
-      })
-    }
-
-    return {
-      kind: 'intersection',
-      typeName,
-      types
-    }
-  }
-
   if (typeName.startsWith('Promise<')) {
     if (!options.unwrapPromises && !typeName.includes('{')) return {
       kind: 'reference',
