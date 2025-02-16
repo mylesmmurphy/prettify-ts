@@ -76,7 +76,7 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     }
 
     const hoverText = new vscode.MarkdownString()
-    hoverText.appendCodeblock(`${declaration}${prettyTypeString}`, document.languageId)
+    hoverText.appendCodeblock(declaration + prettyTypeString, document.languageId)
     return new vscode.Hover(hoverText)
   }
 
