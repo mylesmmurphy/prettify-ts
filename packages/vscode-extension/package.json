@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@prettify-ts/typescript-plugin": "*",
-    "typescript": "^5.3.3"
+    "typescript": "5.8.0-dev.20250209"
   },
   "displayName": "Prettify TypeScript: Better Type Previews",
   "description": "View \"prettified\" and nested types in hover tooltips.",

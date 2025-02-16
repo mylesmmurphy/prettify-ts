@@ -211,11 +211,6 @@
   resolved "https://registry.npmjs.org/@types/semver/-/semver-7.5.8.tgz"
   integrity sha512-I8EUhyrgfLrcTkzV3TSsGyl1tSuPrEDzr0yd5m90UgNxQkyDXULk3b6MlQqTCpZpNtWe1K0hzclnZkTcLBe2UQ==
 
-"@types/ts-expose-internals@npm:ts-expose-internals@5.4.5":
-  version "5.4.5"
-  resolved "https://registry.npmjs.org/ts-expose-internals/-/ts-expose-internals-5.4.5.tgz"
-  integrity sha512-0HfRwjgSIOyuDlHzkFedMWU4aHWq9pu4MUKHgH75U+L76wCAtK5WB0rc/dAIhulMRcPUlcKONeiiR5Sxy/7XcA==
-
 "@types/vscode@^1.44.0":
   version "1.89.0"
   resolved "https://registry.npmjs.org/@types/vscode/-/vscode-1.89.0.tgz"
@@ -1835,10 +1830,10 @@ typed-array-length@^1.0.6:
     is-typed-array "^1.1.13"
     possible-typed-array-names "^1.0.0"
 
-typescript@^5.3.3, typescript@^5.4.5:
-  version "5.4.5"
-  resolved "https://registry.npmjs.org/typescript/-/typescript-5.4.5.tgz"
-  integrity sha512-vcI4UpRgg81oIRUFwR0WSIHKt11nJ7SAVlYNIu+QpqeyXP+gpQJy/Z4+F0aGxSE4MqwjyXvW/TzgkLAx2AGHwQ==
+typescript@5.8.0-dev.20250209:
+  version "5.8.0-dev.20250209"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.8.0-dev.20250209.tgz#747d8067552c0580c6786aed97339e0901ba3e9e"
+  integrity sha512-FVdVTxFbTR7jhSRnYcvv46vf+L7byLonnfUbpfzNFUP4/zDze2ovy+cEIHhNv+Nl9x3qE/eko0YKwzhitiOr3g==
 
 unbox-primitive@^1.0.2:
   version "1.0.2"

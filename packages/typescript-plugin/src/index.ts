@@ -1,14 +1,10 @@
 import type * as ts from 'typescript'
 
-import { isPrettifyRequest } from './request'
-import type { PrettifyCompletionsTriggerCharacter, PrettifyResponse } from './request'
-import { getTypeInfoAtPosition } from './type-tree'
-
-function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
+function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
   const ts = modules.typescript
 
-  function create (info: ts.server.PluginCreateInfo): ts.LanguageService {
-    info.project.projectService.logger.info('Prettify LSP is starting')
+  function create(info: ts.server.PluginCreateInfo): ts.LanguageService {
+    info.project.projectService.logger.info('TypeScript Plugin is starting')
 
     // Set up decorator object
     const proxy: ts.LanguageService = Object.create(null)
@@ -19,33 +15,55 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
     }
 
     /**
-     * Override getCompletionsAtPosition to provide prettify type information
+     * Override getQuickInfoAtPosition to log debug information
      */
-    proxy.getCompletionsAtPosition = (fileName, position, options) => {
-      const requestBody = options?.triggerCharacter as PrettifyCompletionsTriggerCharacter
-      if (!isPrettifyRequest(requestBody)) {
-        return info.languageService.getCompletionsAtPosition(fileName, position, options)
+    // @ts-expect-error - JS runtime trickery which is tricky to type tersely
+    proxy.getQuickInfoAtPosition = (fileName, position, verbosityLevel: number | undefined) => {      
+      // Call the original method
+      // @ts-expect-error - JS runtime trickery which is tricky to type tersely
+      const quickInfo = info.languageService.getQuickInfoAtPosition(fileName, position, verbosityLevel)
+
+      if (!quickInfo?.displayParts || !verbosityLevel) return quickInfo;
+
+      function removeSequence(displayParts: ts.SymbolDisplayPart[]): ts.SymbolDisplayPart[] {
+        const sequence = [
+          { text: '}', kind: 'punctuation' },
+          { text: ' ', kind: 'space' },
+          { text: '&', kind: 'punctuation' },
+          { text: ' ', kind: 'space' },
+          { text: '{', kind: 'punctuation' },
+          { text: '\n', kind: 'lineBreak' }
+        ];
+      
+        // Function to check if part of the array matches the sequence
+        const matchesSequence = (index: number) => {
+          for (let i = 0; i < sequence.length; i++) {
+            if (index + i >= displayParts.length || displayParts[index + i]?.text !== sequence[i]?.text || displayParts[index + i]?.kind !== sequence[i]?.kind) {
+              return false;
+            }
+          }
+          return true;
+        };
+      
+        // Iterate through the array and filter out the matching sequence
+        let result: ts.SymbolDisplayPart[] = [];
+        let i = 0;
+        while (i < displayParts.length) {
+          if (matchesSequence(i)) {
+            i += sequence.length; // Skip the sequence if matched
+          } else {
+            result.push(displayParts[i] as ts.SymbolDisplayPart);
+            i++;
+          }
+        }
+      
+        return result;
       }
 
-      const program = info.project['program'] as ts.Program | undefined
-      if (!program) return undefined
+      quickInfo.displayParts = removeSequence(quickInfo.displayParts);
 
-      const sourceFile = program.getSourceFile(fileName)
-      if (!sourceFile) return undefined
-
-      const checker = program.getTypeChecker()
-
-      const prettifyResponse = getTypeInfoAtPosition(ts, checker, sourceFile, position, requestBody.options)
-
-      const response: PrettifyResponse = {
-        isGlobalCompletion: false,
-        isMemberCompletion: false,
-        isNewIdentifierLocation: false,
-        entries: [],
-        __prettifyResponse: prettifyResponse
-      }
-
-      return response
+      // Return the original quick info response without modification
+      return quickInfo
     }
 
     return proxy
