@@ -12,7 +12,6 @@ export type TypeFunctionSignature = { returnType: TypeTree, parameters: TypeFunc
  */
 export type TypeTree = { typeName: string } & (
   | { kind: 'union', excessMembers: number, types: TypeTree[] }
-  | { kind: 'intersection', types: TypeTree[] }
   | { kind: 'object', excessProperties: number, properties: TypeProperty[] }
   | { kind: 'tuple', readonly: boolean, elementTypes: TypeTree[] }
   | { kind: 'array', readonly: boolean, elementType: TypeTree }
