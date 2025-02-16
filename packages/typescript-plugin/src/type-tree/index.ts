@@ -165,22 +165,11 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   }
 
   // Prevent infinite recursion when encountering circular references
-  // Guarantueed to be a reference if the type has been visited before
   if (visited.has(type)) {
-    if (typeName.includes('{') && apparentType.getProperties().length > 0) {
-      const typeProperties = apparentType.getProperties()
-      const stringIndexType = apparentType.getStringIndexType()
-      const numberIndexType = apparentType.getNumberIndexType()
-
-      let propertiesCount = typeProperties.length
-      if (stringIndexType) propertiesCount += 1
-      if (numberIndexType) propertiesCount += 1
-
+    if (typeName.includes('{') || typeName.includes('[') || typeName.includes('(')) {
       return {
-        kind: 'object',
-        typeName,
-        properties: [],
-        excessProperties: propertiesCount // Return all properties as excess to avoid deeper nesting
+        kind: 'reference',
+        typeName: '...'
       }
     }
 
