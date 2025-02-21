@@ -19,57 +19,34 @@ This approach allows us to leverage the existing communication channel between t
 The response from the plugin includes a `TypeInfo` object, which contains detailed type information about a TypeScript node. Here's a breakdown of its structure:
 
 ```typescript
-type TypeTree = {
-    typeName: string;
-    kind: "union";
-    excessMembers: number;
-    types: TypeTree[];
-} | {
-    typeName: string;
-    kind: "intersection";
-    types: TypeTree[];
-} | {
-    typeName: string;
-    kind: "object";
-    excessProperties: number;
-    properties: {
-        name: string;
-        readonly: boolean;
-        type: TypeTree;
-    }[];
-} | {
-    typeName: string;
-    kind: "array";
-    readonly: boolean;
-    elementType: TypeTree;
-} | {
-    typeName: string;
-    kind: "function";
-    signatures: {
-        returnType: TypeTree;
-        parameters: {
-            name: string;
-            isRestParameter: boolean;
-            type: TypeTree;
-        }[];
-    }[];
-} | {
-    typeName: string;
-    kind: "promise";
-    type: TypeTree;
-} | {
-    typeName: string;
-    kind: "enum";
-    member: string;
-} | {
-    typeName: string;
-    kind: "basic";
-}
+import type * as ts from 'typescript'
+
+export type TypeProperty = { name: string, optional: boolean, readonly: boolean, type: TypeTree }
+export type TypeFunctionParameter = { name: string, optional: boolean, isRestParameter: boolean, type: TypeTree }
+export type TypeFunctionSignature = { returnType: TypeTree, parameters: TypeFunctionParameter[] }
+
+// TODO: Make "promise" into "generic" and add a "typeArguments" field
+
+/**
+ * TypeTree is a tree representation of a TypeScript type.
+ * Discriminated by the `kind` field.
+ */
+export type TypeTree = { typeName: string } & (
+  | { kind: 'union', excessMembers: number, types: TypeTree[] }
+  | { kind: 'object', excessProperties: number, properties: TypeProperty[] }
+  | { kind: 'tuple', readonly: boolean, elementTypes: TypeTree[] }
+  | { kind: 'array', readonly: boolean, elementType: TypeTree }
+  | { kind: 'function', signatures: TypeFunctionSignature[] }
+  | { kind: 'promise', type: TypeTree }
+  | { kind: 'enum', member: string }
+  | { kind: 'primitive' } // string, number, boolean, symbol, bigint, undefined, null, void, never, any
+  | { kind: 'reference' } // Named types like classes, interfaces, type aliases, etc. when maxDepth is reached
+)
 
 /**
  * TypeInfo contains the type information of a TypeScript node.
  */
-type TypeInfo = {
+export type TypeInfo = {
   typeTree: TypeTree
   syntaxKind: ts.SyntaxKind
   name: string

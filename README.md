@@ -15,6 +15,13 @@ We recommend monitoring this issue to stay informed about the future of the pack
 
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable and configurable way.
 
+## Installation
+
+You can install Prettify TS from the following sources:
+
+- **Visual Studio Code Marketplace**: [Prettify TS on VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
+- **Open VSX Registry**: [Prettify TS on Open VSX](https://open-vsx.org/extension/MylesMurphy/prettify-ts)
+
 ## Developer Notes
 
 This README is for Development of Prettify TS. The VSCode Extension README can be found [here](./packages/vscode-extension/README.md).
