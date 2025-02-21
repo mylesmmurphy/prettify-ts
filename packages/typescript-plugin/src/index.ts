@@ -8,7 +8,6 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
   const ts = modules.typescript
 
   function create (info: ts.server.PluginCreateInfo): ts.LanguageService {
-    // Log a message
     info.project.projectService.logger.info('Prettify LSP is starting')
 
     // Set up decorator object

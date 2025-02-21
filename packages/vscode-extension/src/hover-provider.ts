@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
-import type { PrettifyRequest, TypeInfo } from './types'
+import type { PrettifyRequest } from './types'
+import type { TypeInfo } from '@prettify-ts/typescript-plugin/src/type-tree/types'
 import { prettyPrintTypeString, getSyntaxKindDeclaration, stringifyTypeTree, sanitizeString } from './stringify-type-tree'
 
 export function registerHoverProvider (context: vscode.ExtensionContext): void {
@@ -8,6 +9,8 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     position: vscode.Position
   ): Promise<vscode.Hover | undefined> {
     const config = vscode.workspace.getConfiguration('prettify-ts')
+    if (!config.get('enabled', true)) return
+
     const indentation = config.get('typeIndentation', 4)
     const maxCharacters = config.get('maxCharacters', 20000)
 
@@ -57,7 +60,12 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     }
 
     // Ignore hover if the type is already displayed from TS quick info
-    if (declaration.startsWith('type') || declaration.startsWith('const') || declaration.startsWith('function')) {
+    if (declaration.startsWith('type') ||
+        declaration.startsWith('const') ||
+        declaration.startsWith('let') ||
+        declaration.startsWith('var') ||
+        declaration.startsWith('function')
+    ) {
       const quickInfo: any = await vscode.commands.executeCommand('typescript.tsserverRequest', 'quickinfo', location)
       const quickInfoDisplayString: string = quickInfo?.body?.displayString
 
@@ -68,7 +76,7 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
     }
 
     const hoverText = new vscode.MarkdownString()
-    hoverText.appendCodeblock(`${declaration}${prettyTypeString}`, document.languageId)
+    hoverText.appendCodeblock(declaration + prettyTypeString, document.languageId)
     return new vscode.Hover(hoverText)
   }
 

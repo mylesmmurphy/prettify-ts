@@ -1,11 +1,11 @@
 import { SyntaxKind } from 'typescript'
-import type { TypeTree } from './types'
+import type { TypeTree } from '@prettify-ts/typescript-plugin/src/type-tree/types'
 
 /**
  * Uses type info to return a string representation of the type
  *
  * Example:
- * { kind: 'union', types: [{ kind: 'basic', type: 'string' }, { kind: 'basic', type: 'number' }] }
+ * { kind: 'union', types: [{ kind: 'primitive', type: 'string' }, { kind: 'primitive', type: 'number' }] }
  * Yields:
  * 'string | number'
  */
@@ -19,34 +19,15 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     return unionString
   }
 
-  if (typeTree.kind === 'intersection') {
-    const nonObjectTypeStrings = typeTree.types.filter(t => t.kind !== 'object').map(t => stringifyTypeTree(t))
-
-    const objectTypes = typeTree.types.filter((t): t is Extract<TypeTree, { kind: 'object' }> => t.kind === 'object')
-    const objectTypesProperties = objectTypes.flatMap(t => t.properties)
-    const objectTypeExcessProperties = objectTypes.reduce((acc, t) => acc + t.excessProperties, 0)
-    const mergedObjectTypeString = stringifyTypeTree({
-      kind: 'object',
-      typeName: typeTree.typeName,
-      properties: objectTypesProperties,
-      excessProperties: objectTypeExcessProperties
-    })
-
-    return [...nonObjectTypeStrings, mergedObjectTypeString].join(' & ')
-  }
-
   if (typeTree.kind === 'object') {
     let propertiesString = typeTree.properties.map(p => {
       const readonly = (p.readonly) ? 'readonly ' : ''
 
       let optional = ''
-      if (p.type.kind === 'union') {
-        const hasUndefined = p.type.types.some(t => t.kind === 'basic' && t.typeName === 'undefined')
-        if (hasUndefined) {
-          optional = '?'
-        }
-        // Remove undefined from union
-        p.type.types = p.type.types.filter(t => t.kind !== 'basic' || t.typeName !== 'undefined')
+      if (p.optional && p.type.kind === 'union') {
+        optional = '?'
+        // Remove undefined from union if optional
+        p.type.types = p.type.types.filter(t => t.typeName !== 'undefined')
       }
 
       return `${readonly}${p.name}${optional}: ${stringifyTypeTree(p.type)};`
@@ -59,8 +40,19 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     return `{ ${propertiesString} }`
   }
 
+  if (typeTree.kind === 'tuple') {
+    const elementTypesString = typeTree.elementTypes.map(t => stringifyTypeTree(t)).join(', ')
+
+    return `${typeTree.readonly ? 'readonly ' : ''}[${elementTypesString}]`
+  }
+
   if (typeTree.kind === 'array') {
-    return `${typeTree.readonly ? 'readonly ' : ''}${stringifyTypeTree(typeTree.elementType)}[]`
+    let elementTypeString = stringifyTypeTree(typeTree.elementType)
+    if (elementTypeString.includes('|') || elementTypeString.includes('&')) {
+      elementTypeString = `(${elementTypeString})`
+    }
+
+    return `${typeTree.readonly ? 'readonly ' : ''}${elementTypeString}[]`
   }
 
   if (typeTree.kind === 'function') {
@@ -69,17 +61,16 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     const signatures = typeTree.signatures.map(s => {
       const { parameters, returnType } = s
       const parametersString = parameters.map(p => {
+        const rest = p.isRestParameter ? '...' : ''
+
         let optional = ''
-        if (p.type.kind === 'union') {
-          const hasUndefined = p.type.types.some(t => t.kind === 'basic' && t.typeName === 'undefined')
-          if (hasUndefined) {
-            optional = '?'
-          }
-          // Remove undefined from union
-          p.type.types = p.type.types.filter(t => t.kind !== 'basic' || t.typeName !== 'undefined')
+        if (p.optional && p.type.kind === 'union') {
+          optional = '?'
+          // Remove undefined from union if optional
+          p.type.types = p.type.types.filter(t => t.typeName !== 'undefined')
         }
 
-        return `${p.isRestParameter ? '...' : ''}${p.name}${optional}: ${stringifyTypeTree(p.type)}`
+        return `${rest}${p.name}${optional}: ${stringifyTypeTree(p.type)}`
       }).join(', ')
 
       return `(${parametersString})${returnTypeChar} ${stringifyTypeTree(returnType)}`
@@ -101,6 +92,7 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     return `Promise<${stringifyTypeTree(typeTree.type)}>`
   }
 
+  // Primitive or reference type
   return typeTree.typeName
 }
 
@@ -146,7 +138,14 @@ export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: stri
     case SyntaxKind.MethodSignature:
     case SyntaxKind.GetAccessor:
     case SyntaxKind.SetAccessor:
+    case SyntaxKind.Constructor:
       return `function ${typeName}`
+
+    case SyntaxKind.LetKeyword:
+      return `let ${typeName}: `
+
+    case SyntaxKind.VarKeyword:
+      return `var ${typeName}: `
 
     default:
       return `const ${typeName}: `
@@ -175,18 +174,8 @@ export function prettyPrintTypeString (typeStringInput: string, indentation = 2)
   for (let line of lines) {
     line = line.trim()
 
-    // Replace : with ?: if line contains undefined union
-    // if (line.includes(':') && (line.includes(' | undefined') || line.includes('undefined | '))) {
-    //   line = line.replace(':', '?:').replace(' | undefined', '').replace('undefined | ', '').replace('??', '?')
-    // }
-
     // Replace true/false with boolean
     line = line.replace('false | true', 'boolean')
-
-    // Remove semi-colons from excess properties
-    if (line.includes('...')) {
-      line = line.replace('more;', 'more')
-    }
 
     const hasOpenBrace = line.includes('{')
     const hasCloseBrace = line.includes('}')
@@ -202,18 +191,21 @@ export function prettyPrintTypeString (typeStringInput: string, indentation = 2)
     }
   }
 
-  // Remove empty braces newlines and empty newlines
   result = result
-    .replace(/{\s*\n*\s*}/g, '{}')
-    .replace(/^\s*[\r\n]/gm, '')
+    .replace(/{\s*\n*\s*}/g, '{}') // Remove empty braces newlines
+    .replace(/^\s*[\r\n]/gm, '') // Remove empty newlines
+    .replace(/{\s*\.\.\.\s*([0-9]+)\s*more;\s*}/g, '{ ... $1 more }') // Replace only excess properties into one line
 
   return result
 }
 
+/**
+ * Sanitizes a string by removing leading words, whitespace, newlines, and semicolons
+ */
 export function sanitizeString (str: string): string {
-  // Remove the leading word, ex: type, const, interface
-  str = str.replace(/^[a-z]+\s/, '')
-
-  // Remove all whitespace, newlines, and semicolons
-  return str.replace(/\s/g, '').replace(/\n/g, '').replace(/;/g, '')
+  return str
+    .replace(/^[a-z]+\s/, '') // Remove the leading word, ex: type, const, interface
+    .replace(/\s/g, '') // Remove all whitespace
+    .replace(/\n/g, '') // Remove all newlines
+    .replace(/;/g, '') // Remove all semicolons
 }

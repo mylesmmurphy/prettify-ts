@@ -3,7 +3,7 @@
   "publisher": "MylesMurphy",
   "license": "MIT",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.2.0",
   "main": "./out/extension.js",
   "workspaces": {
     "nohoist": ["**"]
@@ -24,8 +24,8 @@
     "typescript": "^5.3.3"
   },
   "displayName": "Prettify TypeScript: Better Type Previews",
-  "description": "View \"prettified\" and nested types in hover tooltips and sidebar.",
-  "preview": true,
+  "description": "View \"prettified\" and nested types in hover tooltips.",
+  "preview": false,
   "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.44.0"
@@ -54,9 +54,46 @@
         "enableForWorkspaceTypeScriptVersions": true
       }
     ],
+    "commands": [
+      {
+        "command": "prettify-ts.toggle",
+        "title": "Toggle Preview",
+        "category": "Prettify TS"
+      },
+      {
+        "command": "prettify-ts.copyPrettifiedType",
+        "title": "Copy Prettified Type",
+        "category": "Prettify TS"
+      },
+      {
+        "command": "prettify-ts.fullCopyPrettifiedType",
+        "title": "Copy Fully Prettified Type",
+        "category": "Prettify TS"
+      }
+    ],
+    "menus": {
+      "editor/context": [{
+        "submenu": "prettify.copy",
+        "group": "9_cutcopypaste",
+        "when": "editorLangId == 'typescript' || editorLangId == 'typescriptreact'"
+      }],
+      "prettify.copy": [
+        { "command": "prettify-ts.copyPrettifiedType" },
+        { "command": "prettify-ts.fullCopyPrettifiedType" }
+      ]
+    },
+    "submenus": [{
+      "id": "prettify.copy",
+      "label": "Prettify"
+    }],
     "configuration": {
       "title": "Prettify TS",
       "properties": {
+        "prettify-ts.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable Prettify TS."
+        },
         "prettify-ts.typeIndentation": {
           "type": "number",
           "default": 4,
