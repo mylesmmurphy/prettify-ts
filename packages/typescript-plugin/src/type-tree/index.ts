@@ -196,11 +196,11 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     }
   }
 
-  if (apparentType?.symbol?.flags & typescript.SymbolFlags.EnumMember && apparentType.symbol.parent) {
+  if (type?.symbol?.flags & typescript.SymbolFlags.EnumMember && type.symbol.parent) {
     return {
       kind: 'enum',
       typeName,
-      member: `${apparentType.symbol.parent.name}.${apparentType.symbol.name}`
+      member: `${type.symbol.parent.name}.${type.symbol.name}`
     }
   }
 

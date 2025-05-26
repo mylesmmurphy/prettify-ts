@@ -6,7 +6,9 @@
   "version": "0.2.1",
   "main": "./out/extension.js",
   "workspaces": {
-    "nohoist": ["**"]
+    "nohoist": [
+      "**"
+    ]
   },
   "scripts": {
     "build": "tsc",
@@ -17,6 +19,7 @@
   "devDependencies": {
     "@types/node": "18.x",
     "@types/vscode": "^1.44.0",
+    "vsce": "^2.15.0",
     "esbuild": "^0.19.10"
   },
   "dependencies": {
@@ -72,20 +75,28 @@
       }
     ],
     "menus": {
-      "editor/context": [{
-        "submenu": "prettify.copy",
-        "group": "9_cutcopypaste",
-        "when": "editorLangId == 'typescript' || editorLangId == 'typescriptreact'"
-      }],
+      "editor/context": [
+        {
+          "submenu": "prettify.copy",
+          "group": "9_cutcopypaste",
+          "when": "editorLangId == 'typescript' || editorLangId == 'typescriptreact'"
+        }
+      ],
       "prettify.copy": [
-        { "command": "prettify-ts.copyPrettifiedType" },
-        { "command": "prettify-ts.fullCopyPrettifiedType" }
+        {
+          "command": "prettify-ts.copyPrettifiedType"
+        },
+        {
+          "command": "prettify-ts.fullCopyPrettifiedType"
+        }
       ]
     },
-    "submenus": [{
-      "id": "prettify.copy",
-      "label": "Prettify"
-    }],
+    "submenus": [
+      {
+        "id": "prettify.copy",
+        "label": "Prettify"
+      }
+    ],
     "configuration": {
       "title": "Prettify TS",
       "properties": {
