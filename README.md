@@ -1,16 +1,10 @@
-## Potential Deprecation Notice
-
-**Important:** The `prettify-ts` package is currently under consideration for deprecation. For the latest updates and discussions regarding this decision, please refer to the [GitHub issue #59](https://github.com/mylesmmurphy/prettify-ts/issues/59).
-
-We recommend monitoring this issue to stay informed about the future of the package and to plan accordingly.
-
 # Prettify TypeScript
 
 **Get useful type information where you need it**
 
 [![Installs](https://img.shields.io/vscode-marketplace/d/MylesMurphy.prettify-ts)](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
 [![GitHub Repo stars](https://img.shields.io/github/stars/mylesmmurphy/prettify-ts?style=social)](https://github.com/mylesmmurphy/prettify-ts)
-[![Marketplace](https://img.shields.io/vscode-marketplace/v/MylesMurphy.prettify-ts)](https://marketplace.visualstudio.com/items?itemName=username.repo)
+[![Marketplace](https://img.shields.io/vscode-marketplace/v/MylesMurphy.prettify-ts)](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
 [![License](https://img.shields.io/github/license/mylesmmurphy/prettify-ts)](https://github.com/mylesmmurphy/prettify-ts/blob/main/LICENSE)
 
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable and configurable way.
