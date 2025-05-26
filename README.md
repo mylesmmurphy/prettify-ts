@@ -60,13 +60,6 @@ In this monorepo, we use Yarn's `nohoist` option for the packages. This is neces
 
 Nohoist allows specific dependencies to avoid being hoisted to the root `node_modules` directory, which is the default behavior in a Yarn workspace. Instead, these dependencies are installed directly into the `node_modules` directory of the package that depends on them.
 
-## Roadmap / To-Do
-
-1. Show/Hide Private Properties setting
-2. Show/Hide default TS previews (explore moving completely over to overriding)
-3. Svelte Support
-4. JetBrains Extension
-
 ## License
 
 MIT
