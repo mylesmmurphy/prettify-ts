@@ -12,7 +12,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --external:src/prism --format=cjs --platform=node",
+    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "vscode:prepublish": "yarn run esbuild",
     "package": "vsce package --yarn --dependencies"
   },

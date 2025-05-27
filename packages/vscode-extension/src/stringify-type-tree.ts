@@ -119,10 +119,13 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
  * Builds a declaration string based on the syntax kind
  */
 export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: string): string {
-  // For import statements, clean up the type name
+  // Handle imported types
   if (typeName.startsWith('"') && typeName.endsWith('"')) {
-    const shortenedTypeName = typeName.split('node_modules/').pop()
-    const finalTypeName = shortenedTypeName ? `"${shortenedTypeName}` : typeName
+    const shortenedTypeName = typeName
+      .replace(/"/g, '')
+      .split('node_modules/')
+      .pop()!
+    const finalTypeName = `"${shortenedTypeName}"`
 
     return `typeof import(${finalTypeName}): `
   }
