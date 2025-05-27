@@ -3,7 +3,7 @@
   "publisher": "MylesMurphy",
   "license": "MIT",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.3.0",
   "main": "./out/extension.js",
   "workspaces": {
     "nohoist": [
@@ -178,7 +178,7 @@
             "String",
             "Symbol"
           ],
-          "description": "Types that won't be unwrapped, by name."
+          "description": "Types that won't be unwrapped, by name. Generic types are supported, with their arguments replaced by ellipses (e.g., `ZodObject<...>`)."
         },
         "prettify-ts.unwrapGenericArgumentsTypeNames": {
           "type": "array",
@@ -189,8 +189,7 @@
             "Promise",
             "Set",
             "Map",
-            "Observable",
-            "Zod.*"
+            "Observable"
           ],
           "description": "A list of generic type names whose arguments will be unwrapped, instead of the apparent (final) type."
         },
