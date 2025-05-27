@@ -3,8 +3,9 @@ import type { TypeTree } from '@prettify-ts/typescript-plugin/src/type-tree/type
 
 /**
  * Regular expression to validate an object key that does not require quotes.
+ * Includes dynamic keys wrapped in square brackets (e.g., [dynamicKey]).
  */
-const unquotedObjectKeyRegex = /^(?:\d+|[a-zA-Z_$][\w$]*)$/
+const unquotedObjectKeyRegex = /^(?:\d+|[a-zA-Z_$][\w$]*|\[.*\])$/
 
 /**
  * Uses type info to return a string representation of the type
@@ -89,7 +90,13 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
 
     // If there are multiple signatures, wrap them in braces with semi-colons at the end of each line
     if (signatures.length > 1) {
-      return `{${signatures.join('; ')};}`
+      let signaturesString = `{${signatures.join('; ')};`
+      if (typeTree.excessSignatures > 0) {
+        signaturesString += ` ... ${typeTree.excessSignatures} more;`
+      }
+      signaturesString += '}'
+
+      return signaturesString
     }
 
     return signatures[0]
@@ -220,4 +227,5 @@ export function sanitizeString (str: string): string {
     .replace(/\s/g, '') // Remove all whitespace
     .replace(/\n/g, '') // Remove all newlines
     .replace(/;/g, '') // Remove all semicolons
+    .replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\./g, '') // Remove namespaces (e.g., z.)
 }

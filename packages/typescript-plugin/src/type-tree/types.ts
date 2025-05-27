@@ -13,7 +13,7 @@ export type TypeTree = { typeName: string } & (
   | { kind: 'object', excessProperties: number, properties: TypeProperty[] }
   | { kind: 'tuple', readonly: boolean, elementTypes: TypeTree[] }
   | { kind: 'array', readonly: boolean, elementType: TypeTree }
-  | { kind: 'function', signatures: TypeFunctionSignature[] }
+  | { kind: 'function', excessSignatures: number, signatures: TypeFunctionSignature[] }
   | { kind: 'generic', arguments: TypeTree[] }
   | { kind: 'enum', member: string }
   | { kind: 'primitive' } // string, number, boolean, symbol, bigint, undefined, null, void, never, any

@@ -35,6 +35,11 @@ export type PrettifyOptions = {
   maxUnionMembers: number
 
   /**
+   * Specifies the maximum number of function signatures to include in a function type.
+   */
+  maxFunctionSignatures: number
+
+  /**
    * List of type names to skip unwrapping in the type tree.
    */
   skippedTypeNames: string[]

@@ -20,10 +20,11 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
       maxProperties: config.get('maxProperties', 100),
       maxSubProperties: config.get('maxSubProperties', 5),
       maxUnionMembers: config.get('maxUnionMembers', 15),
-      skippedTypeNames: config.get('skippedTypeNames', []),
+      maxFunctionSignatures: config.get('maxFunctionSignatures', 5),
+      skippedTypeNames: config.get('skippedTypeNames', [] as string[]),
       unwrapArrays: config.get('unwrapArrays', true),
       unwrapFunctions: config.get('unwrapFunctions', true),
-      unwrapGenericArgumentsTypeNames: config.get('unwrapGenericArgumentsTypeNames', [])
+      unwrapGenericArgumentsTypeNames: config.get('unwrapGenericArgumentsTypeNames', [] as string[])
     }
 
     const request: PrettifyRequest = {
@@ -51,12 +52,18 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
 
     const { typeTree, syntaxKind, name } = prettifyResponse
 
+    if (options.skippedTypeNames.includes(name)) return
+
     const typeString = stringifyTypeTree(typeTree, false)
     let prettyTypeString = prettyPrintTypeString(typeString, indentation)
-    const declaration = getSyntaxKindDeclaration(syntaxKind, name)
+    let declaration = getSyntaxKindDeclaration(syntaxKind, name)
 
     if (prettyTypeString.length > maxCharacters) {
       prettyTypeString = prettyTypeString.substring(0, maxCharacters) + '...'
+    }
+
+    if (declaration.startsWith('function') && prettyTypeString.startsWith('{')) {
+      declaration += ' '
     }
 
     // Ignore hover if the type is already displayed from TS quick info

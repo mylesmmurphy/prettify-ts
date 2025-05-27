@@ -13,14 +13,12 @@ let options: PrettifyOptions = {
   maxProperties: 100,
   maxSubProperties: 5,
   maxUnionMembers: 15,
+  maxFunctionSignatures: 5,
   skippedTypeNames: [],
   unwrapArrays: true,
   unwrapFunctions: true,
   unwrapGenericArgumentsTypeNames: []
 }
-
-let skippedTypeNamesRegex: RegExp[] = []
-let unwrapGenericArgumentsTypeNamesRegex: RegExp[] = []
 
 /**
  * Get TypeInfo at a position in a source file
@@ -36,10 +34,6 @@ export function getTypeInfoAtPosition (
     typescript = typescriptContext
     checker = typeChecker
     options = prettifyOptions
-
-    // Compile regex patterns for skipped type names and generic arguments
-    skippedTypeNamesRegex = options.skippedTypeNames.map(pattern => new RegExp(`^${pattern}$`))
-    unwrapGenericArgumentsTypeNamesRegex = options.unwrapGenericArgumentsTypeNames.map(pattern => new RegExp(`^${pattern}$`))
 
     const node = getDescendantAtRange(typescript, sourceFile, [position, position])
     if (!node || node === sourceFile || !node.parent) return undefined
@@ -143,23 +137,12 @@ function getConstructorTypeInfo (type: ts.Type, typeChecker: ts.TypeChecker, nam
   return {
     kind: 'function',
     typeName: name,
+    excessSignatures: 0,
     signatures: [{
       returnType: { kind: 'reference', typeName: name },
       parameters
     }]
   }
-}
-
-/**
- * Check if a type name matches any of the provided patterns.
- */
-function matchesTypeName (typeName: string, patterns: RegExp[]): boolean {
-  for (const pattern of patterns) {
-    if (pattern.test(typeName)) return true
-  }
-
-  // If no patterns matched, return false
-  return false
 }
 
 /**
@@ -178,7 +161,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   }
 
   // Skipped type names
-  if (matchesTypeName(typeName, skippedTypeNamesRegex)) {
+  if (options.skippedTypeNames.includes(typeName)) {
     return {
       kind: 'reference',
       typeName
@@ -234,7 +217,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       depth = options.maxDepth
     }
 
-    const signatures: TypeFunctionSignature[] = callSignatures.map(signature => {
+    const signatures: TypeFunctionSignature[] = callSignatures.slice(0, options.maxFunctionSignatures).map(signature => {
       const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited))
       const parameters = signature.parameters.map(symbol => {
         const declaration = symbol.declarations?.[0]
@@ -252,8 +235,12 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       return { returnType, parameters }
     })
 
+    // If there are more signatures than the max allowed, count them as excess
+    const excessSignatures = Math.max(0, callSignatures.length - options.maxFunctionSignatures)
+
     return {
       kind: 'function',
+      excessSignatures,
       typeName,
       signatures
     }
@@ -303,7 +290,15 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     const fullTargetTypeName = checker.typeToString(type.target, undefined, typescript.TypeFormatFlags.NoTruncation)
     const targetTypeName = fullTargetTypeName.split('<')[0]?.trim() ?? fullTargetTypeName // Remove generic parameters from the type name
 
-    if (matchesTypeName(targetTypeName, unwrapGenericArgumentsTypeNamesRegex)) return {
+    // Skip generic types that are in the skippedTypeNames list, using ellipsis to indicate generic parameters
+    if (options.skippedTypeNames.includes(targetTypeName)) {
+      return {
+        kind: 'reference',
+        typeName: `${targetTypeName}<...>`
+      }
+    }
+
+    if (options.unwrapGenericArgumentsTypeNames.includes(targetTypeName)) return {
       kind: 'generic',
       typeName: targetTypeName,
       arguments: typeArguments.map(argument => getTypeTree(argument, depth, new Set(visited)))

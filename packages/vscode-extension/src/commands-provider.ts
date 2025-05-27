@@ -30,10 +30,11 @@ export function registerCommands (context: vscode.ExtensionContext): void {
       maxProperties: config.get('maxProperties', 100),
       maxSubProperties: config.get('maxSubProperties', 5),
       maxUnionMembers: config.get('maxUnionMembers', 15),
-      skippedTypeNames: config.get('skippedTypeNames', []),
+      maxFunctionSignatures: config.get('maxFunctionSignatures', 5),
+      skippedTypeNames: config.get('skippedTypeNames', [] as string[]),
       unwrapArrays: config.get('unwrapArrays', true),
       unwrapFunctions: config.get('unwrapFunctions', true),
-      unwrapGenericArgumentsTypeNames: config.get('unwrapGenericArgumentsTypeNames', [])
+      unwrapGenericArgumentsTypeNames: config.get('unwrapGenericArgumentsTypeNames', [] as string[])
     }
 
     if (full) {
@@ -41,6 +42,7 @@ export function registerCommands (context: vscode.ExtensionContext): void {
       options.maxProperties = MAX_SETTINGS
       options.maxSubProperties = MAX_SETTINGS
       options.maxUnionMembers = MAX_SETTINGS
+      options.maxFunctionSignatures = MAX_SETTINGS
       options.unwrapArrays = true
       options.unwrapFunctions = true
     }
