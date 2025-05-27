@@ -13,10 +13,11 @@ let options: PrettifyOptions = {
   maxProperties: 100,
   maxSubProperties: 5,
   maxUnionMembers: 15,
+  maxFunctionSignatures: 5,
   skippedTypeNames: [],
   unwrapArrays: true,
   unwrapFunctions: true,
-  unwrapPromises: true
+  unwrapGenericArgumentsTypeNames: []
 }
 
 /**
@@ -136,6 +137,7 @@ function getConstructorTypeInfo (type: ts.Type, typeChecker: ts.TypeChecker, nam
   return {
     kind: 'function',
     typeName: name,
+    excessSignatures: 0,
     signatures: [{
       returnType: { kind: 'reference', typeName: name },
       parameters
@@ -150,13 +152,16 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation)
   const apparentType = checker.getApparentType(type)
 
-  if (isPrimitiveType(type) || isPrimitiveType(apparentType)) {
+  // Primitive types
+  const baseConstraintType = checker.getBaseConstraintOfType(type)
+  if (isPrimitiveType(type) || isPrimitiveType(apparentType) || (baseConstraintType && isPrimitiveType(baseConstraintType))) {
     return {
       kind: 'primitive',
       typeName
     }
   }
 
+  // Skipped type names
   if (options.skippedTypeNames.includes(typeName)) {
     return {
       kind: 'reference',
@@ -181,6 +186,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
 
   visited.add(type)
 
+  // Unions
   if (apparentType.isUnion()) {
     const excessMembers = Math.max(0, apparentType.types.length - options.maxUnionMembers)
     const types = apparentType.types
@@ -196,6 +202,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     }
   }
 
+  // Enums
   if (type?.symbol?.flags & typescript.SymbolFlags.EnumMember && type.symbol.parent) {
     return {
       kind: 'enum',
@@ -204,31 +211,14 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     }
   }
 
-  if (typeName.startsWith('Promise<')) {
-    if (!options.unwrapPromises && !typeName.includes('{')) return {
-      kind: 'reference',
-      typeName
-    }
-
-    const typeArgument = checker.getTypeArguments(apparentType as ts.TypeReference)[0]
-    const promiseType: TypeTree = typeArgument
-      ? getTypeTree(typeArgument, depth, new Set(visited))
-      : { kind: 'primitive', typeName: 'void' }
-
-    return {
-      kind: 'promise',
-      typeName,
-      type: promiseType
-    }
-  }
-
+  // Functions
   const callSignatures = apparentType.getCallSignatures()
   if (callSignatures.length > 0) {
     if (!options.unwrapFunctions) {
       depth = options.maxDepth
     }
 
-    const signatures: TypeFunctionSignature[] = callSignatures.map(signature => {
+    const signatures: TypeFunctionSignature[] = callSignatures.slice(0, options.maxFunctionSignatures).map(signature => {
       const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited))
       const parameters = signature.parameters.map(symbol => {
         const declaration = symbol.declarations?.[0]
@@ -246,13 +236,18 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       return { returnType, parameters }
     })
 
+    // If there are more signatures than the max allowed, count them as excess
+    const excessSignatures = Math.max(0, callSignatures.length - options.maxFunctionSignatures)
+
     return {
       kind: 'function',
+      excessSignatures,
       typeName,
       signatures
     }
   }
 
+  // Tuples
   if (checker.isTupleType(apparentType)) {
     const elementTypes = checker
       .getTypeArguments(apparentType as ts.TupleTypeReference)
@@ -267,6 +262,7 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
     }
   }
 
+  // Arrays
   if (checker.isArrayType(apparentType)) {
     if (!options.unwrapArrays) {
       depth = options.maxDepth
@@ -282,6 +278,31 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
       typeName,
       readonly: apparentType.getSymbol()?.getName() === 'ReadonlyArray',
       elementType
+    }
+  }
+
+  // Generics
+  const typeIsReference = isTypeReference(type)
+  const typeArguments = typeIsReference ? checker.getTypeArguments(type) : []
+
+  if (typeIsReference && typeArguments.length > 0) {
+    // Get the target type name without generic parameters
+    // Ex: Promise<T> => Promise
+    const fullTargetTypeName = checker.typeToString(type.target, undefined, typescript.TypeFormatFlags.NoTruncation)
+    const targetTypeName = fullTargetTypeName.split('<')[0]?.trim() ?? fullTargetTypeName // Remove generic parameters from the type name
+
+    // Skip generic types that are in the skippedTypeNames list, using ellipsis to indicate generic parameters
+    if (options.skippedTypeNames.includes(targetTypeName)) {
+      return {
+        kind: 'reference',
+        typeName: `${targetTypeName}<...>`
+      }
+    }
+
+    if (options.unwrapGenericArgumentsTypeNames.includes(targetTypeName)) return {
+      kind: 'generic',
+      typeName: targetTypeName,
+      arguments: typeArguments.map(argument => getTypeTree(argument, depth, new Set(visited)))
     }
   }
 
@@ -488,6 +509,13 @@ function isPublicProperty (symbol: ts.Symbol): boolean {
 
     return !hasPrivateOrProtectedModifier
   })
+}
+
+/**
+ * Check if a type is a TypeReference type (generic type)
+ */
+function isTypeReference (type: ts.Type): type is ts.TypeReference {
+  return (type as ts.TypeReference).target !== undefined
 }
 
 /**

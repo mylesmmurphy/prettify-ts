@@ -20,10 +20,13 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
 
     /**
      * Override getCompletionsAtPosition to provide prettify type information
+     * This is a hack to allow us to use the completions API to trigger type information requests
+     * TS does not provide a direct way to get type information otherwise, so we use the completions API
      */
     proxy.getCompletionsAtPosition = (fileName, position, options) => {
       const requestBody = options?.triggerCharacter as PrettifyCompletionsTriggerCharacter
       if (!isPrettifyRequest(requestBody)) {
+        // If the request is not a prettify request, call the original method
         return info.languageService.getCompletionsAtPosition(fileName, position, options)
       }
 
@@ -38,10 +41,12 @@ function init (modules: { typescript: typeof ts }): ts.server.PluginModule {
       const prettifyResponse = getTypeInfoAtPosition(ts, checker, sourceFile, position, requestBody.options)
 
       const response: PrettifyResponse = {
+        // Follow the same structure as ts.CompletionInfo
         isGlobalCompletion: false,
         isMemberCompletion: false,
         isNewIdentifierLocation: false,
         entries: [],
+        // Add metadata to the response
         __prettifyResponse: prettifyResponse
       }
 

@@ -29,11 +29,12 @@ The following settings are available:
 - **Max Properties**: Limits the number of properties displayed for each type. Excess properties will be displayed with ellipsis.
 - **Max Sub-Properties**: Limits the number of sub-properties (properties on nested objects) displayed for each property. Excess properties will be displayed with ellipsis.
 - **Max Union Members**: Limits the number of union members displayed for each union. Excess members will be displayed with ellipsis.
+- **Max Function Signatures**: Limits the number of function signatures displayed. Excess signatures will be replaced with ellipsis.
 - **Unwrap Functions**: If enabled, function parameters and return types will be expanded.
 - **Unwrap Arrays**: If enabled, array element types will be expanded.
-- **Unwrap Promises**: If enabled, Promise resolved types will be expanded.
+- **Unwrap Generic Arguments Type Names**: A list of generic type names whose arguments will be unwrapped, instead of the apparent (final) type. (e.g., `Promise`).
 - **Hide Private Properties**: If enabled, hides private properties and methods.
-- **Skipped Type Names**: A list of type names that should not be expanded.
+- **Skipped Type Names**: A list of type names that should not be expanded. Generic types are supported, with their arguments replaced by ellipses (e.g., `ZodObject<...>`).
 - **Max Characters**: Sets the maximum number of characters for the prettified output. If the output exceeds this limit, it will be truncated.
 
 ## Sidebar Type View (Deprecated)

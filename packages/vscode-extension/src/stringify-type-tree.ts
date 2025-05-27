@@ -2,6 +2,18 @@ import { SyntaxKind } from 'typescript'
 import type { TypeTree } from '@prettify-ts/typescript-plugin/src/type-tree/types'
 
 /**
+ * Regular expression to validate an object key that does not require quotes.
+ * Includes dynamic keys wrapped in square brackets (e.g., [dynamicKey]).
+ */
+const unquotedObjectKeyRegex = /^(?:\d+|[a-zA-Z_$][\w$]*|\[.*\])$/
+
+/**
+ * List of reserved keywords in TypeScript that should not be used as object keys.
+ * This is used to determine if an object key needs to be wrapped in quotes.
+ */
+const reservedKeywords = ['class', 'function', 'return', 'if', 'else', 'for', 'while', 'switch', 'case', 'default', 'break', 'continue', 'try', 'catch', 'finally', 'throw', 'new', 'delete', 'typeof', 'instanceof', 'void', 'this', 'super', 'import', 'export', 'extends', 'implements', 'interface', 'package', 'private', 'protected', 'public', 'static', 'yield', 'let', 'const', 'var', 'do', 'with', 'debugger', 'enum', 'await', 'async']
+
+/**
  * Uses type info to return a string representation of the type
  *
  * Example:
@@ -30,7 +42,13 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
         p.type.types = p.type.types.filter(t => t.typeName !== 'undefined')
       }
 
-      return `${readonly}${p.name}${optional}: ${stringifyTypeTree(p.type)};`
+      // If the name has invalid characters, wrap it in quotes
+      let name = p.name
+      if (!unquotedObjectKeyRegex.test(p.name) || reservedKeywords.includes(p.name)) {
+        name = `"${p.name}"`
+      }
+
+      return `${readonly}${name}${optional}: ${stringifyTypeTree(p.type)};`
     }).join(' ')
 
     if (typeTree.excessProperties > 0) {
@@ -78,7 +96,13 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
 
     // If there are multiple signatures, wrap them in braces with semi-colons at the end of each line
     if (signatures.length > 1) {
-      return `{${signatures.join('; ')};}`
+      let signaturesString = `{${signatures.join('; ')};`
+      if (typeTree.excessSignatures > 0) {
+        signaturesString += ` ... ${typeTree.excessSignatures} more;`
+      }
+      signaturesString += '}'
+
+      return signaturesString
     }
 
     return signatures[0]
@@ -88,8 +112,9 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     return typeTree.member
   }
 
-  if (typeTree.kind === 'promise') {
-    return `Promise<${stringifyTypeTree(typeTree.type)}>`
+  if (typeTree.kind === 'generic') {
+    const argumentsString = typeTree.arguments.map(arg => stringifyTypeTree(arg)).join(', ')
+    return `${typeTree.typeName}<${argumentsString}>`
   }
 
   // Primitive or reference type
@@ -100,6 +125,14 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
  * Builds a declaration string based on the syntax kind
  */
 export function getSyntaxKindDeclaration (syntaxKind: SyntaxKind, typeName: string): string {
+  // For import statements, clean up the type name
+  if (typeName.startsWith('"') && typeName.endsWith('"')) {
+    const shortenedTypeName = typeName.split('node_modules/').pop()
+    const finalTypeName = shortenedTypeName ? `"${shortenedTypeName}` : typeName
+
+    return `typeof import(${finalTypeName}): `
+  }
+
   switch (syntaxKind) {
     case SyntaxKind.ClassDeclaration:
     case SyntaxKind.NewExpression:
@@ -208,4 +241,5 @@ export function sanitizeString (str: string): string {
     .replace(/\s/g, '') // Remove all whitespace
     .replace(/\n/g, '') // Remove all newlines
     .replace(/;/g, '') // Remove all semicolons
+    .replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\./g, '') // Remove namespaces (e.g., z.)
 }

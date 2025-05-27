@@ -3,7 +3,7 @@
   "publisher": "MylesMurphy",
   "license": "MIT",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.3.0",
   "main": "./out/extension.js",
   "workspaces": {
     "nohoist": [
@@ -133,6 +133,12 @@
           "minimum": 1,
           "description": "The maximum number of members to show in a union."
         },
+        "prettify-ts.maxFunctionSignatures": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "The maximum number of function signatures to show."
+        },
         "prettify-ts.hidePrivateProperties": {
           "type": "boolean",
           "default": true,
@@ -172,7 +178,20 @@
             "String",
             "Symbol"
           ],
-          "description": "Types that won't be unwrapped, by name."
+          "description": "Types that won't be unwrapped, by name. Generic types are supported, with their arguments replaced by ellipses (e.g., `ZodObject<...>`)."
+        },
+        "prettify-ts.unwrapGenericArgumentsTypeNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "Promise",
+            "Set",
+            "Map",
+            "Observable"
+          ],
+          "description": "A list of generic type names whose arguments will be unwrapped, instead of the apparent (final) type."
         },
         "prettify-ts.maxCharacters": {
           "type": "number",
