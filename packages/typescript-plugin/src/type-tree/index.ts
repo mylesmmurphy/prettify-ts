@@ -153,7 +153,8 @@ function getTypeTree (type: ts.Type, depth: number, visited: Set<ts.Type>): Type
   const apparentType = checker.getApparentType(type)
 
   // Primitive types
-  if (isPrimitiveType(type) || isPrimitiveType(apparentType)) {
+  const baseConstraintType = checker.getBaseConstraintOfType(type)
+  if (isPrimitiveType(type) || isPrimitiveType(apparentType) || (baseConstraintType && isPrimitiveType(baseConstraintType))) {
     return {
       kind: 'primitive',
       typeName
