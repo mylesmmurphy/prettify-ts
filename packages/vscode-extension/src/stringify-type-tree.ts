@@ -8,12 +8,6 @@ import type { TypeTree } from '@prettify-ts/typescript-plugin/src/type-tree/type
 const unquotedObjectKeyRegex = /^(?:\d+|[a-zA-Z_$][\w$]*|\[.*\])$/
 
 /**
- * List of reserved keywords in TypeScript that should not be used as object keys.
- * This is used to determine if an object key needs to be wrapped in quotes.
- */
-const reservedKeywords = ['class', 'function', 'return', 'if', 'else', 'for', 'while', 'switch', 'case', 'default', 'break', 'continue', 'try', 'catch', 'finally', 'throw', 'new', 'delete', 'typeof', 'instanceof', 'void', 'this', 'super', 'import', 'export', 'extends', 'implements', 'interface', 'package', 'private', 'protected', 'public', 'static', 'yield', 'let', 'const', 'var', 'do', 'with', 'debugger', 'enum', 'await', 'async']
-
-/**
  * Uses type info to return a string representation of the type
  *
  * Example:
@@ -44,7 +38,7 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
 
       // If the name has invalid characters, wrap it in quotes
       let name = p.name
-      if (!unquotedObjectKeyRegex.test(p.name) || reservedKeywords.includes(p.name)) {
+      if (!unquotedObjectKeyRegex.test(p.name)) {
         name = `"${p.name}"`
       }
 
