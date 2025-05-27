@@ -172,7 +172,21 @@
             "String",
             "Symbol"
           ],
-          "description": "Types that won't be unwrapped, by name."
+          "description": "Types that won't be unwrapped, by name. Regex patterns are supported, e.g. `React..*`."
+        },
+        "prettify-ts.unwrapGenericArgumentsTypeNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "Promise",
+            "Set",
+            "Map",
+            "Observable",
+            "Zod.*"
+          ],
+          "description": "A list of generic type names whose arguments will be unwrapped, instead of the apparent (final) type. Regex patterns are supported, e.g. `Zod.*`."
         },
         "prettify-ts.maxCharacters": {
           "type": "number",

@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
-import { type TypeInfo } from '@prettify-ts/typescript-plugin/src/type-tree/types'
+import type { TypeInfo } from '@prettify-ts/typescript-plugin/src/type-tree/types'
 import * as vscode from 'vscode'
 import { stringifyTypeTree, prettyPrintTypeString, getSyntaxKindDeclaration } from './stringify-type-tree'
-import { type PrettifyRequest } from './types'
+
+import type { PrettifyRequest } from '@prettify-ts/typescript-plugin/src/request'
 
 const MAX_SETTINGS = 999999999999
 
@@ -32,7 +33,7 @@ export function registerCommands (context: vscode.ExtensionContext): void {
       skippedTypeNames: config.get('skippedTypeNames', []),
       unwrapArrays: config.get('unwrapArrays', true),
       unwrapFunctions: config.get('unwrapFunctions', true),
-      unwrapPromises: config.get('unwrapPromises', true)
+      unwrapGenericArgumentsTypeNames: config.get('unwrapGenericArgumentsTypeNames', [])
     }
 
     if (full) {
@@ -42,7 +43,6 @@ export function registerCommands (context: vscode.ExtensionContext): void {
       options.maxUnionMembers = MAX_SETTINGS
       options.unwrapArrays = true
       options.unwrapFunctions = true
-      options.unwrapPromises = true
     }
 
     const request: PrettifyRequest = {

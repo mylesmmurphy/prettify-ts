@@ -2,6 +2,11 @@ import { SyntaxKind } from 'typescript'
 import type { TypeTree } from '@prettify-ts/typescript-plugin/src/type-tree/types'
 
 /**
+ * Regular expression to validate an object key that does not require quotes.
+ */
+const unquotedObjectKeyRegex = /^(?:\d+|[a-zA-Z_$][\w$]*)$/
+
+/**
  * Uses type info to return a string representation of the type
  *
  * Example:
@@ -30,7 +35,13 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
         p.type.types = p.type.types.filter(t => t.typeName !== 'undefined')
       }
 
-      return `${readonly}${p.name}${optional}: ${stringifyTypeTree(p.type)};`
+      // If the name has invalid characters, wrap it in quotes
+      let name = p.name
+      if (!unquotedObjectKeyRegex.test(p.name)) {
+        name = `"${p.name}"`
+      }
+
+      return `${readonly}${name}${optional}: ${stringifyTypeTree(p.type)};`
     }).join(' ')
 
     if (typeTree.excessProperties > 0) {
@@ -88,8 +99,9 @@ export function stringifyTypeTree (typeTree: TypeTree, anonymousFunction = true)
     return typeTree.member
   }
 
-  if (typeTree.kind === 'promise') {
-    return `Promise<${stringifyTypeTree(typeTree.type)}>`
+  if (typeTree.kind === 'generic') {
+    const argumentsString = typeTree.arguments.map(arg => stringifyTypeTree(arg)).join(', ')
+    return `${typeTree.typeName}<${argumentsString}>`
   }
 
   // Primitive or reference type

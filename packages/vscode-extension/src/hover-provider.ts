@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import type { PrettifyRequest } from './types'
+import type { PrettifyRequest } from '@prettify-ts/typescript-plugin/src/request'
 import type { TypeInfo } from '@prettify-ts/typescript-plugin/src/type-tree/types'
 import { prettyPrintTypeString, getSyntaxKindDeclaration, stringifyTypeTree, sanitizeString } from './stringify-type-tree'
 
@@ -23,7 +23,7 @@ export function registerHoverProvider (context: vscode.ExtensionContext): void {
       skippedTypeNames: config.get('skippedTypeNames', []),
       unwrapArrays: config.get('unwrapArrays', true),
       unwrapFunctions: config.get('unwrapFunctions', true),
-      unwrapPromises: config.get('unwrapPromises', true)
+      unwrapGenericArgumentsTypeNames: config.get('unwrapGenericArgumentsTypeNames', [])
     }
 
     const request: PrettifyRequest = {
