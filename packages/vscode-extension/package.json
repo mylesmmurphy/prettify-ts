@@ -3,28 +3,23 @@
   "publisher": "MylesMurphy",
   "license": "MIT",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "main": "./out/extension.js",
-  "workspaces": {
-    "nohoist": [
-      "**"
-    ]
-  },
   "scripts": {
     "build": "tsc",
-    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
-    "vscode:prepublish": "yarn run esbuild",
-    "package": "vsce package --yarn --dependencies"
-  },
-  "devDependencies": {
-    "@types/node": "18.x",
-    "@types/vscode": "^1.44.0",
-    "vsce": "^2.15.0",
-    "esbuild": "^0.19.10"
+    "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --external:typescript --format=cjs --platform=node",
+    "vscode:prepublish": "npm run esbuild",
+    "package": "vsce --version && vsce package --dependencies"
   },
   "dependencies": {
     "@prettify-ts/typescript-plugin": "*",
     "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.44.0",
+    "@vscode/vsce": "^3.4.2",
+    "esbuild": "^0.25.5"
   },
   "displayName": "Prettify TypeScript: Better Type Previews",
   "description": "View \"prettified\" and nested types in hover tooltips.",
