@@ -1,5 +1,5 @@
-import { SyntaxKind } from "typescript";
 import type { TypeTree } from "@prettify-ts/typescript-plugin/src/type-tree/types";
+import { SyntaxKind } from "./ts-syntaxkind";
 
 /**
  * Regular expression to validate an object key that does not require quotes.

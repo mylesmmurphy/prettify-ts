@@ -11,7 +11,7 @@
     "build": "tsc"
   },
   "devDependencies": {
-    "typescript": "^5.4.5",
-    "@types/ts-expose-internals": "npm:ts-expose-internals@5.4.5"
+    "@types/ts-expose-internals": "npm:ts-expose-internals@5.4.5",
+    "typescript": "^5.4.5"
   }
 }
