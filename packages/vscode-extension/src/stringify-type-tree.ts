@@ -27,26 +27,26 @@ export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true):
   }
 
   if (typeTree.kind === "object") {
-    let propertiesString = typeTree.properties
-      .map((p) => {
-        const readonly = p.readonly ? "readonly " : "";
+    const propertiesArray = typeTree.properties.map((p) => {
+      const readonly = p.readonly ? "readonly " : "";
 
-        let optional = "";
-        if (p.optional && p.type.kind === "union") {
-          optional = "?";
-          // Remove undefined from union if optional
-          p.type.types = p.type.types.filter((t) => t.typeName !== "undefined");
-        }
+      let optional = "";
+      if (p.optional && p.type.kind === "union") {
+        optional = "?";
+        // Remove undefined from union if optional
+        p.type.types = p.type.types.filter((t) => t.typeName !== "undefined");
+      }
 
-        // If the name has invalid characters, wrap it in quotes
-        let name = p.name;
-        if (!unquotedObjectKeyRegex.test(p.name)) {
-          name = `"${p.name}"`;
-        }
+      // If the name has invalid characters, wrap it in quotes
+      let name = p.name;
+      if (!unquotedObjectKeyRegex.test(p.name)) {
+        name = `"${p.name}"`;
+      }
 
-        return `${readonly}${name}${optional}: ${stringifyTypeTree(p.type)};`;
-      })
-      .join(" ");
+      return `${readonly}${name}${optional}: ${stringifyTypeTree(p.type)};`;
+    });
+
+    let propertiesString = propertiesArray.join(" ");
 
     if (typeTree.excessProperties > 0) {
       propertiesString += ` ... ${typeTree.excessProperties} more;`;
