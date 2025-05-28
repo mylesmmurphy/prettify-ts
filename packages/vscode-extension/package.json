@@ -19,7 +19,7 @@
     "@types/node": "18.x",
     "@types/vscode": "^1.44.0",
     "@vscode/vsce": "^3.4.2",
-    "esbuild": "^0.19.10"
+    "esbuild": "^0.25.5"
   },
   "displayName": "Prettify TypeScript: Better Type Previews",
   "description": "View \"prettified\" and nested types in hover tooltips.",
