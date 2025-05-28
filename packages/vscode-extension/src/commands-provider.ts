@@ -4,6 +4,8 @@ import { stringifyTypeTree, prettyPrintTypeString, getSyntaxKindDeclaration } fr
 
 import type { PrettifyRequest } from "@prettify-ts/typescript-plugin/src/request";
 
+// MAX_SETTINGS is an extremely high constant used to represent "unlimited" or "maximum possible" settings.
+// It is intended for advanced scenarios (e.g., full type tree processing) and may have performance implications.
 const MAX_SETTINGS = 999999999999;
 
 export function registerCommands(context: vscode.ExtensionContext): void {
