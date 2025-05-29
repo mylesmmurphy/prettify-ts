@@ -1,18 +1,21 @@
-**/tsconfig.json
-**/.eslintrc.json
-**/*.map
-**/*.ts
-**/*.ts
-**/*.tsx
-**/*.js.map
-**/.DS_Store
-**/package-lock.json
-**/package.json
-**/.eslintrc.json
-**/*.log
-../../**
+# Ignore all files in the root directory and above
+**
 ../**
-!**/node_modules/@prettify-ts/**
-!./node_modules/@prettify-ts/**
-!**/assets/example.png
-!./assets/example.
+../../**
+
+# Un-ignore (include) only the files and folders you want in the VSIX
+
+# Extension entry point
+!out/extension.js
+
+# Manifest and docs
+!package.json
+!LICENSE
+!README.md
+
+# Only include .png and .svg assets
+!assets/**/*.png
+!assets/**/*.svg
+
+# The built plugin in node_modules
+!node_modules/@prettify-ts/typescript-plugin-dist/**
