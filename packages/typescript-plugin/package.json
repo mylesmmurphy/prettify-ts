@@ -1,6 +1,6 @@
 {
   "name": "@prettify-ts/typescript-plugin",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "main": "./out",
   "license": "MIT",
   "private": "true",
