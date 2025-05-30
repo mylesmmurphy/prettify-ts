@@ -2,7 +2,7 @@
   "name": "prettify-ts-monorepo",
   "publisher": "MylesMurphy",
   "license": "MIT",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "workspaces": [
     "packages/*"
