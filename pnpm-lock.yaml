@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@prettify-ts/typescript-plugin':
+        specifier: workspace:*
+        version: link:packages/typescript-plugin
     devDependencies:
       '@eslint/js':
         specifier: ^9.27.0

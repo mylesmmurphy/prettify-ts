@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
-    "package": "pnpm esbuild && vsce --version && vsce package --dependencies"
+    "package": "pnpm esbuild && node ../../scripts/pre-package.js && vsce --version && vsce package --dependencies"
   },
   "dependencies": {
     "@prettify-ts/typescript-plugin": "workspace:*"

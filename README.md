@@ -62,9 +62,9 @@ This monorepo uses pnpm workspaces to manage dependencies. During development, p
 
 For packaging and publishing, the process is as follows:
 
-1. Prepackage step: A script deletes the symlinked plugin from the extension’s node_modules and copies the actual built files and package.json into place. This ensures the VS Code extension packaging tool (vsce) includes the real dependency, not a symlink.
+1. Prepackage step: A script deletes the symlinked plugin from the extension’s node_modules and copies the actual built files and package.json into place. It also updates the extension’s package.json dependency on the plugin from "workspace:*" to "*". This ensures the VS Code extension packaging tool (vsce) includes the real dependency, not a symlink, and avoids pnpm workspace-specific version specifiers.
 2. Packaging: The extension is packaged using vsce, producing a .vsix file ready for distribution.
-3. Postpackage step: The symlink is restored by re-installing dependencies with pnpm, returning the workspace to its development/debug-friendly state.
+3. Postpackage step: The symlink is restored by re-installing dependencies with pnpm, and the dependency in package.json is reverted back to "workspace:*", returning the workspace to its development-ready state.
 
 This approach ensures a smooth workflow for both development (with live symlinks) and packaging (with real files included).
 
