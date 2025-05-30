@@ -7,6 +7,7 @@ import {
   stringifyTypeTree,
   sanitizeString,
 } from "./stringify-type-tree";
+import { SyntaxKind } from "./ts-syntaxkind";
 
 export function registerHoverProvider(context: vscode.ExtensionContext): void {
   async function provideHover(
@@ -57,7 +58,7 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
 
     const typeString = stringifyTypeTree(typeTree, false);
     let prettyTypeString = prettyPrintTypeString(typeString, indentation);
-    let declaration = getSyntaxKindDeclaration(syntaxKind, name);
+    let declaration = getSyntaxKindDeclaration(syntaxKind as unknown as SyntaxKind, name);
 
     if (prettyTypeString.length > maxCharacters) {
       prettyTypeString = prettyTypeString.substring(0, maxCharacters) + "...";

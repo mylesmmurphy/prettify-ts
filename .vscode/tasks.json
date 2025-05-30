@@ -4,7 +4,7 @@
 		{
 			"label": "build root",
 			"type": "shell",
-			"command": "npm run build",
+			"command": "pnpm build",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},

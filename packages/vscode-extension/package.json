@@ -3,16 +3,15 @@
   "publisher": "MylesMurphy",
   "license": "MIT",
   "private": true,
-  "version": "0.3.3",
+  "version": "0.3.4",
   "main": "./out/extension.js",
   "scripts": {
     "build": "tsc",
     "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
-    "vscode:prepublish": "npm run esbuild",
-    "package": "vsce --version && vsce package --dependencies"
+    "package": "pnpm esbuild && node ../../scripts/pre-package.js && vsce --version && vsce package --dependencies"
   },
   "dependencies": {
-    "@prettify-ts/typescript-plugin": "*"
+    "@prettify-ts/typescript-plugin": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "18.x",
@@ -48,7 +47,7 @@
   "contributes": {
     "typescriptServerPlugins": [
       {
-        "name": "@prettify-ts/typescript-plugin-dist",
+        "name": "@prettify-ts/typescript-plugin",
         "enableForWorkspaceTypeScriptVersions": true
       }
     ],

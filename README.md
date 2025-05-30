@@ -22,13 +22,15 @@ This README is for Development of Prettify TS. The VSCode Extension README can b
 
 ## Scripts
 
+> **Note:** This project uses [pnpm](https://pnpm.io/) as its package manager. Please ensure you have pnpm installed globally (`npm install -g pnpm`) before running these scripts.
+
 This project provides several scripts that you can use to manage the development process:
 
-- `npm i`: Installs all the dependencies for the project. This command should be run after cloning the repository or whenever a new package is added to the `package.json` file.
+- `pnpm install`: Installs all the dependencies for the project. This command should be run after cloning the repository or whenever a new package is added to the `package.json` file.
 
-- `npm build`: Compiles the TypeScript code in the project. This command should be run before testing the extension or preparing it for distribution.
+- `pnpm build`: Compiles the TypeScript code in the project. This command should be run before testing the extension or preparing it for distribution.
 
-- `npm run package`: Packages the Visual Studio Code extension for distribution. This command should be run when you're ready to create a `.vsix` file that can be installed in Visual Studio Code.
+- `pnpm package`: Packages the Visual Studio Code extension for distribution. This command should be run when you're ready to create a `.vsix` file that can be installed in Visual Studio Code.
 
 You can run these commands from the terminal in the root directory of the project.
 
@@ -56,7 +58,15 @@ The monorepo includes the following packages:
 
 ### Packaging
 
-To ensure that the Visual Studio Code extension is packaged with all required dependencies, this monorepo uses a `postbuild` script. After building the packages, the `postbuild` script (`node ./scripts/post-build.js`) copies the built TypeScript plugin and its `package.json` directly into the extension's `node_modules` directory. This approach guarantees that the VS Code extension packaging tool (`vsce`) can find all necessary dependencies in the expected location, making the extension ready for distribution without relying on workspace-specific features like Yarn's `nohoist`.
+This monorepo uses pnpm workspaces to manage dependencies. During development, pnpm automatically symlinks local packages (like typescript-plugin) into the extension’s node_modules directory. This setup is ideal for debugging, as changes to the plugin are immediately reflected in the extension.
+
+For packaging and publishing, the process is as follows:
+
+1. Prepackage step: A script deletes the symlinked plugin from the extension’s node_modules and copies the actual built files and package.json into place. It also updates the extension’s package.json dependency on the plugin from "workspace:*" to "*". This ensures the VS Code extension packaging tool (vsce) includes the real dependency, not a symlink, and avoids pnpm workspace-specific version specifiers, which don't work with vsce.
+2. Packaging: The extension is packaged using vsce, producing a .vsix file ready for distribution.
+3. Postpackage step: The symlink is restored by re-installing dependencies with pnpm, and the dependency in package.json is reverted back to "workspace:*", returning the workspace to its development-ready state.
+
+This approach ensures a smooth workflow for both development (with live symlinks) and packaging (with real files included).
 
 ## License
 

@@ -25,14 +25,5 @@
 			],
 			"port": 9229
 		}
-	],
-	"compounds": [
-		{
-			"name": "Run Extension and Attach to TSServer",
-			"configurations": [
-				"Run Extension",
-				"Attach to TSServer"
-			]
-		}
 	]
 }
