@@ -22,5 +22,5 @@ if (
 ) {
   extensionPkg.dependencies['@prettify-ts/typescript-plugin'] = 'workspace:*';
   fs.writeJsonSync(extensionPkgPath, extensionPkg, { spaces: 2 });
-  console.log('Updated @prettify-ts/typescript-plugin dependency to "*" in vscode-extension/package.json');
+  console.log('⏪ Updated @prettify-ts/typescript-plugin dependency to "workspace:*" in vscode-extension/package.json');
 }
