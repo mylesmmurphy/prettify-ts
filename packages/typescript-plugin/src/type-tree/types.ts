@@ -1,15 +1,26 @@
+/**
+ * Type Tree Object Properties
+ */
 export type TypeProperty = {
   name: string;
   optional: boolean;
   readonly: boolean;
   type: TypeTree;
 };
+
+/**
+ * Type Tree Function Parameters
+ */
 export type TypeFunctionParameter = {
   name: string;
   optional: boolean;
   isRestParameter: boolean;
   type: TypeTree;
 };
+
+/**
+ * Type Tree Function Signatures
+ */
 export type TypeFunctionSignature = {
   returnType: TypeTree;
   parameters: TypeFunctionParameter[];
