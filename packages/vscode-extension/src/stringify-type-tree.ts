@@ -1,5 +1,4 @@
 import type { TypeTree } from "@prettify-ts/typescript-plugin/src/type-tree/types";
-import { SyntaxKind } from "./ts-syntaxkind";
 
 /**
  * Regular expression to validate an object key that does not require quotes.
@@ -118,70 +117,6 @@ export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true):
 
   // Primitive or reference type
   return typeTree.typeName;
-}
-
-/**
- * Builds a declaration string based on the syntax kind
- */
-export function getSyntaxKindDeclaration(syntaxKind: SyntaxKind, typeName: string): string {
-  // Handle imported types
-  if (typeName.startsWith('"') && typeName.endsWith('"')) {
-    const shortenedTypeName = typeName.replace(/"/g, "").split("node_modules/").pop()!;
-    const finalTypeName = `"${shortenedTypeName}"`;
-
-    return `typeof import(${finalTypeName}): `;
-  }
-
-  switch (syntaxKind) {
-    case SyntaxKind.ClassDeclaration:
-    case SyntaxKind.NewExpression:
-      return `class ${typeName} `;
-
-    case SyntaxKind.ExpressionWithTypeArguments:
-    case SyntaxKind.InterfaceDeclaration:
-    case SyntaxKind.QualifiedName:
-      return `interface ${typeName} `;
-
-    case SyntaxKind.ArrayType:
-    case SyntaxKind.ConstructorType:
-    case SyntaxKind.ConstructSignature:
-    case SyntaxKind.EnumDeclaration:
-    case SyntaxKind.FunctionType:
-    case SyntaxKind.IndexedAccessType:
-    case SyntaxKind.IndexSignature:
-    case SyntaxKind.IntersectionType:
-    case SyntaxKind.MappedType:
-    case SyntaxKind.PropertySignature:
-    case SyntaxKind.ThisType:
-    case SyntaxKind.TupleType:
-    case SyntaxKind.TypeAliasDeclaration:
-    case SyntaxKind.TypeAssertionExpression:
-    case SyntaxKind.TypeLiteral:
-    case SyntaxKind.TypeOperator:
-    case SyntaxKind.TypePredicate:
-    case SyntaxKind.TypeQuery:
-    case SyntaxKind.TypeReference:
-    case SyntaxKind.UnionType:
-      return `type ${typeName} = `;
-
-    case SyntaxKind.FunctionDeclaration:
-    case SyntaxKind.FunctionKeyword:
-    case SyntaxKind.MethodDeclaration:
-    case SyntaxKind.MethodSignature:
-    case SyntaxKind.GetAccessor:
-    case SyntaxKind.SetAccessor:
-    case SyntaxKind.Constructor:
-      return `function ${typeName}`;
-
-    case SyntaxKind.LetKeyword:
-      return `let ${typeName}: `;
-
-    case SyntaxKind.VarKeyword:
-      return `var ${typeName}: `;
-
-    default:
-      return `const ${typeName}: `;
-  }
 }
 
 export function prettyPrintTypeString(typeStringInput: string, indentation = 2): string {

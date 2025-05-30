@@ -1,5 +1,3 @@
-import type * as ts from "typescript";
-
 export type TypeProperty = {
   name: string;
   optional: boolean;
@@ -42,6 +40,6 @@ export type TypeTree = { typeName: string } & (
  */
 export type TypeInfo = {
   typeTree: TypeTree;
-  syntaxKind: ts.SyntaxKind;
+  declaration: string;
   name: string;
 };

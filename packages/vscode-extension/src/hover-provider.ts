@@ -1,13 +1,7 @@
 import * as vscode from "vscode";
 import type { PrettifyRequest } from "@prettify-ts/typescript-plugin/src/request";
 import type { TypeInfo } from "@prettify-ts/typescript-plugin/src/type-tree/types";
-import {
-  prettyPrintTypeString,
-  getSyntaxKindDeclaration,
-  stringifyTypeTree,
-  sanitizeString,
-} from "./stringify-type-tree";
-import { SyntaxKind } from "./ts-syntaxkind";
+import { prettyPrintTypeString, stringifyTypeTree, sanitizeString } from "./stringify-type-tree";
 
 export function registerHoverProvider(context: vscode.ExtensionContext): void {
   async function provideHover(
@@ -52,13 +46,14 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
     const prettifyResponse: TypeInfo | undefined = response?.body?.__prettifyResponse;
     if (!prettifyResponse) return;
 
-    const { typeTree, syntaxKind, name } = prettifyResponse;
+    const { typeTree, name } = prettifyResponse;
+
+    let declaration = prettifyResponse.declaration;
 
     if (options.skippedTypeNames.includes(name)) return;
 
     const typeString = stringifyTypeTree(typeTree, false);
     let prettyTypeString = prettyPrintTypeString(typeString, indentation);
-    let declaration = getSyntaxKindDeclaration(syntaxKind as unknown as SyntaxKind, name);
 
     if (prettyTypeString.length > maxCharacters) {
       prettyTypeString = prettyTypeString.substring(0, maxCharacters) + "...";

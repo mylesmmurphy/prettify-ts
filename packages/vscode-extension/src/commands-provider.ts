@@ -1,9 +1,8 @@
 import type { TypeInfo } from "@prettify-ts/typescript-plugin/src/type-tree/types";
 import * as vscode from "vscode";
-import { stringifyTypeTree, prettyPrintTypeString, getSyntaxKindDeclaration } from "./stringify-type-tree";
+import { stringifyTypeTree, prettyPrintTypeString } from "./stringify-type-tree";
 
 import type { PrettifyRequest } from "@prettify-ts/typescript-plugin/src/request";
-import { SyntaxKind } from "./ts-syntaxkind";
 
 // MAX_SETTINGS is an extremely high constant used to represent "unlimited" or "maximum possible" settings.
 // It is intended for advanced scenarios (e.g., full type tree processing) and may have performance implications.
@@ -72,11 +71,10 @@ export function registerCommands(context: vscode.ExtensionContext): void {
       return;
     }
 
-    const { typeTree, syntaxKind, name } = prettifyResponse;
+    const { typeTree, declaration } = prettifyResponse;
 
     const typeString = stringifyTypeTree(typeTree, false);
     const prettyTypeString = prettyPrintTypeString(typeString, indentation);
-    const declaration = getSyntaxKindDeclaration(syntaxKind as unknown as SyntaxKind, name);
 
     await vscode.env.clipboard.writeText(declaration + prettyTypeString);
     await vscode.window.showInformationMessage("Type copied to clipboard");

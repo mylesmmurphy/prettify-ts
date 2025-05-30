@@ -63,9 +63,11 @@ export function getTypeInfoAtPosition(
       !isPartOfImportStatement(node) && // Confirm the node is not part of an import statement
       type.getConstructSignatures().length > 0 // Confirm the class has a constructor
     ) {
+      const declaration = getSyntaxKindDeclaration(typescript.SyntaxKind.Constructor, name);
+
       return {
         typeTree: getConstructorTypeInfo(type, typeChecker, name),
-        syntaxKind: typescript.SyntaxKind.Constructor,
+        declaration,
         name,
       };
     }
@@ -83,9 +85,11 @@ export function getTypeInfoAtPosition(
 
     const typeTree = getTypeTree(type, 0, new Set());
 
+    const declaration = getSyntaxKindDeclaration(syntaxKind, name);
+
     return {
       typeTree,
-      syntaxKind,
+      declaration,
       name,
     };
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -604,4 +608,70 @@ function getIndexIdentifierName(type: ts.Type | undefined, signature: "string" |
   }
 
   return "key";
+}
+
+/**
+ * Builds a declaration string based on the syntax kind
+ */
+export function getSyntaxKindDeclaration(syntaxKind: ts.SyntaxKind, typeName: string): string {
+  const SyntaxKind = typescript.SyntaxKind;
+
+  // Handle imported types
+  if (typeName.startsWith('"') && typeName.endsWith('"')) {
+    const shortenedTypeName = typeName.replace(/"/g, "").split("node_modules/").pop()!;
+    const finalTypeName = `"${shortenedTypeName}"`;
+
+    return `typeof import(${finalTypeName}): `;
+  }
+
+  switch (syntaxKind) {
+    case SyntaxKind.ClassDeclaration:
+    case SyntaxKind.NewExpression:
+      return `class ${typeName} `;
+
+    case SyntaxKind.ExpressionWithTypeArguments:
+    case SyntaxKind.InterfaceDeclaration:
+    case SyntaxKind.QualifiedName:
+      return `interface ${typeName} `;
+
+    case SyntaxKind.ArrayType:
+    case SyntaxKind.ConstructorType:
+    case SyntaxKind.ConstructSignature:
+    case SyntaxKind.EnumDeclaration:
+    case SyntaxKind.FunctionType:
+    case SyntaxKind.IndexedAccessType:
+    case SyntaxKind.IndexSignature:
+    case SyntaxKind.IntersectionType:
+    case SyntaxKind.MappedType:
+    case SyntaxKind.PropertySignature:
+    case SyntaxKind.ThisType:
+    case SyntaxKind.TupleType:
+    case SyntaxKind.TypeAliasDeclaration:
+    case SyntaxKind.TypeAssertionExpression:
+    case SyntaxKind.TypeLiteral:
+    case SyntaxKind.TypeOperator:
+    case SyntaxKind.TypePredicate:
+    case SyntaxKind.TypeQuery:
+    case SyntaxKind.TypeReference:
+    case SyntaxKind.UnionType:
+      return `type ${typeName} = `;
+
+    case SyntaxKind.FunctionDeclaration:
+    case SyntaxKind.FunctionKeyword:
+    case SyntaxKind.MethodDeclaration:
+    case SyntaxKind.MethodSignature:
+    case SyntaxKind.GetAccessor:
+    case SyntaxKind.SetAccessor:
+    case SyntaxKind.Constructor:
+      return `function ${typeName}`;
+
+    case SyntaxKind.LetKeyword:
+      return `let ${typeName}: `;
+
+    case SyntaxKind.VarKeyword:
+      return `var ${typeName}: `;
+
+    default:
+      return `const ${typeName}: `;
+  }
 }
