@@ -10,12 +10,14 @@
     ]
   },
   "scripts": {
+    "preinstall": "npx -y only-allow pnpm",
     "lint": "eslint .",
-    "build": "npm run build --workspaces",
-    "postbuild": "node ./scripts/post-build.js",
+    "build": "pnpm -r run build",
+    "testpostbuild": "node ./scripts/post-build.js",
     "package": "npm run build && npm run package --workspace=prettify-ts"
   },
   "devDependencies": {
+    "@eslint/js": "^9.27.0",
     "@types/node": "18.x",
     "@types/vscode": "^1.44.0",
     "esbuild": "^0.25.5",
@@ -23,6 +25,7 @@
     "eslint-config-prettier": "^10.1.2",
     "eslint-plugin-prettier": "^5.2.6",
     "fs-extra": "^11.3.0",
+    "only-allow": "^1.2.1",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.30.1"
   }

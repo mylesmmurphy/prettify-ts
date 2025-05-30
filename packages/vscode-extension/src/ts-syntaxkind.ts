@@ -409,4 +409,4 @@ export enum SyntaxKind {
   LastJSDocTagNode = 357,
   /** @internal */ FirstContextualKeyword = 128,
   /** @internal */ LastContextualKeyword = 165,
-}
+};

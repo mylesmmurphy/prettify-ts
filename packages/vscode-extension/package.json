@@ -12,7 +12,7 @@
     "package": "vsce --version && vsce package --dependencies"
   },
   "dependencies": {
-    "@prettify-ts/typescript-plugin": "*"
+    "@prettify-ts/typescript-plugin": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "18.x",
