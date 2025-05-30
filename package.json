@@ -4,17 +4,11 @@
   "license": "MIT",
   "version": "0.3.3",
   "private": true,
-  "workspaces": {
-    "packages": [
-      "packages/*"
-    ]
-  },
   "scripts": {
     "preinstall": "npx -y only-allow pnpm",
     "lint": "eslint .",
     "build": "pnpm -r run build",
-    "testpostbuild": "node ./scripts/post-build.js",
-    "package": "npm run build && npm run package --workspace=prettify-ts"
+    "package": "pnpm build && node ./scripts/prepackage.js && pnpm --filter prettify-ts run package"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",

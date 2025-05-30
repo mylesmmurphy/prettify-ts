@@ -18,4 +18,4 @@
 !assets/**/*.svg
 
 # The built plugin in node_modules
-!node_modules/@prettify-ts/typescript-plugin-dist/**
+!node_modules/@prettify-ts/typescript-plugin/**

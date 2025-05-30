@@ -8,8 +8,7 @@
   "scripts": {
     "build": "tsc",
     "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
-    "vscode:prepublish": "npm run esbuild",
-    "package": "vsce --version && vsce package --dependencies"
+    "package": "pnpm esbuild && vsce --version && vsce package --dependencies"
   },
   "dependencies": {
     "@prettify-ts/typescript-plugin": "workspace:*"
@@ -48,7 +47,7 @@
   "contributes": {
     "typescriptServerPlugins": [
       {
-        "name": "@prettify-ts/typescript-plugin-dist",
+        "name": "@prettify-ts/typescript-plugin",
         "enableForWorkspaceTypeScriptVersions": true
       }
     ],
