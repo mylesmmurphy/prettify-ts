@@ -2,7 +2,7 @@
   "name": "prettify-ts-monorepo",
   "publisher": "MylesMurphy",
   "license": "MIT",
-  "version": "0.3.5",
+  "version": "0.3.7",
   "private": true,
   "scripts": {
     "preinstall": "only-allow pnpm",
