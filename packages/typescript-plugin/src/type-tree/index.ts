@@ -98,6 +98,13 @@ export function getTypeInfoAtPosition(
   }
 }
 
+/**
+ * Check if a node is part of an import statement
+ * This function traverses the parent nodes of the given node
+ * to determine if it is part of an import declaration, import specifier,
+ * or import clause. It returns true if it finds any of these,
+ * otherwise it returns false.
+ */
 function isPartOfImportStatement(node: ts.Node): boolean {
   while (node) {
     if (typescript.isImportDeclaration(node) || typescript.isImportSpecifier(node) || typescript.isImportClause(node)) {
@@ -108,6 +115,12 @@ function isPartOfImportStatement(node: ts.Node): boolean {
   return false;
 }
 
+/**
+ * Get the variable declaration kind based on the parent node
+ * This function checks the parent node of a VariableDeclaration to determine
+ * whether it is declared with `let`, `const`, or `var`.
+ * If the parent is not a VariableDeclarationList, it defaults to `const`.
+ */
 function getVariableDeclarationKind(node: ts.VariableDeclaration): number {
   const parent = node.parent;
   if (!typescript.isVariableDeclarationList(parent)) return typescript.SyntaxKind.ConstKeyword;
@@ -123,6 +136,11 @@ function getVariableDeclarationKind(node: ts.VariableDeclaration): number {
   return typescript.SyntaxKind.VarKeyword;
 }
 
+/**
+ * Get type information for a constructor type
+ * This function extracts the constructor signature and its parameters,
+ * then builds a TypeTree object representing the constructor type.
+ */
 function getConstructorTypeInfo(type: ts.Type, typeChecker: ts.TypeChecker, name: string): TypeTree {
   const params = type.getConstructSignatures()[0]!.parameters;
   const paramTypes = params.map((p) => typeChecker.getTypeOfSymbol(p));
@@ -322,6 +340,7 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
       };
   }
 
+  // Object
   if (
     apparentType.isClassOrInterface() ||
     apparentType.flags & typescript.TypeFlags.Object ||
@@ -335,8 +354,7 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
       typeProperties = typeProperties.filter((symbol) => isPublicProperty(symbol));
     }
 
-    const stringIndexType = apparentType.getStringIndexType();
-    const numberIndexType = apparentType.getNumberIndexType();
+    let indexSignatures = checker.getIndexInfosOfType(apparentType);
 
     if (depth >= options.maxDepth) {
       // If we've reached the max depth and has a type alias, return it as a reference type
@@ -348,9 +366,7 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
           typeName,
         };
 
-      let propertiesCount = typeProperties.length;
-      if (stringIndexType) propertiesCount += 1;
-      if (numberIndexType) propertiesCount += 1;
+      const propertiesCount = typeProperties.length + indexSignatures.length;
 
       return {
         kind: "object",
@@ -361,46 +377,39 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
     }
 
     // Track how many properties are being cut off from the maxProperties option
-    let excessProperties = typeProperties.length - depthMaxProps;
-    typeProperties = typeProperties.slice(0, depthMaxProps);
+    const excessProperties = typeProperties.length + indexSignatures.length - depthMaxProps;
+    indexSignatures = indexSignatures.slice(0, depthMaxProps);
+    typeProperties = typeProperties.slice(0, depthMaxProps - indexSignatures.length);
 
-    const properties: TypeProperty[] = typeProperties.map((symbol) => {
+    // Track properties to be displayed
+    const properties: TypeProperty[] = [];
+
+    // Index signatures displayed first
+    for (const indexSignature of indexSignatures) {
+      // Add index signatures as properties
+      const indexIdentifierName = indexSignature.declaration?.parameters[0]?.name?.getText() ?? "key";
+      const indexType = checker.typeToString(
+        indexSignature.keyType,
+        undefined,
+        typescript.TypeFormatFlags.NoTruncation,
+      );
+
+      properties.push({
+        name: `[${indexIdentifierName}: ${indexType}]`,
+        optional: false,
+        readonly: indexSignature.isReadonly,
+        type: getTypeTree(indexSignature.type, depth + 1, new Set(visited)),
+      });
+    }
+
+    for (const symbol of typeProperties) {
       const symbolType = checker.getTypeOfSymbol(symbol);
-      return {
+      properties.push({
         name: symbol.getName(),
         optional: isOptional(symbol),
         readonly: isReadOnly(symbol),
         type: getTypeTree(symbolType, depth + 1, new Set(visited)), // Add depth for sub-properties
-      };
-    });
-
-    if (stringIndexType) {
-      // If under max properties allowance, add the string index type as a property
-      if (excessProperties < 0) {
-        const stringIndexIdentifierName = getIndexIdentifierName(apparentType, "string");
-        properties.push({
-          name: `[${stringIndexIdentifierName}: string]`,
-          optional: false,
-          readonly: isReadOnly(stringIndexType.symbol),
-          type: getTypeTree(stringIndexType, depth + 1, new Set(visited)),
-        });
-      }
-
-      excessProperties += 1; // Track the string index type as an excess property
-    }
-
-    if (numberIndexType) {
-      if (excessProperties < 0) {
-        const numberIndexIdentifierName = getIndexIdentifierName(apparentType, "number");
-        properties.push({
-          name: `[${numberIndexIdentifierName}: number]`,
-          optional: false,
-          readonly: isReadOnly(numberIndexType.symbol),
-          type: getTypeTree(numberIndexType, depth + 1, new Set(visited)),
-        });
-      }
-
-      excessProperties += 1;
+      });
     }
 
     return {
@@ -572,43 +581,6 @@ function isOptional(symbol: ts.Symbol | undefined): boolean {
       (typescript.isPropertySignature(declaration) || typescript.isPropertyDeclaration(declaration)) &&
       !!declaration.questionToken,
   );
-}
-
-/**
- * Check if a declaration has members
- */
-function hasMembers(
-  declaration: ts.Declaration,
-): declaration is ts.InterfaceDeclaration | ts.ClassDeclaration | ts.TypeLiteralNode {
-  return (
-    typescript.isInterfaceDeclaration(declaration) ||
-    typescript.isClassDeclaration(declaration) ||
-    typescript.isTypeLiteralNode(declaration)
-  );
-}
-
-/**
- * Get the name of the identifier used in index signatures
- * Example: { [key: string]: string } => 'key'
- */
-function getIndexIdentifierName(type: ts.Type | undefined, signature: "string" | "number"): string {
-  const declarations = type?.getSymbol()?.getDeclarations()?.filter(hasMembers) ?? [];
-  const members = declarations.flatMap((declaration) => declaration.members as ts.NodeArray<ts.Node>);
-  if (!members.length) return "key";
-
-  const indexSignatures = members.filter(typescript.isIndexSignatureDeclaration);
-
-  for (const indexSignature of indexSignatures) {
-    const parameter = indexSignature.parameters[0];
-    if (!parameter) continue;
-
-    const signatureKind = parameter.getChildren()?.[2]?.getText();
-    if (signatureKind !== signature) continue;
-
-    return parameter?.name?.getText() ?? "key";
-  }
-
-  return "key";
 }
 
 /**
