@@ -161,7 +161,8 @@ export function prettyPrintTypeString(typeStringInput: string, indentation = 2):
   result = result
     .replace(/{\s*\n*\s*}/g, "{}") // Remove empty braces newlines
     .replace(/^\s*[\r\n]/gm, "") // Remove empty newlines
-    .replace(/{\s*\.\.\.\s*([0-9]+)\s*more;\s*}/g, "{ ... $1 more }"); // Replace only excess properties into one line
+    .replace(/{\s*\.\.\.\s*([0-9]+)\s*more;\s*}/g, "{ ... $1 more }") // Replace only excess properties into one line
+    .replace(/\$\{\s*([^{}]+?)\s*\}/g, (_, inner) => `\${${inner}}`); // Remove unnecessary spaces in template literals
 
   return result;
 }

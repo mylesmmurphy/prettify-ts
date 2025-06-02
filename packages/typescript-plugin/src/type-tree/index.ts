@@ -428,6 +428,7 @@ function isPrimitiveType(type: ts.Type): boolean {
   return Boolean(
     typeFlags & typescript.TypeFlags.String ||
       typeFlags & typescript.TypeFlags.StringLiteral ||
+      typeFlags & typescript.TypeFlags.TemplateLiteral ||
       typeFlags & typescript.TypeFlags.Number ||
       typeFlags & typescript.TypeFlags.NumberLiteral ||
       typeFlags & typescript.TypeFlags.Boolean ||
