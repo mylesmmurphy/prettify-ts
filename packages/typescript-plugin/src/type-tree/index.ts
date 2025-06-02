@@ -366,18 +366,19 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
           typeName,
         };
 
-      const propertiesCount = typeProperties.length + indexSignatures.length;
+      // Return all properties as excess to avoid deeper nesting
+      const excessProperties = typeProperties.length + indexSignatures.length;
 
       return {
         kind: "object",
         typeName,
         properties: [],
-        excessProperties: propertiesCount, // Return all properties as excess to avoid deeper nesting
+        excessProperties,
       };
     }
 
     // Track how many properties are being cut off from the maxProperties option
-    const excessProperties = typeProperties.length + indexSignatures.length - depthMaxProps;
+    const excessProperties = Math.max(0, typeProperties.length + indexSignatures.length - depthMaxProps);
     indexSignatures = indexSignatures.slice(0, depthMaxProps);
     typeProperties = typeProperties.slice(0, Math.max(0, depthMaxProps - indexSignatures.length));
 
