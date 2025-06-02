@@ -379,7 +379,7 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
     // Track how many properties are being cut off from the maxProperties option
     const excessProperties = typeProperties.length + indexSignatures.length - depthMaxProps;
     indexSignatures = indexSignatures.slice(0, depthMaxProps);
-    typeProperties = typeProperties.slice(0, depthMaxProps - indexSignatures.length);
+    typeProperties = typeProperties.slice(0, Math.max(0, depthMaxProps - indexSignatures.length));
 
     // Track properties to be displayed
     const properties: TypeProperty[] = [];
