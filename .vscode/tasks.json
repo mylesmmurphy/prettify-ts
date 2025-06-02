@@ -12,6 +12,17 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"label": "build test",
+			"type": "shell",
+			"command": "pnpm pretest",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"group": {
+				"kind": "build"
+			}
 		}
 	]
 }

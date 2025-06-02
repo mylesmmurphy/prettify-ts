@@ -7,14 +7,13 @@ settings:
 importers:
 
   .:
-    dependencies:
-      '@prettify-ts/typescript-plugin':
-        specifier: workspace:*
-        version: link:packages/typescript-plugin
     devDependencies:
       '@eslint/js':
         specifier: ^9.27.0
         version: 9.27.0
+      '@types/mocha':
+        specifier: ^10.0.10
+        version: 10.0.10
       '@types/node':
         specifier: 18.x
         version: 18.19.108

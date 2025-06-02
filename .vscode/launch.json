@@ -5,9 +5,7 @@
 			"name": "Run Extension",
 			"type": "extensionHost",
 			"request": "launch",
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-extension",
-			],
+			"args": ["--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-extension"],
 			"outFiles": [
 				"${workspaceFolder}/packages/*/out/**/*.js"
 			],
@@ -24,6 +22,14 @@
 				"<node_internals>/**"
 			],
 			"port": 9229
-		}
+		},
+		{
+			"name": "Run Tests",
+			"type": "extensionHost",
+			"request": "launch",
+			"testConfiguration": "${workspaceFolder}/test/.vscode-test.js",
+			"preLaunchTask": "build test",
+			"args": ["--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-extension"],
+		},
 	]
 }

@@ -7,13 +7,14 @@
   "scripts": {
     "preinstall": "only-allow pnpm",
     "lint": "eslint .",
-    "pretest": "tsc --project ./test/tsconfig.test.json",
+    "pretest": "tsc --project ./test/tsconfig.json",
     "test": "vscode-test --config ./test/.vscode-test.js",
     "build": "pnpm -r run build",
     "package": "pnpm build && pnpm --filter prettify-ts run package && node ./scripts/post-package.js && pnpm install"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "18.x",
     "@types/vscode": "^1.44.0",
     "@vscode/test-cli": "^0.0.11",
