@@ -5,6 +5,7 @@ packages/*/node_modules/
 # Ignore IDE and editor files
 .idea/
 *.iml
+.vscode-test
 
 # Ignore logs
 *.log
