@@ -31,7 +31,7 @@ pnpm build        # Compiles the codebase
 pnpm package      # Builds + prepares the VSIX package for publishing
 ```
 
-You do **not** need to build manually — `pnpm test` handles build steps automatically.
+You do **not** need to build manually — `test` and `package` handles build steps automatically.
 
 ## 🧪 Testing
 
@@ -47,6 +47,7 @@ This repo uses [pnpm workspaces](https://pnpm.io/workspaces) to manage multiple 
 │   ├── typescript-plugin/     # TypeScript language service plugin
 │   └── vscode-extension/      # VSCode extension host + UI
 └── test/                      # Full integration test suite
+└── scripts/                   # Utility scripts for development, building, or CI
 ```
 
 ### ⚙️ Development Workflow
