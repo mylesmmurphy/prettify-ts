@@ -13,6 +13,10 @@ type MappedInput = { a: number; b: string };
 type Mapped = { [K in keyof MappedInput]: MappedInput[K] };
 type TestMappedObj = { value: Mapped };
 
+// === Extends Primitive Type Argument ===
+type ExtendedPrimitive<TString extends string> = TString;
+type TestExtendedPrimitiveObj = { value: ExtendedPrimitive<string> };
+
 // === Conditional Types ===
 type IsString<T> = T extends string ? "yes" : "no";
 type Conditional = IsString<"abc">;
@@ -23,17 +27,12 @@ type ExtractInner<T> = T extends Promise<infer U> ? U : never;
 type ConditionalInfer = ExtractInner<Promise<number>>;
 type TestConditionalInferObj = { value: ConditionalInfer };
 
-// === Extends Primitive Type Argument ===
-type ExtendedPrimitive<TString extends string> = TString;
-type TestExtendedPrimitiveObj = { value: ExtendedPrimitive<string> };
-
-// === Circular Types ===
-type Circular = { value: string; next?: Circular };
-type TestCircularObj = { value: Circular };
-
 // === Unions ===
 type Union = string | number;
 type TestUnionObj = { value: Union };
+
+// === Union Sorting Order ===
+type TestUnionSort = string | number | { x: string } | null | undefined;
 
 // === String Literal Union ===
 type StringUnion = "a" | "b" | "c";
@@ -108,15 +107,11 @@ type NeverObjA = { a: string };
 type NeverObjB = { a: number };
 type TestNeverObjectMerge = NeverObjA & NeverObjB;
 
-// === Nested Object ===
-type NestedObject = { x: { y: { z: string } } };
-type TestNestedObject = { value: NestedObject };
-
 // === Object Index Signature - Number / String ===
-type IndexNumber = { [key: number]: string };
+type IndexNumber = { [key: number]: number };
 type TestIndexNumberObj = { value: IndexNumber };
 
-type IndexString = { [key: string]: number };
+type IndexString = { [key: string]: string };
 type TestIndexStringObj = { value: IndexString };
 
 // === Object String Template Index ===
@@ -136,5 +131,6 @@ type TestIndexReadonlyObj = { value: IndexReadonly };
 type ReadonlyProp = { readonly b: number };
 type TestReadonlyPropObj = { value: ReadonlyProp };
 
-// === Union Sorting Order ===
-type TestUnionSort = string | number | { x: string } | null | undefined;
+// === Circular Types ===
+type Circular = { value: string; next?: Circular };
+type TestCircularObj = { value: Circular };
