@@ -9,8 +9,6 @@
 
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable and configurable way.
 
----
-
 ## 🚀 Installation
 
 Install via the VSCode Marketplace:
@@ -18,13 +16,9 @@ Install via the VSCode Marketplace:
 * [Prettify TS on VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
 * [Prettify TS on Open VSX](https://open-vsx.org/extension/MylesMurphy/prettify-ts)
 
----
-
 ## 🛠 Developer Notes
 
 This README is for developing Prettify TS. The extension README (shown on the Marketplace) is [here](./packages/vscode-extension/README.md).
-
----
 
 ## 📦 Scripts
 
@@ -39,13 +33,9 @@ pnpm package      # Builds + prepares the VSIX package for publishing
 
 You do **not** need to build manually — `pnpm test` handles build steps automatically.
 
----
-
 ## 🧪 Testing
 
 The full integration test suite lives in `test/`. For more info on the test layout, debugging instructions, and hover validation strategy, see the [Test README](./test/README.md).
-
----
 
 ## 📁 Monorepo Structure
 
@@ -80,8 +70,6 @@ To prepare for publishing:
 
    * Reverts everything back for dev (restores `workspace:*` and symlinks)
 
----
-
 ## 🧩 VSCode Debug Configs
 
 Defined in `.vscode/launch.json`:
@@ -91,12 +79,8 @@ Defined in `.vscode/launch.json`:
 
 Use the VSCode Run panel (Ctrl+Shift+D / Cmd+Shift+D) to start these sessions.
 
----
-
 ## 📝 License
 
 [MIT](./LICENSE)
-
----
 
 Happy coding! 🎉
