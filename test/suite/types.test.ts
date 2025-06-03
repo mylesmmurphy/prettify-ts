@@ -58,6 +58,12 @@ suite("Hover Types", () => {
       const expected = /* ts */ `type TestStringUnionObj = { value: "a" | "b" | "c"; };`;
       assertHover(hover, expected);
     });
+
+    test("discriminated union", async () => {
+      const hover = await getHover("TestDiscriminatedUnion");
+      const expected = /* ts */ `type TestDiscriminatedUnion = { kind: "circle"; radius: number; } | { kind: "square"; size: number; };`;
+      assertHover(hover, expected);
+    });
   });
 
   suite("Enum Types", () => {
