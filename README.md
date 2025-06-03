@@ -10,7 +10,7 @@
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable and configurable way.
 
 
-## 🚀 Installation
+## Installation
 
 Install via the VSCode Marketplace:
 
@@ -18,12 +18,12 @@ Install via the VSCode Marketplace:
 * [Prettify TS on Open VSX](https://open-vsx.org/extension/MylesMurphy/prettify-ts)
 
 
-## 🛠 Developer Notes
+## Developer Notes
 
 This README is for developing Prettify TS. The extension README (shown on the Marketplace) is [here](./packages/vscode-extension/README.md).
 
 
-## 📦 Scripts
+## Scripts
 
 > **Note:** `pnpm` is required. [Install it here](https://pnpm.io/installation).
 
@@ -37,12 +37,12 @@ pnpm package      # Builds + prepares the VSIX package for publishing
 You do **not** need to build manually — `test` and `package` handles build steps automatically.
 
 
-## 🧪 Testing
+## Testing
 
 The full integration test suite lives in `test/`. For more info on the test layout, debugging instructions, and hover validation strategy, see the [Test README](./test/README.md).
 
 
-## 📁 Monorepo Structure
+## Monorepo Structure
 
 This repo uses [pnpm workspaces](https://pnpm.io/workspaces) to manage multiple packages:
 
@@ -56,12 +56,12 @@ This repo uses [pnpm workspaces](https://pnpm.io/workspaces) to manage multiple 
 ```
 
 
-### ⚙️ Development Workflow
+### Development Workflow
 
 During development, pnpm automatically symlinks the plugin into the extension’s `node_modules` for live debugging.
 
 
-### 📦 Packaging Workflow
+### Packaging Workflow
 
 To prepare for publishing:
 
@@ -79,7 +79,7 @@ To prepare for publishing:
    * Reverts everything back for dev (restores `workspace:*` and symlinks)
 
 
-## 🧩 VSCode Debug Configs
+## VSCode Debug Configs
 
 Defined in `.vscode/launch.json`:
 
@@ -88,7 +88,7 @@ Defined in `.vscode/launch.json`:
 
 Use the VSCode Run panel (Ctrl+Shift+D / Cmd+Shift+D) to start these sessions.
 
-## 📝 License
+## License
 
 [MIT](./LICENSE)
 
