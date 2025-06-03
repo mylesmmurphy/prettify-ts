@@ -1,24 +1,34 @@
-# TypeScript Type Tree Generator
+# TypeScript Plugin - Prettify Type Tree
 
-This project is a TypeScript Language Server Plugin that generates a tree-like structure representing the type information of TypeScript entities. It recursively traverses the types and builds a comprehensive tree, providing a structured view of the types and their relationships.
+This package provides the TypeScript Language Service Plugin that powers the [Prettify TS](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts) VSCode extension. It enables structured type analysis, enabling improved and customizable type previews in editor hover tooltips.
 
-The plugin handles various TypeScript types including references types, union types, and complex object types. It also takes care of circular references to prevent infinite recursion. The depth of recursion is configurable, and certain types can be skipped if needed.
 
-This tool is particularly useful for understanding complex type structures in TypeScript projects, aiding in debugging, documentation, and code comprehension.
+## ✨ Features
 
-## Custom Requests through getCompletionsAtPosition
+* Recursively traverses TypeScript types and builds a **tree-like representation**
+* Supports:
 
-This plugin overrides the `getCompletionsAtPosition` method of the TypeScript Language Server to enable sending custom requests. By hijacking this method, we can intercept the completion request and inject our own logic to generate and return the type tree.
+  * Unions and intersections
+  * Tuples and arrays (readonly or mutable)
+  * Generic types and inference (e.g., conditional types with `infer`)
+  * Function signatures (with rest and optional parameters)
+  * Circular references (auto-detected and handled)
+* Configurable via plugin settings passed from the extension
+* Used by the extension to format hover results in a clean and human-readable way
 
-When a completion request is made with the Prettify Metadata flag, instead of providing the usual code completions, the plugin generates a type tree for the entity at the cursor position. This type tree is then included in the completion details that are sent back to the client.
 
-This approach allows us to leverage the existing communication channel between the client and the server, and to provide additional information without requiring changes to the client or the protocol.
+## 🧹 Architecture
 
-## Response TypeInfo
+The plugin hijacks the TypeScript language service API by overriding `getCompletionsAtPosition` to add a **side channel** for extracting type metadata.
 
-The response from the plugin includes a `TypeInfo` object, which contains detailed type information about a TypeScript node. Here's a breakdown of its structure:
+When a hover is triggered in the extension, the plugin returns metadata about the hovered node in a `TypeInfo` object rather than traditional completions.
 
-```typescript
+
+## 📊 `TypeInfo` Response Format
+
+The plugin returns rich type information to the client through a structured object:
+
+```ts
 /**
  * Type Tree Object Properties
  */
@@ -75,4 +85,32 @@ export type TypeInfo = {
   declaration: string;
   name: string;
 };
+
 ```
+
+## ⚙️ Configuration
+
+The plugin behavior is controlled via settings passed by the extension.
+
+## ✨ Usage
+
+This plugin is **not meant to be installed or used independently**. It is packaged and activated by the [Prettify TS extension](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts).
+
+## 🔧 Development Notes
+
+* The Prettify extension registers this plugin in its `package.json` under `typescriptServerPlugins`
+
+```json
+"typescriptServerPlugins": [
+  {
+    "name": "@prettify-ts/typescript-plugin",
+    "enableForWorkspaceTypeScriptVersions": true
+  }
+]
+```
+
+The extension and plugin communicate internally via the `getCompletionsAtPosition` override to pass metadata back to the client.
+
+## 📝 License
+
+[MIT](../LICENSE)

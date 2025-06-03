@@ -21,3 +21,6 @@ packages/*/out
 
 # Package Files
 *.vsix
+
+# Test Artifacts
+test/workspace/.vscode
