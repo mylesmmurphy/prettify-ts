@@ -21,7 +21,7 @@ export async function openDocument(fileName: string): Promise<void> {
 
   // Wait for the TypeScript server to process the document
   // This is the simplest way to ensure the server is ready
-  await new Promise((res) => setTimeout(res, 3000));
+  await new Promise((res) => setTimeout(res, 10000));
 
   openDoc = doc;
 }
