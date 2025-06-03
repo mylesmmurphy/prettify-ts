@@ -552,6 +552,9 @@ function isTypeReference(type: ts.Type): type is ts.TypeReference {
   return (type as ts.TypeReference).target !== undefined;
 }
 
+/**
+ * Check if an object property is readonly
+ */
 function isReadOnly(symbol: ts.Symbol | undefined): boolean {
   if (!symbol) return false;
 
