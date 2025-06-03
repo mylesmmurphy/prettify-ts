@@ -31,9 +31,6 @@ type TestConditionalInferObj = { value: ConditionalInfer };
 type Union = string | number;
 type TestUnionObj = { value: Union };
 
-// === Union Sorting Order ===
-type TestUnionSort = string | number | { x: string } | null | undefined;
-
 // === String Literal Union ===
 type StringUnion = "a" | "b" | "c";
 type TestStringUnionObj = { value: StringUnion };

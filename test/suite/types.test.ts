@@ -3,7 +3,7 @@ import { applySettings, assertHover, openDocument, getHover } from "./utils";
 suite("Hover Types", () => {
   suiteSetup(async () => {
     await applySettings({ maxDepth: 3 });
-    await openDocument("index.ts");
+    await openDocument("types.ts");
   });
 
   suite("Primitive Types", () => {
@@ -58,12 +58,14 @@ suite("Hover Types", () => {
       const expected = /* ts */ `type TestStringUnionObj = { value: "a" | "b" | "c"; };`;
       assertHover(hover, expected);
     });
+  });
 
-    // test("union sorting", async () => {
-    //   const hover = await getHover("TestUnionSort");
-    //   const expected = /* ts */ `type TestUnionSort = string | number | { x: string } | null | undefined;`;
-    //   assertHover(hover, expected);
-    // });
+  suite("Enum Types", () => {
+    test("enum", async () => {
+      const hover = await getHover("TestEnum");
+      const expected = /* ts */ `type TestEnum = TestEnum.OK | TestEnum.Fail;`;
+      assertHover(hover, expected);
+    });
   });
 
   suite("Function Types", () => {
