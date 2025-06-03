@@ -1,10 +1,9 @@
-import { applySettings, assertHover, openDocument, getHover, waitForTsHover } from "./utils";
+import { applySettings, assertHover, openDocument, getHover } from "./utils";
 
 suite("Hover Types", () => {
   suiteSetup(async () => {
-    await applySettings({ maxDepth: 2 });
+    await applySettings({ maxDepth: 3 });
     await openDocument("index.ts");
-    await waitForTsHover("TestPrimitiveObj");
   });
 
   suite("Primitive Types", () => {
@@ -86,8 +85,7 @@ suite("Hover Types", () => {
       assertHover(hover, expected);
     });
 
-    // TODO: Determine why optional parameters don't work in tests
-    test.skip("optional parameter", async () => {
+    test("optional parameter", async () => {
       const hover = await getHover("TestFunctionOptionalArgObj");
       const expected = /* ts */ `type TestFunctionOptionalArgObj = { value: (x?: string) => void; };`;
       assertHover(hover, expected);

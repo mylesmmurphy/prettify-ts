@@ -19,36 +19,11 @@ export async function openDocument(fileName: string): Promise<void> {
 
   await vscode.window.showTextDocument(doc);
 
+  // Wait for the TypeScript server to process the document
+  // This is the simplest way to ensure the server is ready
+  await new Promise((res) => setTimeout(res, 3000));
+
   openDoc = doc;
-}
-
-/**
- * Waits for the TypeScript hover information to be available for a given keyword.
- * This function repeatedly checks for the hover information until it is fully loaded or the timeout is reached.
- */
-export async function waitForTsHover(keyword: string, timeout = 20000) {
-  const start = Date.now();
-
-  const position = openDoc.positionAt(openDoc.getText().indexOf(keyword) + 1);
-  while (true) {
-    const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
-      "vscode.executeHoverProvider",
-      openDoc.uri,
-      position,
-    );
-    const content = hovers[1]?.contents[0]; // Prettify will always be the second hover, TS Quick Info comes first
-
-    if (hovers && hovers.length > 1 && content) {
-      const hover = typeof content === "string" ? content : content.value;
-      if (!hover.includes("(loading...)")) break; // Wait until hover is fully loaded
-    }
-
-    if (Date.now() - start > timeout) {
-      throw new Error("Timed out waiting for tsserver hover");
-    }
-
-    await new Promise((res) => setTimeout(res, 250));
-  }
 }
 
 /**
