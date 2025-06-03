@@ -552,20 +552,25 @@ function isTypeReference(type: ts.Type): type is ts.TypeReference {
   return (type as ts.TypeReference).target !== undefined;
 }
 
-/**
- * Check if an object property is readonly
- */
 function isReadOnly(symbol: ts.Symbol | undefined): boolean {
   if (!symbol) return false;
 
   const declarations = symbol.getDeclarations();
   if (!declarations) return false;
 
-  return declarations.some(
-    (declaration) =>
-      (typescript.isPropertyDeclaration(declaration) || typescript.isMethodDeclaration(declaration)) &&
-      declaration.modifiers?.some((modifier) => modifier.kind === typescript.SyntaxKind.ReadonlyKeyword),
-  );
+  return declarations.some((declaration) => {
+    if (
+      typescript.isPropertyDeclaration(declaration) ||
+      typescript.isPropertySignature(declaration) ||
+      typescript.isGetAccessor(declaration) ||
+      typescript.isSetAccessor(declaration) ||
+      typescript.isParameter(declaration)
+    ) {
+      return declaration.modifiers?.some((modifier) => modifier.kind === typescript.SyntaxKind.ReadonlyKeyword);
+    }
+
+    return false;
+  });
 }
 
 /**
