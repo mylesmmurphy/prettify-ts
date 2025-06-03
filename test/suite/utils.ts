@@ -22,20 +22,75 @@ export async function openDocument(fileName: string): Promise<void> {
 }
 
 /**
+ * Extension settings for Prettify TypeScript.
+ */
+type PrettifySettings = {
+  enabled?: boolean;
+  typeIndentation?: number;
+  maxCharacters?: number;
+  hidePrivateProperties?: boolean;
+  maxDepth?: number;
+  maxProperties?: number;
+  maxSubProperties?: number;
+  maxUnionMembers?: number;
+  maxFunctionSignatures?: number;
+  skippedTypeNames?: string[];
+  unwrapArrays?: boolean;
+  unwrapFunctions?: boolean;
+  unwrapGenericArgumentsTypeNames?: string[];
+};
+
+/**
+ * Applies the given settings to the Prettify TypeScript extension.
+ * If a setting is not provided, it will use the default value.
+ */
+export async function applySettings(overrides: PrettifySettings = {}) {
+  const config = vscode.workspace.getConfiguration("prettify-ts");
+
+  const defaults: Required<PrettifySettings> = {
+    enabled: true,
+    typeIndentation: 4,
+    maxCharacters: 20000,
+    hidePrivateProperties: true,
+    maxDepth: 2,
+    maxProperties: 100,
+    maxSubProperties: 5,
+    maxUnionMembers: 15,
+    maxFunctionSignatures: 5,
+    skippedTypeNames: [],
+    unwrapArrays: true,
+    unwrapFunctions: true,
+    unwrapGenericArgumentsTypeNames: [],
+  };
+
+  const merged = { ...defaults, ...overrides };
+
+  for (const key of Object.keys(merged) as (keyof PrettifySettings)[]) {
+    await config.update(key, merged[key], vscode.ConfigurationTarget.Workspace);
+  }
+}
+
+/**
  * Retrieves the hover information for a given keyword in the currently opened document.
  * Waits until the TypeScript server provides the hover information.
  * @returns {Promise<string>} The prettified type string from the hover content with whitespace normalized.
  */
-export async function getHover(keyword: string, timeout = 10000): Promise<string> {
-  const position = openDoc.positionAt(openDoc.getText().indexOf(keyword));
+export async function getHover(keyword: string, timeout = 20000): Promise<string> {
+  const position = openDoc.positionAt(openDoc.getText().indexOf(keyword) + 1);
   const start = Date.now();
 
   let hovers: vscode.Hover[];
+  let hover: string;
+  let content: vscode.MarkdownString | vscode.MarkedString | undefined;
 
   while (true) {
     hovers = await vscode.commands.executeCommand<vscode.Hover[]>("vscode.executeHoverProvider", openDoc.uri, position);
+    content = hovers[1]?.contents[0]; // Prettify will always be the second hover, TS Quick Info comes first
 
-    if (hovers && hovers.length > 1) break;
+    if (hovers && hovers.length > 1 && content) {
+      hover = typeof content === "string" ? content : content.value;
+      if (!hover.includes("(loading...)")) break; // Wait until hover is fully loaded
+    }
 
     if (Date.now() - start > timeout) {
       throw new Error("Timed out waiting for tsserver hover");
@@ -47,12 +102,7 @@ export async function getHover(keyword: string, timeout = 10000): Promise<string
   assert.ok(hovers, "Expected hover results to be defined");
   assert.ok(hovers.length > 0, "Expected at least one hover result");
 
-  // Prettify hover content - Prettify will always be the second hover result, after TS Quick Info
-  const content = hovers[1]?.contents[0];
-  assert.ok(content, "Expected prettify hover content to be defined");
-
   // Extract the prettified type string
-  const hover = typeof content === "string" ? content : content.value;
   assert.ok(typeof hover === "string", "Expected prettify hover content to be a string");
 
   return normalizeTypeString(hover);
