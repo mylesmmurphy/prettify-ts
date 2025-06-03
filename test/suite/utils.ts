@@ -10,6 +10,7 @@ const workspacePath = path.join(__dirname, "../workspace");
 /**
  * Opens a document in the test workspace.
  * Sets the shared `openDoc` variable to the opened document.
+ * Waits until the TypeScript server provides the hover information.
  */
 export async function openDocument(fileName: string): Promise<void> {
   const uri = vscode.Uri.file(path.join(workspacePath, fileName));
@@ -19,6 +20,35 @@ export async function openDocument(fileName: string): Promise<void> {
   await vscode.window.showTextDocument(doc);
 
   openDoc = doc;
+}
+
+/**
+ * Waits for the TypeScript hover information to be available for a given keyword.
+ * This function repeatedly checks for the hover information until it is fully loaded or the timeout is reached.
+ */
+export async function waitForTsHover(keyword: string, timeout = 20000) {
+  const start = Date.now();
+
+  const position = openDoc.positionAt(openDoc.getText().indexOf(keyword) + 1);
+  while (true) {
+    const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+      "vscode.executeHoverProvider",
+      openDoc.uri,
+      position,
+    );
+    const content = hovers[1]?.contents[0]; // Prettify will always be the second hover, TS Quick Info comes first
+
+    if (hovers && hovers.length > 1 && content) {
+      const hover = typeof content === "string" ? content : content.value;
+      if (!hover.includes("(loading...)")) break; // Wait until hover is fully loaded
+    }
+
+    if (Date.now() - start > timeout) {
+      throw new Error("Timed out waiting for tsserver hover");
+    }
+
+    await new Promise((res) => setTimeout(res, 250));
+  }
 }
 
 /**
@@ -60,7 +90,7 @@ export async function applySettings(overrides: PrettifySettings = {}) {
     skippedTypeNames: [],
     unwrapArrays: true,
     unwrapFunctions: true,
-    unwrapGenericArgumentsTypeNames: [],
+    unwrapGenericArgumentsTypeNames: ["Promise"],
   };
 
   const merged = { ...defaults, ...overrides };
@@ -72,35 +102,23 @@ export async function applySettings(overrides: PrettifySettings = {}) {
 
 /**
  * Retrieves the hover information for a given keyword in the currently opened document.
- * Waits until the TypeScript server provides the hover information.
  * @returns {Promise<string>} The prettified type string from the hover content with whitespace normalized.
  */
-export async function getHover(keyword: string, timeout = 20000): Promise<string> {
+export async function getHover(keyword: string): Promise<string> {
   const position = openDoc.positionAt(openDoc.getText().indexOf(keyword) + 1);
-  const start = Date.now();
 
-  let hovers: vscode.Hover[];
-  let hover: string;
-  let content: vscode.MarkdownString | vscode.MarkedString | undefined;
-
-  while (true) {
-    hovers = await vscode.commands.executeCommand<vscode.Hover[]>("vscode.executeHoverProvider", openDoc.uri, position);
-    content = hovers[1]?.contents[0]; // Prettify will always be the second hover, TS Quick Info comes first
-
-    if (hovers && hovers.length > 1 && content) {
-      hover = typeof content === "string" ? content : content.value;
-      if (!hover.includes("(loading...)")) break; // Wait until hover is fully loaded
-    }
-
-    if (Date.now() - start > timeout) {
-      throw new Error("Timed out waiting for tsserver hover");
-    }
-
-    await new Promise((res) => setTimeout(res, 250));
-  }
-
+  const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+    "vscode.executeHoverProvider",
+    openDoc.uri,
+    position,
+  );
   assert.ok(hovers, "Expected hover results to be defined");
-  assert.ok(hovers.length > 0, "Expected at least one hover result");
+  assert.ok(hovers.length > 1, "Expected at least two hover results (TS Quick Info and Prettify)");
+
+  const content = hovers[1]?.contents[0]; // Prettify will always be the second hover, TS Quick Info comes first
+  assert.ok(content, "Expected hover content to be defined");
+
+  const hover = typeof content === "string" ? content : content.value;
 
   // Extract the prettified type string
   assert.ok(typeof hover === "string", "Expected prettify hover content to be a string");

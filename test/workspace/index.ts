@@ -132,5 +132,5 @@ type ReadonlyProp = { readonly b: number };
 type TestReadonlyPropObj = { value: ReadonlyProp };
 
 // === Circular Types ===
-type Circular = { value: string; next?: Circular };
+type Circular = { value: string; next: Circular };
 type TestCircularObj = { value: Circular };
