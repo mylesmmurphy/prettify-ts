@@ -282,10 +282,10 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
 
   // Tuples
   if (checker.isTupleType(apparentType)) {
+    const readonly = (apparentType as ts.TupleTypeReference)?.target?.readonly ?? false;
     const elementTypes = checker
       .getTypeArguments(apparentType as ts.TupleTypeReference)
       .map((t) => getTypeTree(t, depth, new Set(visited)));
-    const readonly = (apparentType as ts.TupleTypeReference)?.target?.readonly ?? false;
 
     return {
       kind: "tuple",
