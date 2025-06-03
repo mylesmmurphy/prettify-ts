@@ -18,7 +18,7 @@ Prettify TS is a Visual Studio Code extension that enhances your TypeScript deve
 ## 📺 Watch This
 
 <a href="https://www.youtube.com/shorts/9GRzNXKVa2o" target="_blank">
-  <img src="https://img.youtube.com/vi/9GRzNXKVa2o/hqdefault.jpg" alt="Watch Demo Video" width="300" />
+  <img src="https://raw.githubusercontent.com/mylesmmurphy/prettify-ts/refs/heads/test/init/assets/demo-preview.png" alt="Watch Demo Video" width="500" />
 </a>
 
 ## 🛠 Features
