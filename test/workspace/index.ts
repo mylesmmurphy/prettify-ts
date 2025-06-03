@@ -18,6 +18,11 @@ type IsString<T> = T extends string ? "yes" : "no";
 type Conditional = IsString<"abc">;
 type TestConditionalObj = { value: Conditional };
 
+// === Conditional Inference ===
+type ExtractInner<T> = T extends Promise<infer U> ? U : never;
+type ConditionalInfer = ExtractInner<Promise<number>>;
+type TestConditionalInferObj = { value: ConditionalInfer };
+
 // === Extends Primitive Type Argument ===
 type ExtendedPrimitive<TString extends string> = TString;
 type TestExtendedPrimitiveObj = { value: ExtendedPrimitive<string> };
@@ -29,6 +34,10 @@ type TestCircularObj = { value: Circular };
 // === Unions ===
 type Union = string | number;
 type TestUnionObj = { value: Union };
+
+// === String Literal Union ===
+type StringUnion = "a" | "b" | "c";
+type TestStringUnionObj = { value: StringUnion };
 
 // === Discriminated Unions ===
 type Circle = { kind: "circle"; radius: number };
@@ -69,6 +78,10 @@ type TestTupleObj = { value: Tuple };
 type ReadonlyTuple = readonly [boolean, boolean];
 type TestReadonlyTupleObj = { value: ReadonlyTuple };
 
+// === Tuple Parameters with Optional and Rest Parameters ===
+type OptionalRestTuple = [a: string, b?: number, ...rest: boolean[]];
+type TestOptionalRestTupleObj = { value: OptionalRestTuple };
+
 // === Array Type ===
 type ArrayType = number[];
 type TestArrayObj = { value: ArrayType };
@@ -85,7 +98,7 @@ type TestGenericObj = { value: Generic };
 type ObjectType = { a: number; b: string };
 type TestObject = { value: ObjectType };
 
-// === Object Merging ===
+// === Object Merging / Intersection ===
 type ObjA = { a: string };
 type ObjB = { b: number };
 type TestObjectMerge = ObjA & ObjB;
