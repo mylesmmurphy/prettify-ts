@@ -134,6 +134,15 @@ export async function getHover(keyword: string): Promise<string> {
     openDoc.uri,
     position,
   );
+  console.log(`Hovers for keyword "${keyword}":`, hovers);
+  hovers.forEach((hover, index) => {
+    console.log(`Hover ${index + 1}:`, hover);
+    const content = hover.contents[0];
+    if (content) {
+      const hoverContent = typeof content === "string" ? content : content.value;
+      console.log(`Hover ${index + 1} content:`, hoverContent);
+    }
+  });
   assert.ok(hovers, "Expected hover results to be defined");
   assert.ok(hovers.length > 1, "Expected at least two hover results (TS Quick Info and Prettify)");
 
