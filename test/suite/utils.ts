@@ -19,11 +19,35 @@ export async function openDocument(fileName: string): Promise<void> {
 
   await vscode.window.showTextDocument(doc);
 
-  // Wait for the TypeScript server to process the document
-  // This is the simplest way to ensure the server is ready
-  await new Promise((res) => setTimeout(res, 10000));
-
   openDoc = doc;
+}
+
+export async function waitForTypeScriptServer(): Promise<void> {
+  await openDocument("setup.ts");
+  await applySettings({ maxDepth: 2 });
+
+  const position = openDoc.positionAt(openDoc.getText().indexOf("SetupObject") + 1);
+
+  console.log("Waiting for TypeScript server to be ready...");
+  while (true) {
+    const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+      "vscode.executeHoverProvider",
+      openDoc.uri,
+      position,
+    );
+
+    const content = hovers[1]?.contents[0];
+    if (!content) continue;
+
+    const hover = typeof content === "string" ? content : content.value;
+
+    if (!hover.includes("loading") && hover.includes("?: number")) {
+      await applySettings();
+
+      console.log("TypeScript server is ready.");
+      break; // Found the expected content, TypeScript server is ready
+    }
+  }
 }
 
 /**

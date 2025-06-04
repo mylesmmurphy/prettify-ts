@@ -125,8 +125,12 @@ type IndexReadonly = { readonly [key: string]: string };
 type TestIndexReadonlyObj = { value: IndexReadonly };
 
 // === Object Property Readonly ===
-type ReadonlyProp = { readonly b: number };
+type ReadonlyProp = { readonly a: number };
 type TestReadonlyPropObj = { value: ReadonlyProp };
+
+// === Object Property Optional ===
+type OptionalProp = { a?: number };
+type TestOptionalPropObj = { value: OptionalProp };
 
 // === Circular Types ===
 type Circular = { value: string; next: Circular };
