@@ -27,6 +27,13 @@ export async function waitForTypeScriptServer(): Promise<void> {
 
   console.log("Waiting for TypeScript server to be ready...");
 
+  const extensionId = "MylesMurphy.prettify-ts"; // From package.json
+  const extension = vscode.extensions.getExtension(extensionId);
+
+  assert.ok(extension, "Extension not found");
+  await extension.activate();
+  assert.ok(extension.isActive, "Extension failed to activate");
+
   await new Promise<void>((resolve) => {
     const disposable = vscode.languages.onDidChangeDiagnostics((e) => {
       if (e.uris.some((uri) => uri.fsPath === openDoc.uri.fsPath)) {
