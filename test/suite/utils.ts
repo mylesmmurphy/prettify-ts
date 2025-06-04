@@ -195,6 +195,7 @@ function normalizeTypeString(input: string): string {
   return type;
 }
 
+// TODO: Update this so it takes all hovers returned and checks all of them? :/
 /**
  * Asserts that actual hover content matches the expected content
  * after normalization (e.g. whitespace and Markdown fences removed).
