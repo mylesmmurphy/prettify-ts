@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
+const obj = { a: 1, b: 2, c: 3 };
 
-// === Object Property Optional ===
-type Setup = { a?: number };
-type SetupObject = { value: OptionalProp };
+obj

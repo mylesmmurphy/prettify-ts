@@ -24,6 +24,29 @@ export async function openDocument(fileName: string): Promise<void> {
 
 export async function waitForTypeScriptServer(): Promise<void> {
   await openDocument("setup.ts");
+
+  console.log("Waiting for TypeScript server to be ready...");
+
+  await new Promise<void>((resolve) => {
+    const disposable = vscode.languages.onDidChangeDiagnostics((e) => {
+      if (e.uris.some((uri) => uri.fsPath === openDoc.uri.fsPath)) {
+        console.log("TypeScript server is ready.");
+        disposable.dispose();
+        resolve();
+      }
+    });
+
+    // Trigger a change to force diagnostics to populate
+    const edit = new vscode.WorkspaceEdit();
+    const pos = new vscode.Position(3, 3);
+    edit.insert(openDoc.uri, pos, "."); // insert a space
+    vscode.workspace.applyEdit(edit);
+  });
+}
+
+// Draft
+export async function waitForTypeScriptServerTest2(): Promise<void> {
+  await openDocument("setup.ts");
   await applySettings({ maxDepth: 2 });
 
   const position = openDoc.positionAt(openDoc.getText().indexOf("SetupObject") + 1);
