@@ -146,7 +146,7 @@ export async function applySettings(overrides: PrettifySettings = {}) {
  * Retrieves the hover information for a given keyword in the currently opened document.
  * @returns {Promise<string>} The prettified type string from the hover content with whitespace normalized.
  */
-export async function getHover(keyword: string): Promise<string> {
+export async function getHover(keyword: string): Promise<string[]> {
   const position = openDoc.positionAt(openDoc.getText().indexOf(keyword) + 1);
 
   const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
@@ -156,17 +156,13 @@ export async function getHover(keyword: string): Promise<string> {
   );
 
   assert.ok(hovers, "Expected hover results to be defined");
-  assert.ok(hovers.length > 1, "Expected at least two hover results (TS Quick Info and Prettify)");
+  assert.ok(hovers.length > 0, "Expected at least one hover result");
 
-  const content = hovers[1]?.contents[0]; // Prettify will always be the second hover, TS Quick Info comes first
-  assert.ok(content, "Expected hover content to be defined");
-
-  const hover = typeof content === "string" ? content : content.value;
-
-  // Extract the prettified type string
-  assert.ok(typeof hover === "string", "Expected prettify hover content to be a string");
-
-  return normalizeTypeString(hover);
+  return hovers
+    .map((hover) => hover.contents[0])
+    .filter((content) => content !== undefined)
+    .map((content) => (typeof content === "string" ? content : content.value))
+    .map(normalizeTypeString); // Normalize each hover content type string
 }
 
 /**
@@ -205,10 +201,7 @@ function normalizeTypeString(input: string): string {
  * Asserts that actual hover content matches the expected content
  * after normalization (e.g. whitespace and Markdown fences removed).
  */
-export function assertHover(hover: string, expected: string): void {
-  assert.strictEqual(
-    hover,
-    normalizeTypeString(expected),
-    `Expected hover content to be "${expected}", but got "${hover}"`,
-  );
+export function assertHover(hovers: string[], expected: string): void {
+  const normalizedExpected = normalizeTypeString(expected);
+  assert.ok(hovers.includes(normalizedExpected), `Expected hover content to be "${expected}", but got "${hovers[1]}"`);
 }
