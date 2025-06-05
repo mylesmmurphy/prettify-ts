@@ -1,8 +1,8 @@
-import { applySettings, assertHover, openDocument, getHover, waitForTypeScriptServer } from "./utils";
+import { applySettings, assertHover, openDocument, getHover, ensureTypeScriptServerReady } from "./utils";
 
 suite("Hover Types", () => {
   suiteSetup(async () => {
-    await waitForTypeScriptServer();
+    await ensureTypeScriptServerReady();
     await applySettings({ maxDepth: 3 });
     await openDocument("types.ts");
   });

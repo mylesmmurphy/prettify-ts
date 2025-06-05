@@ -22,62 +22,75 @@ export async function openDocument(fileName: string): Promise<void> {
   openDoc = doc;
 }
 
-export async function waitForTypeScriptServer(): Promise<void> {
-  await openDocument("setup.ts");
+/**
+ * Ensures the TypeScript language server is fully initialized and ready to provide rich type information.
+ *
+ * This function works by:
+ * 1. Opening a 'canary.ts' file which contains a known type (`ServerReadinessProbe`).
+ * 2. Activating the 'prettify-ts' extension.
+ * 3. Repeatedly triggering a hover on the `ServerReadinessProbe` type.
+ * 4. Waiting until the hover content no longer shows a "loading..." message and includes
+ *    detailed metadata (specifically, "a?: string" from the `ServerReadinessProbe` type).
+ *    This indicates that the server has fully parsed the AST and is operational.
+ *
+ * @remarks
+ * This method of waiting for server readiness by inspecting hover content is a heuristic.
+ * More robust or direct methods for determining server readiness should be explored
+ * for better test stability and reliability.
+ */
+export async function ensureTypeScriptServerReady(): Promise<void> {
+  await openDocument("canary.ts"); // Assumes canary.ts contains 'ServerReadinessProbe' type
 
   console.log("Waiting for TypeScript server to be ready...");
 
-  const extensionId = "MylesMurphy.prettify-ts"; // From package.json
+  const extensionId = "MylesMurphy.prettify-ts";
   const extension = vscode.extensions.getExtension(extensionId);
 
   assert.ok(extension, "Extension not found");
   await extension.activate();
   assert.ok(extension.isActive, "Extension failed to activate");
 
-  await new Promise<void>((resolve) => {
-    const disposable = vscode.languages.onDidChangeDiagnostics((e) => {
-      if (e.uris.some((uri) => uri.fsPath === openDoc.uri.fsPath)) {
-        console.log("TypeScript server is ready.");
-        disposable.dispose();
-        resolve();
-      }
-    });
+  if (!openDoc) {
+    throw new Error("Document 'canary.ts' was not opened successfully.");
+  }
 
-    // Trigger a change to force diagnostics to populate
-    const edit = new vscode.WorkspaceEdit();
-    const pos = new vscode.Position(3, 3);
-    edit.insert(openDoc.uri, pos, "."); // insert a space
-    vscode.workspace.applyEdit(edit);
-  });
-}
+  const position = openDoc.positionAt(openDoc.getText().indexOf("ServerReadinessProbe"));
 
-// Draft
-export async function waitForTypeScriptServerTest2(): Promise<void> {
-  await openDocument("setup.ts");
-  await applySettings({ maxDepth: 2 });
+  let attempt = 0;
+  const maxAttempts = 60; // Approx 30 seconds if each attempt is 500ms
+  const retryDelay = 500; // ms
 
-  const position = openDoc.positionAt(openDoc.getText().indexOf("SetupObject") + 1);
-
-  console.log("Waiting for TypeScript server to be ready...");
-  while (true) {
+  while (attempt < maxAttempts) {
+    attempt++;
     const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
       "vscode.executeHoverProvider",
       openDoc.uri,
       position,
     );
 
-    const content = hovers[1]?.contents[0];
-    if (!content) continue;
+    // We are interested in the first hover provider, which is TypeScript's native hover.
+    const content = hovers[0]?.contents[0];
+    if (!content) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      continue;
+    }
 
     const hover = typeof content === "string" ? content : content.value;
 
-    if (!hover.includes("loading") && hover.includes("?: number")) {
-      await applySettings();
-
-      console.log("TypeScript server is ready.");
-      break; // Found the expected content, TypeScript server is ready
+    // Check for specific content indicating the server is ready and AST is parsed
+    // "a?: string" is part of the ServerReadinessProbe type definition in canary.ts
+    if (!hover.includes("loading") && hover.includes("a?: string")) {
+      console.log(`TypeScript server is ready after ${attempt} attempts.`);
+      return; // Server is ready
     }
+
+    if (attempt % 10 === 0) {
+      // Log progress occasionally
+      console.log(`Still waiting for TS server... Attempt ${attempt}.`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, retryDelay));
   }
+  throw new Error(`TypeScript server did not become ready after ${maxAttempts} attempts.`);
 }
 
 /**
@@ -141,15 +154,7 @@ export async function getHover(keyword: string): Promise<string> {
     openDoc.uri,
     position,
   );
-  console.log(`Hovers for keyword "${keyword}":`, hovers);
-  hovers.forEach((hover, index) => {
-    console.log(`Hover ${index + 1}:`, hover);
-    const content = hover.contents[0];
-    if (content) {
-      const hoverContent = typeof content === "string" ? content : content.value;
-      console.log(`Hover ${index + 1} content:`, hoverContent);
-    }
-  });
+
   assert.ok(hovers, "Expected hover results to be defined");
   assert.ok(hovers.length > 1, "Expected at least two hover results (TS Quick Info and Prettify)");
 
