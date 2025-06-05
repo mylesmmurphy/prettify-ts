@@ -196,12 +196,14 @@ function normalizeTypeString(input: string): string {
   return type;
 }
 
-// TODO: Update this so it takes all hovers returned and checks all of them? :/
 /**
- * Asserts that actual hover content matches the expected content
+ * Asserts that actual hover contents match the expected content
  * after normalization (e.g. whitespace and Markdown fences removed).
  */
 export function assertHover(hovers: string[], expected: string): void {
   const normalizedExpected = normalizeTypeString(expected);
-  assert.ok(hovers.includes(normalizedExpected), `Expected hover content to be "${expected}", but got "${hovers[1]}"`);
+  assert.ok(
+    hovers.includes(normalizedExpected),
+    `Expected hover content to be "${expected}", but got "${hovers.join(", ")}"`,
+  );
 }
