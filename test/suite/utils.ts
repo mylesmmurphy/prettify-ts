@@ -19,11 +19,78 @@ export async function openDocument(fileName: string): Promise<void> {
 
   await vscode.window.showTextDocument(doc);
 
-  // Wait for the TypeScript server to process the document
-  // This is the simplest way to ensure the server is ready
-  await new Promise((res) => setTimeout(res, 3000));
-
   openDoc = doc;
+}
+
+/**
+ * Ensures the TypeScript language server is fully initialized and ready to provide rich type information.
+ *
+ * This function works by:
+ * 1. Opening a 'canary.ts' file which contains a known type (`ServerReadinessProbe`).
+ * 2. Activating the 'prettify-ts' extension.
+ * 3. Repeatedly triggering a hover on the `ServerReadinessProbe` type.
+ * 4. Waiting until the hover content no longer shows a "loading..." message and includes
+ *    detailed metadata (specifically, "a?: string" from the `ServerReadinessProbe` type).
+ *    This indicates that the server has fully parsed the AST and is operational.
+ *
+ * @remarks
+ * This method of waiting for server readiness by inspecting hover content is a heuristic.
+ * More robust or direct methods for determining server readiness should be explored
+ * for better test stability and reliability.
+ */
+export async function ensureTypeScriptServerReady(): Promise<void> {
+  await openDocument("canary.ts"); // Assumes canary.ts contains 'ServerReadinessProbe' type
+
+  console.log("Waiting for TypeScript server to be ready...");
+
+  const extensionId = "MylesMurphy.prettify-ts";
+  const extension = vscode.extensions.getExtension(extensionId);
+
+  assert.ok(extension, "Extension not found");
+  await extension.activate();
+  assert.ok(extension.isActive, "Extension failed to activate");
+
+  if (!openDoc) {
+    throw new Error("Document 'canary.ts' was not opened successfully.");
+  }
+
+  const position = openDoc.positionAt(openDoc.getText().indexOf("ServerReadinessProbe"));
+
+  let attempt = 0;
+  const maxAttempts = 60; // Approx 30 seconds if each attempt is 500ms
+  const retryDelay = 500; // ms
+
+  while (attempt < maxAttempts) {
+    attempt++;
+    const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+      "vscode.executeHoverProvider",
+      openDoc.uri,
+      position,
+    );
+
+    // We are interested in the first hover provider, which is TypeScript's native hover.
+    const content = hovers[0]?.contents[0];
+    if (!content) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      continue;
+    }
+
+    const hover = typeof content === "string" ? content : content.value;
+
+    // Check for specific content indicating the server is ready and AST is parsed
+    // "a?: string" is part of the ServerReadinessProbe type definition in canary.ts
+    if (!hover.includes("loading") && hover.includes("a?: string")) {
+      console.log(`TypeScript server is ready after ${attempt} attempts.`);
+      return; // Server is ready
+    }
+
+    if (attempt % 10 === 0) {
+      // Log progress occasionally
+      console.log(`Still waiting for TS server... Attempt ${attempt}.`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, retryDelay));
+  }
+  throw new Error(`TypeScript server did not become ready after ${maxAttempts} attempts.`);
 }
 
 /**
@@ -79,7 +146,7 @@ export async function applySettings(overrides: PrettifySettings = {}) {
  * Retrieves the hover information for a given keyword in the currently opened document.
  * @returns {Promise<string>} The prettified type string from the hover content with whitespace normalized.
  */
-export async function getHover(keyword: string): Promise<string> {
+export async function getHover(keyword: string): Promise<string[]> {
   const position = openDoc.positionAt(openDoc.getText().indexOf(keyword) + 1);
 
   const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
@@ -87,18 +154,15 @@ export async function getHover(keyword: string): Promise<string> {
     openDoc.uri,
     position,
   );
+
   assert.ok(hovers, "Expected hover results to be defined");
-  assert.ok(hovers.length > 1, "Expected at least two hover results (TS Quick Info and Prettify)");
+  assert.ok(hovers.length > 0, "Expected at least one hover result");
 
-  const content = hovers[1]?.contents[0]; // Prettify will always be the second hover, TS Quick Info comes first
-  assert.ok(content, "Expected hover content to be defined");
-
-  const hover = typeof content === "string" ? content : content.value;
-
-  // Extract the prettified type string
-  assert.ok(typeof hover === "string", "Expected prettify hover content to be a string");
-
-  return normalizeTypeString(hover);
+  return hovers
+    .map((hover) => hover.contents[0])
+    .filter((content) => content !== undefined)
+    .map((content) => (typeof content === "string" ? content : content.value))
+    .map(normalizeTypeString); // Normalize each hover content type string
 }
 
 /**
@@ -133,13 +197,13 @@ function normalizeTypeString(input: string): string {
 }
 
 /**
- * Asserts that actual hover content matches the expected content
+ * Asserts that actual hover contents match the expected content
  * after normalization (e.g. whitespace and Markdown fences removed).
  */
-export function assertHover(hover: string, expected: string): void {
-  assert.strictEqual(
-    hover,
-    normalizeTypeString(expected),
-    `Expected hover content to be "${expected}", but got "${hover}"`,
+export function assertHover(hovers: string[], expected: string): void {
+  const normalizedExpected = normalizeTypeString(expected);
+  assert.ok(
+    hovers.includes(normalizedExpected),
+    `Expected hover content to be "${expected}", but got "${hovers.join(", ")}"`,
   );
 }

@@ -9,7 +9,8 @@ export default [
       "**/out/**", // Ignore all out directories
       "scripts/**", // Ignore scripts directory
       "eslint.config.mjs", // Ignore this config file
-      "test/.vscode-test.js", // Ignore VSCode test file
+      "test/.vscode-test.js", // Ignore VSCode test file,
+      ".vscode-test/**", // Ignore all VSCode test files
     ],
   },
   ...tseslint.config(

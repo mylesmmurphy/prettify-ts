@@ -11,24 +11,24 @@
 
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides better hover previews for TypeScript types, classes, interfaces, and more, formatted in a more readable and highly configurable way.
 
-## 📸 Example
+## Example
 
 <img src="./assets/example.png" width="300" alt="Example Screenshot" />
 
-## 📺 Watch This
+## Watch This
 
 <a href="https://www.youtube.com/shorts/9GRzNXKVa2o" target="_blank">
   <img src="https://raw.githubusercontent.com/mylesmmurphy/prettify-ts/refs/heads/main/assets/demo-preview.png" alt="Watch Demo Video" width="500" />
 </a>
 
-## 🛠 Features
+## Features
 
 * **Prettified Type Hovers** – Enhanced and formatted hover displays for interfaces, aliases, functions, unions, arrays, and more.
 * **Toggle Command** – Use `Toggle Preview` to quickly enable or disable prettified previews.
 * **Copy Commands** – Use `Copy Prettified Type` or `Copy Fully Prettified Type` to grab the prettified result to your clipboard.
 * **Highly Configurable** – Fine-tune output style, max depth, expansion behavior, and character limits.
 
-## ⚙️ Extension Settings
+## Extension Settings
 
 | Setting                                 | Description                                                                                                                 |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -45,13 +45,7 @@ Prettify TS is a Visual Studio Code extension that enhances your TypeScript deve
 | **Skipped Type Names**                  | List of type names that should not be expanded. Generics are supported and replaced with ellipses (e.g., `ZodObject<...>`). |
 | **Max Characters**                      | Sets a maximum character limit for output. If exceeded, the result will be truncated.                                       |
 
-## 🧪 Example Use Cases
-
-* Inspect deeply nested utility types or conditional types.
-* Preview large interface definitions cleanly.
-* Debug inferred generic types or function overloads at a glance.
-
-## 🚫 Sidebar View (Deprecated)
+## Sidebar View (Deprecated)
 
 As of v0.1.0, Prettify TS focuses on hover previews only and no longer includes a sidebar Type View.
 
@@ -60,16 +54,16 @@ If you're looking for a sidebar-based type explorer, check out:
 * [TypeScript Explorer](https://marketplace.visualstudio.com/items?itemName=mxsdev.typescript-explorer)
 * [ts-type-expand](https://marketplace.visualstudio.com/items?itemName=kimuson.ts-type-expand)
 
-## 🤝 Contributing
+## Contributing
 
 Bug reports, suggestions, and pull requests are welcome. Visit [GitHub Issues](https://github.com/mylesmmurphy/prettify-ts/issues) to contribute.
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 * [@mattpocock](https://github.com/mattpocock) – original inspiration via Prettify Type
 * [@willbattel](https://github.com/willbattel) – early beta testing and feedback
 * [@mattiamanzati](https://github.com/mattiamanzati) – TypeScript compiler insights
 
-## 📝 License
+## License
 
 [MIT](https://github.com/mylesmmurphy/prettify-ts/blob/main/LICENSE)

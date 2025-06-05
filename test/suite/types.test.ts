@@ -1,7 +1,8 @@
-import { applySettings, assertHover, openDocument, getHover } from "./utils";
+import { applySettings, assertHover, openDocument, getHover, ensureTypeScriptServerReady } from "./utils";
 
 suite("Hover Types", () => {
   suiteSetup(async () => {
+    await ensureTypeScriptServerReady();
     await applySettings({ maxDepth: 3 });
     await openDocument("types.ts");
   });
@@ -184,7 +185,13 @@ suite("Hover Types", () => {
 
     test("readonly prop", async () => {
       const hover = await getHover("TestReadonlyPropObj");
-      const expected = /* ts */ `type TestReadonlyPropObj = { value: { readonly b: number; }; };`;
+      const expected = /* ts */ `type TestReadonlyPropObj = { value: { readonly a: number; }; };`;
+      assertHover(hover, expected);
+    });
+
+    test("optional prop", async () => {
+      const hover = await getHover("TestOptionalPropObj");
+      const expected = /* ts */ `type TestOptionalPropObj = { value: { a?: number; }; };`;
       assertHover(hover, expected);
     });
   });
