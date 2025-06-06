@@ -190,8 +190,8 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
     };
   }
 
-  // Skipped type names
-  if (options.skippedTypeNames.includes(typeName)) {
+  // Skipped type names, or max depth reached
+  if (options.skippedTypeNames.includes(typeName) || (depth >= options.maxDepth && Boolean(type.aliasSymbol))) {
     return {
       kind: "reference",
       typeName,
@@ -216,9 +216,9 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
   visited.add(type);
 
   // Unions
-  if (apparentType.isUnion()) {
-    const excessMembers = Math.max(0, apparentType.types.length - options.maxUnionMembers);
-    const types = apparentType.types
+  if (type.isUnion()) {
+    const excessMembers = Math.max(0, type.types.length - options.maxUnionMembers);
+    const types = type.types
       .slice(0, options.maxUnionMembers)
       .sort(sortUnionTypes)
       .map((t) => getTypeTree(t, depth, new Set(visited)));
@@ -357,14 +357,8 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
     let indexSignatures = checker.getIndexInfosOfType(apparentType);
 
     if (depth >= options.maxDepth) {
-      // If we've reached the max depth and has a type alias, return it as a reference type
-      // Otherwise, return an object with the properties count
+      // If we've reached the max depth, return an object with the properties count
       // Example: { ... 3 more } or A & B
-      if (!typeName.includes("{"))
-        return {
-          kind: "reference",
-          typeName,
-        };
 
       // Return all properties as excess to avoid deeper nesting
       const excessProperties = typeProperties.length + indexSignatures.length;
