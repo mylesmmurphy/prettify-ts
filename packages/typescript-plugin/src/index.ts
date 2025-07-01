@@ -38,7 +38,17 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
       const checker = program.getTypeChecker();
 
-      const prettifyResponse = getTypeInfoAtPosition(ts, checker, sourceFile, position, requestBody.options);
+      const projectName = info.project.getProjectName();
+
+      const prettifyResponse = getTypeInfoAtPosition(
+        ts,
+        checker,
+        sourceFile,
+        position,
+        requestBody.options,
+        program,
+        projectName,
+      );
 
       const response: PrettifyResponse = {
         // Follow the same structure as ts.CompletionInfo
