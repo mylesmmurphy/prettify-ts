@@ -173,11 +173,17 @@ function normalizeTypeString(input: string): string {
   let type = input;
 
   // Remove the specific TypeScript Markdown fences
-  const leadingFence = "\n```typescript\n";
+  const tsLeadingFence = "\n```typescript\n";
   const trailingFence = "\n\n```\n";
 
-  if (type.startsWith(leadingFence)) {
-    type = type.substring(leadingFence.length);
+  if (type.startsWith(tsLeadingFence)) {
+    type = type.substring(tsLeadingFence.length);
+  }
+
+  const vueLeadingFence = "\n```vue\n";
+
+  if (type.startsWith(vueLeadingFence)) {
+    type = type.substring(vueLeadingFence.length);
   }
 
   if (type.endsWith(trailingFence)) {
