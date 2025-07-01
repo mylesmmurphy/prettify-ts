@@ -46,7 +46,7 @@ export function getTypeInfoAtPosition(
         ts: typescriptContext,
         sourceFile,
       },
-      sourceFile.fileName,
+      sourceFile.fileName.replace(/\\/g, "/"),
       position,
     );
 
