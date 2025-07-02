@@ -1,12 +1,8 @@
-import { assertHover, openDocument, getHover, ensureTypeScriptServerReady } from "./utils";
+import { assertHover, getHover, ensureTypeScriptServerReady } from "./utils";
 
 suite("Vue Hover Types", () => {
   suiteSetup(async function () {
-    await ensureTypeScriptServerReady();
-
-    await openDocument("test.vue");
-
-    this.timeout(90000); // Generous timeout for server readiness
+    await ensureTypeScriptServerReady("test.vue", "ServerReadinessProbe");
   });
 
   test("primitive", async () => {

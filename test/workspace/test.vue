@@ -1,4 +1,9 @@
 <script setup lang="ts">
+type ServerReadinessProbe = {
+  a?: string;
+};
+
+
 type StringPrimitive = string;
 type TestPrimitiveObj = { value: StringPrimitive };
 </script>

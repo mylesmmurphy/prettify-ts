@@ -38,8 +38,8 @@ export async function openDocument(fileName: string): Promise<void> {
  * More robust or direct methods for determining server readiness should be explored
  * for better test stability and reliability.
  */
-export async function ensureTypeScriptServerReady(): Promise<void> {
-  await openDocument("canary.ts"); // Assumes canary.ts contains 'ServerReadinessProbe' type
+export async function ensureTypeScriptServerReady(fileName: string, keyword: string): Promise<void> {
+  await openDocument(fileName);
 
   console.log("Waiting for TypeScript server to be ready...");
 
@@ -54,7 +54,7 @@ export async function ensureTypeScriptServerReady(): Promise<void> {
     throw new Error("Document 'canary.ts' was not opened successfully.");
   }
 
-  const position = openDoc.positionAt(openDoc.getText().indexOf("ServerReadinessProbe"));
+  const position = openDoc.positionAt(openDoc.getText().indexOf(keyword));
 
   let attempt = 0;
   const maxAttempts = 60; // Approx 30 seconds if each attempt is 500ms
