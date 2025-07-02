@@ -33,13 +33,13 @@ Prettify TS is a Visual Studio Code extension that enhances your TypeScript deve
 To use Prettify TS with Vue projects, you need:
 
 * **Vue.Volar extension** version **2.0.16** or higher
-* **For Vue 2 projects**: Add the following configuration to your VSCode settings:
+* **For Volar v2**: Add the following configuration to your VSCode settings:
   ```json
   {
     "vue.server.hybridMode": true
   }
   ```
-* **For Vue 3 projects**: No additional configuration required
+* **For Volar v3**: No additional configuration required
 
 ## Extension Settings
 
