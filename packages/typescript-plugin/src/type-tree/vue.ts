@@ -4,7 +4,7 @@ import type * as ts from "typescript";
 
 type VuePrograme = ts.Program & {
   // https://github.com/vuejs/language-tools/blob/v2.0.16/packages/typescript-plugin/index.ts#L75
-  __vue__?: { language: Language };
+  __vue__: { language: Language };
 };
 
 const vueProgrameMap: Map<string, VuePrograme> = new Map();
@@ -40,7 +40,7 @@ export function getPositionForVue(
     vueProgrameMap.set(ctx.projectName, program);
   }
 
-  const language = vuePrograme!.__vue__!.language;
+  const language = vuePrograme!.__vue__.language;
   if (language?.scripts) {
     const vFile = language.scripts.get(fileName);
     const serviceScript = vFile?.generated?.languagePlugin.typescript?.getServiceScript(vFile.generated.root);
