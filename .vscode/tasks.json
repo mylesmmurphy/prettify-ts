@@ -4,7 +4,7 @@
 		{
 			"label": "build root",
 			"type": "shell",
-			"command": "pnpm build",
+			"command": "pnpm build:debug",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},

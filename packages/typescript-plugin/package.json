@@ -5,7 +5,8 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "build:debug": "tsup --sourcemap"
   },
   "devDependencies": {
     "@types/ts-expose-internals": "npm:ts-expose-internals@5.4.5",
