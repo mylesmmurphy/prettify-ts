@@ -23,4 +23,6 @@ packages/*/out
 *.vsix
 
 # Test Artifacts
-# test/workspace/.vscode
+test/workspace/.vscode
+!test/workspace/.vscode/settings.json
+
