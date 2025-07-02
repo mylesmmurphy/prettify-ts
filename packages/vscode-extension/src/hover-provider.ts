@@ -81,7 +81,7 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
     }
 
     const hoverText = new vscode.MarkdownString();
-    hoverText.appendCodeblock(declaration + prettyTypeString, document.languageId);
+    hoverText.appendCodeblock(declaration + prettyTypeString, "typescript");
     return new vscode.Hover(hoverText);
   }
 
