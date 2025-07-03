@@ -31,7 +31,6 @@ export function getTypeInfoAtPosition(
   position: number,
   prettifyOptions: PrettifyOptions,
   program: ts.Program,
-  projectName: string,
 ): TypeInfo | undefined {
   try {
     typescript = typescriptContext;
@@ -39,17 +38,7 @@ export function getTypeInfoAtPosition(
     options = prettifyOptions;
 
     if (isVueProgram(program)) {
-      position = getPositionForVue(
-        {
-          projectName,
-          program,
-          typeChecker,
-          ts: typescriptContext,
-          sourceFile,
-        },
-        sourceFile.fileName.replace(/\\/g, "/"),
-        position,
-      );
+      position = getPositionForVue(program, sourceFile.fileName.replace(/\\/g, "/"), position);
     }
 
     const node = getDescendantAtRange(typescript, sourceFile, [position, position]);
