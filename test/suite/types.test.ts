@@ -2,7 +2,7 @@ import { applySettings, assertHover, openDocument, getHover, ensureTypeScriptSer
 
 suite("Hover Types", () => {
   suiteSetup(async () => {
-    await ensureTypeScriptServerReady();
+    await ensureTypeScriptServerReady("canary.ts", "ServerReadinessProbe"); // Assumes canary.ts contains 'ServerReadinessProbe' type
     await applySettings({ maxDepth: 3 });
     await openDocument("types.ts");
   });

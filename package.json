@@ -7,9 +7,10 @@
   "scripts": {
     "preinstall": "only-allow pnpm",
     "lint": "eslint .",
-    "pretest": "tsc --project ./test/tsconfig.json && pnpm build",
+    "pretest": "tsc --project ./test/tsconfig.json && pnpm build:debug",
     "test": "vscode-test --config ./test/.vscode-test.js",
     "build": "pnpm -r run build",
+    "build:debug": "pnpm --filter @prettify-ts/typescript-plugin build:debug && pnpm --filter prettify-ts run build",
     "package": "pnpm build && pnpm --filter prettify-ts run package && node ./scripts/post-package.js && pnpm install"
   },
   "devDependencies": {
