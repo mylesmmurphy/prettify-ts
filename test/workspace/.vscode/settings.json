@@ -1,0 +1,4 @@
+// ! Only enable hybrid mode for testing, and should remove after `vue.volar` 3.0 release
+{
+    "vue.server.hybridMode": true,
+}
