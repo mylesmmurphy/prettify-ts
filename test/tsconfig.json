@@ -2,10 +2,7 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "./out",
-    "rootDir": "./suite",
     "types": ["node", "mocha", "vscode"]
   },
-  "include": [
-    "suite/**/*.ts"
-  ],
+  "include": ["suite/**/*.ts", "unit/**/*.ts"]
 }
