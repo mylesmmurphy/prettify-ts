@@ -9,12 +9,12 @@
     "skipLibCheck": true,
     "strictNullChecks": true,
     "noUncheckedIndexedAccess": true,
+    "plugins": [
+      {
+        "name": "@prettify-ts/typescript-plugin"
+      }
+    ]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.d.ts",
-    "**/*.tsx",
-    "**/*.vue"
-  ],
+  "include": ["**/*.ts", "**/*.d.ts", "**/*.tsx", "**/*.vue"],
   "exclude": ["node_modules"]
 }

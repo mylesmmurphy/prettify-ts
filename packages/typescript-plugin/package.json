@@ -1,17 +1,21 @@
 {
   "name": "@prettify-ts/typescript-plugin",
   "version": "0.3.9",
-  "main": "./out",
+  "main": "./out/index.js",
   "license": "MIT",
   "private": true,
   "scripts": {
     "build": "tsup",
-    "build:debug": "tsup --sourcemap"
+    "build:debug": "tsup --sourcemap",
+    "test": "mocha --require ts-node/register --ui tdd 'src/**/*.test.ts'"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/ts-expose-internals": "npm:ts-expose-internals@5.4.5",
     "@volar/language-core": "^2.4.15",
     "@volar/typescript": "^2.4.15",
+    "mocha": "^11.5.0",
+    "ts-node": "^10.9.2",
     "tsup": "^8.5.0",
     "typescript": "^5.4.5"
   }

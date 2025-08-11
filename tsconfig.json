@@ -9,5 +9,10 @@
     "skipLibCheck": true,
     "strictNullChecks": true,
     "noUncheckedIndexedAccess": true,
+    "plugins": [
+      {
+        "name": "@prettify-ts/typescript-plugin"
+      }
+    ]
   }
 }

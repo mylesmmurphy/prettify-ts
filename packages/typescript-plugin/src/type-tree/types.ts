@@ -1,3 +1,5 @@
+import type * as ts from "typescript";
+
 /**
  * Type Tree Object Properties
  */
@@ -30,7 +32,29 @@ export type TypeFunctionSignature = {
  * TypeTree is a tree representation of a TypeScript type.
  * Discriminated by the `kind` field.
  */
-export type TypeTree = { typeName: string } & (
+export type TypeTree = {
+  /**
+   * String representation of the type name.
+   * Always populated for backward compatibility.
+   */
+  typeName: string;
+  /**
+   * Optional array of SymbolDisplayPart objects that provide semantic token information
+   * for syntax highlighting and proper formatting in editors.
+   *
+   * This field is populated when the `generateDisplayParts` option is enabled
+   * during type tree generation. Each display part contains:
+   * - `text`: The text content of the token
+   * - `kind`: The semantic classification (e.g., keyword, className, punctuation)
+   *
+   * If this field is absent or undefined, the `typeTreeToDisplayParts` function
+   * will provide a fallback using the typeName field.
+   *
+   * @see ts.SymbolDisplayPart for the display part structure
+   * @see typeTreeToDisplayParts for converting TypeTree to display parts
+   */
+  displayParts?: ts.SymbolDisplayPart[];
+} & (
   | { kind: "union"; excessMembers: number; types: TypeTree[] }
   | { kind: "object"; excessProperties: number; properties: TypeProperty[] }
   | { kind: "tuple"; readonly: boolean; elementTypes: TypeTree[] }

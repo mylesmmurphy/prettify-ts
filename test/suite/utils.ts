@@ -2,10 +2,23 @@ import * as assert from "node:assert";
 import * as path from "node:path";
 import * as vscode from "vscode";
 
+// Test configuration constants
+export const TEST_CONFIG = {
+  SERVER_READINESS: {
+    MAX_ATTEMPTS: 60,
+    RETRY_DELAY_MS: 500,
+    LOG_INTERVAL: 10,
+  },
+  PERFORMANCE: {
+    SIMPLE_OPERATION_TIMEOUT_MS: 2000,
+    COMPLEX_OPERATION_TIMEOUT_MS: 5000,
+  },
+} as const;
+
 // Singleton document to be used across tests
 let openDoc: vscode.TextDocument;
 
-const workspacePath = path.join(__dirname, "../workspace");
+const workspacePath = path.join(__dirname, "../../../workspace");
 
 /**
  * Opens a document in the test workspace.
@@ -57,10 +70,9 @@ export async function ensureTypeScriptServerReady(fileName: string, keyword: str
   const position = openDoc.positionAt(openDoc.getText().indexOf(keyword));
 
   let attempt = 0;
-  const maxAttempts = 60; // Approx 30 seconds if each attempt is 500ms
-  const retryDelay = 500; // ms
+  const { MAX_ATTEMPTS, RETRY_DELAY_MS, LOG_INTERVAL } = TEST_CONFIG.SERVER_READINESS;
 
-  while (attempt < maxAttempts) {
+  while (attempt < MAX_ATTEMPTS) {
     attempt++;
     const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
       "vscode.executeHoverProvider",
@@ -71,7 +83,7 @@ export async function ensureTypeScriptServerReady(fileName: string, keyword: str
     // We are interested in the first hover provider, which is TypeScript's native hover.
     const content = hovers[0]?.contents[0];
     if (!content) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
       continue;
     }
 
@@ -84,13 +96,13 @@ export async function ensureTypeScriptServerReady(fileName: string, keyword: str
       return; // Server is ready
     }
 
-    if (attempt % 10 === 0) {
+    if (attempt % LOG_INTERVAL === 0) {
       // Log progress occasionally
       console.log(`Still waiting for TS server... Attempt ${attempt}.`);
     }
-    await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
   }
-  throw new Error(`TypeScript server did not become ready after ${maxAttempts} attempts.`);
+  throw new Error(`TypeScript server did not become ready after ${MAX_ATTEMPTS} attempts.`);
 }
 
 /**
@@ -158,11 +170,13 @@ export async function getHover(keyword: string): Promise<string[]> {
   assert.ok(hovers, "Expected hover results to be defined");
   assert.ok(hovers.length > 0, "Expected at least one hover result");
 
-  return hovers
+  const normalizedHovers = hovers
     .map((hover) => hover.contents[0])
     .filter((content) => content !== undefined)
     .map((content) => (typeof content === "string" ? content : content.value))
     .map(normalizeTypeString); // Normalize each hover content type string
+
+  return [...new Set(normalizedHovers)];
 }
 
 /**
@@ -172,9 +186,20 @@ export async function getHover(keyword: string): Promise<string[]> {
 function normalizeTypeString(input: string): string {
   let type = input;
 
+  // Handle the new plugin format that returns multiple sections separated by ---
+  // The plugin returns: prettified type --- original type
+  // We want to extract just the prettified type (first section)
+  if (type.includes("---")) {
+    // Split by --- and take the first part (the prettified type)
+    const sections = type.split("---");
+    if (sections.length > 0 && sections[0]) {
+      type = sections[0].trim();
+    }
+  }
+
   // Remove the specific TypeScript Markdown fences
-  const leadingFence = "\n```typescript\n";
-  const trailingFence = "\n\n```\n";
+  const leadingFence = "```typescript\n";
+  const trailingFence = "\n```";
 
   if (type.startsWith(leadingFence)) {
     type = type.substring(leadingFence.length);

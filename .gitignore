@@ -18,6 +18,11 @@ Thumbs.db
 # Build
 out
 packages/*/out
+packages/**/*.js
+packages/**/*.js.map
+packages/**/*.d.ts
+!packages/**/test/**/*.js
+!packages/**/test/**/*.d.ts
 
 # Package Files
 *.vsix

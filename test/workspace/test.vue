@@ -3,17 +3,12 @@ type ServerReadinessProbe = {
   a?: string;
 };
 
-
 type StringPrimitive = string;
 type TestPrimitiveObj = { value: StringPrimitive };
 </script>
 
 <template>
-  <div>
-
-  </div>
+  <div></div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

@@ -1,4 +1,4 @@
-import type { TypeTree } from "@prettify-ts/typescript-plugin/src/type-tree/types";
+import type { TypeTree } from "./types";
 
 /**
  * Regular expression to validate an object key that does not require quotes.
@@ -8,11 +8,6 @@ const unquotedObjectKeyRegex = /^(?:\d+|[a-zA-Z_$][\w$]*|\[.*\])$/;
 
 /**
  * Uses type info to return a string representation of the type
- *
- * Example:
- * { kind: 'union', types: [{ kind: 'primitive', type: 'string' }, { kind: 'primitive', type: 'number' }] }
- * Yields:
- * 'string | number'
  */
 export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true): string {
   if (typeTree.kind === "union") {
@@ -34,14 +29,14 @@ export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true):
 
       if (p.optional && p.type.kind === "union") {
         optional = "?";
-        // Create a new type object without undefined to avoid mutation
+        // Create a new type object without undefined to avoid mutation.
         typeToStringify = {
           ...p.type,
           types: p.type.types.filter((t) => t.typeName !== "undefined"),
         };
       }
 
-      // If the name has invalid characters, wrap it in quotes
+      // If the name has invalid characters, wrap it in quotes.
       let name = p.name;
       if (!unquotedObjectKeyRegex.test(p.name)) {
         name = `"${p.name}"`;
@@ -87,7 +82,7 @@ export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true):
 
         if (p.optional && p.type.kind === "union") {
           optional = "?";
-          // Create a new type object without undefined to avoid mutation
+          // Create a new type object without undefined to avoid mutation.
           typeToStringify = {
             ...p.type,
             types: p.type.types.filter((t) => t.typeName !== "undefined"),
@@ -102,7 +97,7 @@ export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true):
       return `(${parametersString})${returnTypeChar} ${stringifyTypeTree(returnType)}`;
     });
 
-    // If there are multiple signatures, wrap them in braces with semi-colons at the end of each line
+    // If there are multiple signatures, wrap them in braces with semi-colons at the end of each line.
     if (signatures.length > 1) {
       let signaturesString = `{${signatures.join("; ")};`;
       if (typeTree.excessSignatures > 0) {
@@ -125,19 +120,23 @@ export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true):
     return `${typeTree.typeName}<${argumentsString}>`;
   }
 
-  // Primitive or reference type
+  // Primitive or reference type.
   return typeTree.typeName;
 }
 
+/**
+ * Formats a type string with proper indentation and cleanup.
+ * This function is shared between the TypeScript plugin and VSCode extension.
+ */
 export function prettyPrintTypeString(typeStringInput: string, indentation = 2): string {
-  // Replace typeof import("...node_modules/MODULE_NAME") with: typeof import("MODULE_NAME")
+  // Replace typeof import("...node_modules/MODULE_NAME") with: typeof import("MODULE_NAME").
   const typeString = typeStringInput
     .replace(/typeof import\(".*?node_modules\/(.*?)"\)/g, 'typeof import("$1")')
     .replace(/ } & { /g, " ");
 
   if (indentation < 1) return typeString;
 
-  // Add newline after braces and semicolons
+  // Add newline after braces and semicolons.
   const splitTypeString = typeString
     .replace(/{/g, "{\n")
     .replace(/}/g, "\n}")
@@ -151,7 +150,7 @@ export function prettyPrintTypeString(typeStringInput: string, indentation = 2):
   for (let line of lines) {
     line = line.trim();
 
-    // Replace true/false with boolean
+    // Replace true/false with boolean.
     line = line.replace("false | true", "boolean");
 
     const hasOpenBrace = line.includes("{");
@@ -169,23 +168,11 @@ export function prettyPrintTypeString(typeStringInput: string, indentation = 2):
   }
 
   result = result
-    .replace(/{\s*\n*\s*}/g, "{}") // Remove empty braces newlines
-    .replace(/^\s*[\r\n]/gm, "") // Remove empty newlines
-    .replace(/{\s*\.\.\.\s*([0-9]+)\s*more;\s*}/g, "{ ... $1 more }") // Replace only excess properties into one line
-    .replace(/\$\{\s*([^{}]+?)\s*\}/g, (_, inner) => `\${${inner}}`) // Remove unnecessary spaces in template literals
-    .replace(/\n+$/, ""); // Remove trailing newlines
+    .replace(/{\s*\n*\s*}/g, "{}") // Remove empty braces newlines.
+    .replace(/^\s*[\r\n]/gm, "") // Remove empty newlines.
+    .replace(/{\s*\.\.\.\s*([0-9]+)\s*more;\s*}/g, "{ ... $1 more }") // Replace only excess properties into one line.
+    .replace(/\$\{\s*([^{}]+?)\s*\}/g, (_, inner) => `\${${inner}}`) // Remove unnecessary spaces in template literals.
+    .replace(/\n+$/, ""); // Remove trailing newlines.
 
   return result;
-}
-
-/**
- * Sanitizes a string by removing leading words, whitespace, newlines, and semicolons
- */
-export function sanitizeString(str: string): string {
-  return str
-    .replace(/^[a-z]+\s/, "") // Remove the leading word, ex: type, const, interface
-    .replace(/\s/g, "") // Remove all whitespace
-    .replace(/\n/g, "") // Remove all newlines
-    .replace(/;/g, "") // Remove all semicolons
-    .replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\./g, ""); // Remove namespaces (e.g., z.)
 }

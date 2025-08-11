@@ -8,7 +8,9 @@
     "preinstall": "only-allow pnpm",
     "lint": "eslint .",
     "pretest": "tsc --project ./test/tsconfig.json && pnpm build:debug",
-    "test": "vscode-test --config ./test/.vscode-test.js",
+    "test": "pnpm test:unit && pnpm test:integration",
+    "test:integration": "vscode-test --config ./test/.vscode-test.js",
+    "test:unit": "tsc --project ./test/tsconfig.json && npx mocha \"test/out/test/unit/**/*.test.js\"",
     "build": "pnpm -r run build",
     "build:debug": "pnpm --filter @prettify-ts/typescript-plugin build:debug && pnpm --filter prettify-ts run build",
     "package": "pnpm build && pnpm --filter prettify-ts run package && node ./scripts/post-package.js && pnpm install"
@@ -25,6 +27,7 @@
     "eslint-config-prettier": "^10.1.2",
     "eslint-plugin-prettier": "^5.2.6",
     "fs-extra": "^11.3.0",
+    "mocha": "^11.5.0",
     "only-allow": "^1.2.1",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.30.1"

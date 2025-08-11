@@ -2,27 +2,24 @@
 
 This package provides the TypeScript Language Service Plugin that powers the [Prettify TS](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts) VSCode extension. It enables structured type analysis, enabling improved and customizable type previews in editor hover tooltips.
 
-
 ## ✨ Features
 
-* Recursively traverses TypeScript types and builds a **tree-like representation**
-* Supports:
+- Recursively traverses TypeScript types and builds a **tree-like representation**
+- Supports:
+  - Unions and intersections
+  - Tuples and arrays (readonly or mutable)
+  - Generic types and inference (e.g., conditional types with `infer`)
+  - Function signatures (with rest and optional parameters)
+  - Circular references (auto-detected and handled)
 
-  * Unions and intersections
-  * Tuples and arrays (readonly or mutable)
-  * Generic types and inference (e.g., conditional types with `infer`)
-  * Function signatures (with rest and optional parameters)
-  * Circular references (auto-detected and handled)
-* Configurable via plugin settings passed from the extension
-* Used by the extension to format hover results in a clean and human-readable way
-
+- Configurable via plugin settings passed from the extension
+- Used by the extension to format hover results in a clean and human-readable way
 
 ## Architecture
 
 The plugin hijacks the TypeScript language service API by overriding `getCompletionsAtPosition` to add a **side channel** for extracting type metadata.
 
 When a hover is triggered in the extension, the plugin returns metadata about the hovered node in a `TypeInfo` object rather than traditional completions.
-
 
 ## `TypeInfo` Response Format
 
@@ -85,7 +82,6 @@ export type TypeInfo = {
   declaration: string;
   name: string;
 };
-
 ```
 
 ## Configuration

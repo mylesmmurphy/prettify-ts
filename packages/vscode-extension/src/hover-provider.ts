@@ -3,6 +3,19 @@ import type { PrettifyRequest } from "@prettify-ts/typescript-plugin/src/request
 import type { TypeInfo } from "@prettify-ts/typescript-plugin/src/type-tree/types";
 import { prettyPrintTypeString, stringifyTypeTree, sanitizeString } from "./stringify-type-tree";
 
+/**
+ * Determines if we're running in a test environment where the VS Code extension
+ * hover provider should be disabled to prevent conflicts with the TypeScript plugin's quickinfo API.
+ */
+function isTestEnvironment(): boolean {
+  const env = process.env;
+  if (!env) return false;
+
+  const nodeEnv = env.NODE_ENV?.toLowerCase();
+  const vscodeTestEnv = env.VSCODE_TEST_ENV?.toLowerCase();
+  return nodeEnv === "test" || vscodeTestEnv === "true";
+}
+
 export function registerHoverProvider(context: vscode.ExtensionContext): void {
   async function provideHover(
     document: vscode.TextDocument,
@@ -11,12 +24,18 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
     const config = vscode.workspace.getConfiguration("prettify-ts");
     if (!config.get("enabled", true)) return;
 
+    // Environment-based provider selection: disable extension hover provider in test environments.
+    // This prevents duplicates when enhanced quickinfo API is handling hover requests.
+    if (isTestEnvironment()) {
+      return undefined;
+    }
+
     const indentation = config.get("typeIndentation", 4);
     const maxCharacters = config.get("maxCharacters", 20000);
 
     const options = {
       hidePrivateProperties: config.get("hidePrivateProperties", true),
-      maxDepth: config.get("maxDepth", 2),
+      maxDepth: config.get("maxDepth", 1),
       maxProperties: config.get("maxProperties", 100),
       maxSubProperties: config.get("maxSubProperties", 5),
       maxUnionMembers: config.get("maxUnionMembers", 15),

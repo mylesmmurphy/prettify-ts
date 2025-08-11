@@ -1,10 +1,7 @@
 {
   "extends": "../../tsconfig.json",
-  "include": [
-    "./src/**/*",
-    "./tsup.config.ts"
-  ],
+  "include": ["./src/**/*", "./tsup.config.ts"],
   "compilerOptions": {
-    "outDir": "./out",
+    "outDir": "./out"
   }
 }

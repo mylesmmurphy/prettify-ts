@@ -30,7 +30,7 @@ export default [
         "@typescript-eslint/no-explicit-any": "off", // Allow 'any' type
         "@typescript-eslint/no-unsafe-assignment": "off", // Allow unsafe assignments
         "@typescript-eslint/no-unsafe-member-access": "off", // Allow unsafe member access
-      }
-    }
+      },
+    },
   ),
 ];
