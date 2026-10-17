@@ -2,9 +2,8 @@ import type { TypeTree } from "@prettify-ts/typescript-plugin/src/type-tree/type
 
 /**
  * Regular expression to validate an object key that does not require quotes.
- * Includes dynamic keys wrapped in square brackets (e.g., [dynamicKey]).
  */
-const unquotedObjectKeyRegex = /^(?:\d+|[a-zA-Z_$][\w$]*|\[.*\])$/;
+const unquotedObjectKeyRegex = /^(?:\d+|[a-zA-Z_$][\w$]*)$/;
 
 /**
  * Uses type info to return a string representation of the type
@@ -29,17 +28,16 @@ export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true):
     const propertiesArray = typeTree.properties.map((p) => {
       const readonly = p.readonly ? "readonly " : "";
 
-      let optional = "";
+      const optional = p.optional ? "?" : "";
       if (p.optional && p.type.kind === "union") {
-        optional = "?";
         // Remove undefined from union if optional
         p.type.types = p.type.types.filter((t) => t.typeName !== "undefined");
       }
 
       // If the name has invalid characters, wrap it in quotes
       let name = p.name;
-      if (!unquotedObjectKeyRegex.test(p.name)) {
-        name = `"${p.name}"`;
+      if (!p.computed && !unquotedObjectKeyRegex.test(p.name)) {
+        name = JSON.stringify(p.name);
       }
 
       return `${readonly}${name}${optional}: ${stringifyTypeTree(p.type)};`;
@@ -77,9 +75,8 @@ export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true):
       const parametersArray = parameters.map((p) => {
         const rest = p.isRestParameter ? "..." : "";
 
-        let optional = "";
+        const optional = p.optional ? "?" : "";
         if (p.optional && p.type.kind === "union") {
-          optional = "?";
           // Remove undefined from union if optional
           p.type.types = p.type.types.filter((t) => t.typeName !== "undefined");
         }
@@ -121,14 +118,22 @@ export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true):
 
 export function prettyPrintTypeString(typeStringInput: string, indentation = 2): string {
   // Replace typeof import("...node_modules/MODULE_NAME") with: typeof import("MODULE_NAME")
-  const typeString = typeStringInput
-    .replace(/typeof import\(".*?node_modules\/(.*?)"\)/g, 'typeof import("$1")')
-    .replace(/ } & { /g, " ");
+  const typeString = typeStringInput.replace(/typeof import\(".*?node_modules\/(.*?)"\)/g, 'typeof import("$1")');
 
-  if (indentation < 1) return typeString;
+  // Keep punctuation and whitespace inside quoted names and literal types unchanged.
+  const literals: string[] = [];
+  const maskedTypeString = typeString.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/g, (literal) => {
+    const index = literals.push(literal) - 1;
+    return `\uE000${index}\uE001`;
+  });
+
+  const restoreLiterals = (text: string): string =>
+    text.replace(/\uE000(\d+)\uE001/g, (_, index: string) => literals[Number(index)]!);
+  const normalizedTypeString = maskedTypeString.replace(/ } & { /g, " ");
+  if (indentation < 1) return restoreLiterals(normalizedTypeString);
 
   // Add newline after braces and semicolons
-  const splitTypeString = typeString
+  const splitTypeString = normalizedTypeString
     .replace(/{/g, "{\n")
     .replace(/}/g, "\n}")
     .replace(/(\S); /g, "$1;\n ");
@@ -164,7 +169,7 @@ export function prettyPrintTypeString(typeStringInput: string, indentation = 2):
     .replace(/{\s*\.\.\.\s*([0-9]+)\s*more;\s*}/g, "{ ... $1 more }") // Replace only excess properties into one line
     .replace(/\$\{\s*([^{}]+?)\s*\}/g, (_, inner) => `\${${inner}}`); // Remove unnecessary spaces in template literals
 
-  return result;
+  return restoreLiterals(result);
 }
 
 /**

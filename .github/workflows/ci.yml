@@ -19,6 +19,11 @@ jobs:
     if: github.event.pull_request.draft == false || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      matrix:
+        vue-version: [latest, 3.1.1]
+    env:
+      PRETTIFY_TEST_VUE_VERSION: ${{ matrix.vue-version }}
 
     steps:
       - name: Checkout code

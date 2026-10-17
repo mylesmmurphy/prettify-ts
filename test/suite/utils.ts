@@ -146,8 +146,10 @@ export async function applySettings(overrides: PrettifySettings = {}) {
  * Retrieves the hover information for a given keyword in the currently opened document.
  * @returns {Promise<string>} The prettified type string from the hover content with whitespace normalized.
  */
-export async function getHover(keyword: string): Promise<string[]> {
-  const position = openDoc.positionAt(openDoc.getText().indexOf(keyword) + 1);
+export async function getHover(keyword: string, characterOffset = 1): Promise<string[]> {
+  const offset = openDoc.getText().indexOf(keyword);
+  assert.ok(offset >= 0, `Fixture keyword not found: ${keyword}`);
+  const position = openDoc.positionAt(offset + characterOffset);
 
   const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
     "vscode.executeHoverProvider",
@@ -206,4 +208,58 @@ export function assertHover(hovers: string[], expected: string): void {
     hovers.includes(normalizedExpected),
     `Expected hover content to be "${expected}", but got "${hovers.join(", ")}"`,
   );
+}
+
+/** Request the plugin directly so native TypeScript hover output cannot mask a regression. */
+export async function getPrettifyTypeInfo(keyword: string, characterOffset = 1, overrides: PrettifySettings = {}) {
+  const offset = openDoc.getText().indexOf(keyword);
+  assert.ok(offset >= 0, `Fixture keyword not found: ${keyword}`);
+  const position = openDoc.positionAt(offset + characterOffset);
+  const response = await vscode.commands.executeCommand<{
+    body?: { __prettifyResponse?: { declaration: string; typeTree: unknown } };
+  }>("typescript.tsserverRequest", "completionInfo", {
+    file: openDoc.uri.fsPath,
+    line: position.line + 1,
+    offset: position.character + 1,
+    triggerCharacter: {
+      meta: "prettify-type-info-request",
+      options: {
+        hidePrivateProperties: true,
+        maxDepth: 3,
+        maxProperties: 100,
+        maxSubProperties: 5,
+        maxUnionMembers: 15,
+        maxFunctionSignatures: 5,
+        skippedTypeNames: [],
+        unwrapArrays: true,
+        unwrapFunctions: true,
+        unwrapGenericArgumentsTypeNames: ["Promise"],
+        ...overrides,
+      },
+    },
+  });
+  const info = response?.body?.__prettifyResponse;
+  assert.ok(info, "Expected a response from the Prettify TypeScript plugin");
+  return info;
+}
+
+/** Render the direct plugin response using the extension's built formatter. */
+export async function renderPrettifiedType(keyword: string, characterOffset = 1): Promise<string> {
+  const config = vscode.workspace.getConfiguration("prettify-ts");
+  const overrides: PrettifySettings = {};
+  for (const key of ["maxDepth", "skippedTypeNames", "unwrapArrays", "unwrapFunctions"] as const) {
+    Object.assign(overrides, { [key]: config.get(key) });
+  }
+  const info = await getPrettifyTypeInfo(keyword, characterOffset, overrides);
+  // Load the same compiled formatter used by the extension, without requiring editor focus.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const formatter = require("../../packages/vscode-extension/out/stringify-type-tree") as {
+    stringifyTypeTree(tree: unknown, anonymousFunction: boolean): string;
+    prettyPrintTypeString(text: string, indentation: number): string;
+  };
+  return info.declaration + formatter.prettyPrintTypeString(formatter.stringifyTypeTree(info.typeTree, false), 4);
+}
+
+export function getOpenDocument(): vscode.TextDocument {
+  return openDoc;
 }

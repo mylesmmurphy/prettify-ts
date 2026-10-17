@@ -45,7 +45,15 @@ To run the full test suite:
 pnpm test
 ```
 
-> This runs the tests using the VS Code Test CLI in headless mode.
+> This runs the tests using the VS Code Test CLI. Linux needs a display server; use `xvfb-run -a pnpm test` in CI.
+
+CI runs against both Vue 3.1.1 and the latest Vue extension. To select the older version locally:
+
+```bash
+PRETTIFY_TEST_VUE_VERSION=3.1.1 pnpm test
+```
+
+Each version uses a dedicated test profile with automatic extension updates disabled. Tests verify the loaded Vue version and request this plugin directly, including a Vue document edit that replaces the compiler program. Bug regressions also cover computed and quoted keys, type/value name collisions, skipped aliases, unwrap settings, and JavaScript/JSX hover registration.
 
 ---
 

@@ -3,6 +3,7 @@
  */
 export type TypeProperty = {
   name: string;
+  computed?: boolean;
   optional: boolean;
   readonly: boolean;
   type: TypeTree;

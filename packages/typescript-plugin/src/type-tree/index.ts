@@ -4,7 +4,7 @@ import type { TypeFunctionSignature, TypeInfo, TypeProperty, TypeTree } from "./
 import { getDescendantAtRange } from "./get-ast-node";
 import type { PrettifyOptions } from "../request";
 import { getPositionForVue } from "./vue";
-import { Language } from "@volar/language-core";
+import type { Language } from "@volar/language-core";
 
 let typescript: typeof ts;
 let checker: ts.TypeChecker;
@@ -53,9 +53,23 @@ export function getTypeInfoAtPosition(
       symbol = typeChecker.getAliasedSymbol(symbol);
     }
 
-    let type = typeChecker.getTypeOfSymbolAtLocation(symbol, node);
-
-    let syntaxKind = symbol?.declarations?.[0]?.kind ?? typescript.SyntaxKind.ConstKeyword;
+    // A symbol may have separate type and value declarations; use the hovered syntax context.
+    const type = typeChecker.getTypeAtLocation(node);
+    const typeReference = typescript.isTypeReferenceNode(node.parent) ? node.parent : undefined;
+    const typeDeclaration =
+      typeReference &&
+      symbol.declarations?.find(
+        (declaration) =>
+          typescript.isTypeAliasDeclaration(declaration) ||
+          typescript.isInterfaceDeclaration(declaration) ||
+          typescript.isClassDeclaration(declaration),
+      );
+    const symbolDeclaration =
+      typeDeclaration ||
+      (symbol.declarations?.find((declaration) => declaration === node.parent) ??
+        symbol.valueDeclaration ??
+        symbol.declarations?.[0]);
+    let syntaxKind = symbolDeclaration?.kind ?? typescript.SyntaxKind.ConstKeyword;
     if (typescript.isVariableDeclaration(node.parent)) {
       syntaxKind = getVariableDeclarationKind(node.parent);
     }
@@ -79,18 +93,9 @@ export function getTypeInfoAtPosition(
       };
     }
 
-    // If the symbol has a declared type, use that when available
-    // Don't use declared type for variable declarations
-    // TODO: Determine best method, check all or just the first
-    // const shouldUseDeclaredType = symbol.declarations?.every(d => d.kind !== typescript.SyntaxKind.VariableDeclaration)
-    const shouldUseDeclaredType = symbol.declarations?.[0]?.kind !== typescript.SyntaxKind.VariableDeclaration;
-    const declaredType = typeChecker.getDeclaredTypeOfSymbol(symbol);
-
-    if (declaredType.flags !== typescript.TypeFlags.Any && shouldUseDeclaredType) {
-      type = declaredType;
-    }
-
-    const typeTree = getTypeTree(type, 0, new Set());
+    const annotation =
+      typeReference ?? (typescript.isTypeAliasDeclaration(node.parent) ? node.parent.name : getTypeAnnotation(symbol));
+    const typeTree = getTypeTree(type, 0, new Set(), annotation);
 
     const declaration = getSyntaxKindDeclaration(syntaxKind, name);
 
@@ -180,9 +185,15 @@ function getConstructorTypeInfo(type: ts.Type, typeChecker: ts.TypeChecker, name
 /**
  * Recursively get type information by building a TypeTree object from the given type
  */
-function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeTree {
+function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>, annotation?: ts.Node): TypeTree {
   const typeName = checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation);
   const apparentType = checker.getApparentType(type);
+
+  // Primitive aliases can be erased from the compiler's Type. Preserve an explicit annotation when skipped.
+  const skippedName = getSkippedTypeName(annotation);
+  if (skippedName) {
+    return { kind: "reference", typeName: skippedName };
+  }
 
   // Primitive types
   const baseConstraintType = checker.getBaseConstraintOfType(type);
@@ -250,14 +261,24 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
   // Functions
   const callSignatures = apparentType.getCallSignatures();
   if (callSignatures.length > 0) {
-    if (!options.unwrapFunctions) {
-      depth = options.maxDepth;
+    if (!options.unwrapFunctions && (type.aliasSymbol || type.isClassOrInterface())) {
+      return { kind: "reference", typeName };
     }
+
+    const signatureType = (type: ts.Type, annotation?: ts.Node): TypeTree =>
+      options.unwrapFunctions
+        ? getTypeTree(type, depth, new Set(visited), annotation)
+        : {
+            kind: "reference",
+            typeName:
+              getSkippedTypeName(annotation) ??
+              checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation),
+          };
 
     const signatures: TypeFunctionSignature[] = callSignatures
       .slice(0, options.maxFunctionSignatures)
       .map((signature) => {
-        const returnType = getTypeTree(checker.getReturnTypeOfSignature(signature), depth, new Set(visited));
+        const returnType = signatureType(checker.getReturnTypeOfSignature(signature), signature.getDeclaration()?.type);
         const parameters = signature.parameters.map((symbol) => {
           const declaration = symbol.declarations?.[0];
           const isRestParameter = Boolean(
@@ -269,7 +290,7 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
             name: symbol.getName(),
             isRestParameter,
             optional,
-            type: getTypeTree(checker.getTypeOfSymbol(symbol), depth, new Set(visited)),
+            type: signatureType(checker.getTypeOfSymbol(symbol), getTypeAnnotation(symbol)),
           };
         });
 
@@ -305,12 +326,12 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
   // Arrays
   if (checker.isArrayType(apparentType)) {
     if (!options.unwrapArrays) {
-      depth = options.maxDepth;
+      return { kind: "reference", typeName };
     }
 
     const arrayType = checker.getTypeArguments(apparentType as ts.TypeReference)[0];
     const elementType: TypeTree = arrayType
-      ? getTypeTree(arrayType, depth, new Set(visited))
+      ? getTypeTree(arrayType, depth, new Set(visited), getArrayElementAnnotation(annotation))
       : { kind: "primitive", typeName: "any" };
 
     return {
@@ -404,6 +425,7 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
 
       properties.push({
         name: `[${indexIdentifierName}: ${indexType}]`,
+        computed: true,
         optional: false,
         readonly: indexSignature.isReadonly,
         type: getTypeTree(indexSignature.type, depth + 1, new Set(visited)),
@@ -413,10 +435,11 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
     for (const symbol of typeProperties) {
       const symbolType = checker.getTypeOfSymbol(symbol);
       properties.push({
-        name: symbol.getName(),
+        name: isSymbolProperty(symbol) ? checker.symbolToString(symbol) : symbol.getName(),
+        computed: isSymbolProperty(symbol),
         optional: isOptional(symbol),
         readonly: isReadOnly(symbol),
-        type: getTypeTree(symbolType, depth + 1, new Set(visited)), // Add depth for sub-properties
+        type: getTypeTree(symbolType, depth + 1, new Set(visited), getTypeAnnotation(symbol)), // Add depth for sub-properties
       });
     }
 
@@ -432,6 +455,48 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>): TypeT
     kind: "reference",
     typeName,
   };
+}
+
+/** Retrieve annotations before the compiler erases primitive type aliases. */
+function getTypeAnnotation(symbol: ts.Symbol): ts.TypeNode | undefined {
+  for (const declaration of symbol.declarations ?? []) {
+    if (
+      typescript.isVariableDeclaration(declaration) ||
+      typescript.isPropertyDeclaration(declaration) ||
+      typescript.isPropertySignature(declaration) ||
+      typescript.isParameter(declaration)
+    ) {
+      if (declaration.type) return declaration.type;
+    }
+  }
+  return undefined;
+}
+
+function getSkippedTypeName(annotation: ts.Node | undefined): string | undefined {
+  if (!annotation) return undefined;
+  if (typescript.isParenthesizedTypeNode(annotation)) return getSkippedTypeName(annotation.type);
+  const nameNode = typescript.isTypeReferenceNode(annotation) ? annotation.typeName : annotation;
+  if (!typescript.isIdentifier(nameNode) && !typescript.isQualifiedName(nameNode)) return undefined;
+  const name = nameNode.getText();
+  let symbol = checker.getSymbolAtLocation(nameNode);
+  if (symbol && symbol.flags & typescript.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
+  if (options.skippedTypeNames.includes(name) || (symbol && options.skippedTypeNames.includes(symbol.getName()))) {
+    return typescript.isTypeReferenceNode(annotation) && annotation.typeArguments?.length
+      ? `${name}<...>`
+      : annotation.getText();
+  }
+  return undefined;
+}
+
+function getArrayElementAnnotation(annotation: ts.Node | undefined): ts.TypeNode | undefined {
+  if (!annotation) return undefined;
+  if (typescript.isArrayTypeNode(annotation)) return annotation.elementType;
+  if (typescript.isTypeReferenceNode(annotation)) return annotation.typeArguments?.[0];
+  return undefined;
+}
+
+function isSymbolProperty(symbol: ts.Symbol): boolean {
+  return symbol.getName().startsWith("__@") && checker.symbolToString(symbol).startsWith("[");
 }
 
 /**
@@ -527,7 +592,7 @@ function isPublicProperty(symbol: ts.Symbol): boolean {
   if (!declarations) return true;
 
   const name = symbol.getName();
-  if (name.startsWith("_") || name.startsWith("#")) return false;
+  if ((name.startsWith("_") && !isSymbolProperty(symbol)) || name.startsWith("#")) return false;
 
   return declarations.every((declaration) => {
     if (!(
