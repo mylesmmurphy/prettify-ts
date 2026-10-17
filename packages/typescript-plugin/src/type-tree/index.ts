@@ -3,7 +3,8 @@ import type * as ts from "typescript";
 import type { TypeFunctionSignature, TypeInfo, TypeProperty, TypeTree } from "./types";
 import { getDescendantAtRange } from "./get-ast-node";
 import type { PrettifyOptions } from "../request";
-import { getPositionForVue, isVueProgram } from "./vue";
+import { getPositionForVue } from "./vue";
+import { Language } from "@volar/language-core";
 
 let typescript: typeof ts;
 let checker: ts.TypeChecker;
@@ -30,15 +31,15 @@ export function getTypeInfoAtPosition(
   sourceFile: ts.SourceFile,
   position: number,
   prettifyOptions: PrettifyOptions,
-  program: ts.Program,
+  vueLanguage?: Language,
 ): TypeInfo | undefined {
   try {
     typescript = typescriptContext;
     checker = typeChecker;
     options = prettifyOptions;
 
-    if (isVueProgram(program)) {
-      position = getPositionForVue(program, sourceFile.fileName.replace(/\\/g, "/"), position);
+    if (vueLanguage) {
+      position = getPositionForVue(vueLanguage, sourceFile.fileName.replace(/\\/g, "/"), position);
     }
 
     const node = getDescendantAtRange(typescript, sourceFile, [position, position]);

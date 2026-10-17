@@ -3,6 +3,7 @@ import type * as ts from "typescript";
 import { isPrettifyRequest } from "./request";
 import type { PrettifyCompletionsTriggerCharacter, PrettifyResponse } from "./request";
 import { getTypeInfoAtPosition } from "./type-tree";
+import { getVueLanguage } from "./type-tree/vue";
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
   const ts = modules.typescript;
@@ -40,7 +41,14 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
       const checker = program.getTypeChecker();
 
-      const prettifyResponse = getTypeInfoAtPosition(ts, checker, sourceFile, position, requestBody.options, program);
+      const prettifyResponse = getTypeInfoAtPosition(
+        ts,
+        checker,
+        sourceFile,
+        position,
+        requestBody.options,
+        getVueLanguage(info.project) || getVueLanguage(program),
+      );
 
       const response: PrettifyResponse = {
         // Follow the same structure as ts.CompletionInfo

@@ -2,11 +2,6 @@ import type { Language } from "@volar/language-core";
 import type { TypeScriptServiceScript } from "@volar/typescript";
 import type * as ts from "typescript";
 
-type VueProgram = ts.Program & {
-  // https://github.com/vuejs/language-tools/blob/v2.0.16/packages/typescript-plugin/index.ts#L75
-  __vue__: { language: Language };
-};
-
 function getMappingOffset(language: Language, serviceScript: TypeScriptServiceScript): number {
   if (serviceScript.preventLeadingOffset) {
     return 0;
@@ -15,12 +10,16 @@ function getMappingOffset(language: Language, serviceScript: TypeScriptServiceSc
   return sourceScript.snapshot.getLength();
 }
 
-export function isVueProgram(program: ts.Program): program is VueProgram {
-  return "__vue__" in program;
+export function getVueLanguage(projectOrProgram: ts.Program | ts.server.Project): Language | undefined {
+  // https://github.com/vuejs/language-tools/blob/v2.0.16/packages/typescript-plugin/index.ts#L75
+  // https://github.com/vuejs/language-tools/blob/v3.1.1/packages/typescript-plugin/index.ts#L39
+  if ("__vue__" in projectOrProgram) {
+    return (projectOrProgram.__vue__ as { language: Language }).language;
+  }
+  return undefined;
 }
 
-export function getPositionForVue(program: VueProgram, fileName: string, startPos = -1): number {
-  const language = program.__vue__.language;
+export function getPositionForVue(language: Language, fileName: string, startPos = -1): number {
   if (language?.scripts) {
     const vFile = language.scripts.get(fileName);
     const serviceScript = vFile?.generated?.languagePlugin.typescript?.getServiceScript(vFile.generated.root);
