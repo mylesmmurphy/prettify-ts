@@ -1,11 +1,12 @@
 import * as assert from "node:assert";
 import * as path from "node:path";
 import * as vscode from "vscode";
+type TypeInfo = { declaration: string; name: string; typeTree: unknown; compilerVersion?: string };
 
 // Singleton document to be used across tests
 let openDoc: vscode.TextDocument;
 
-const workspacePath = path.join(__dirname, "../workspace");
+const workspacePath = process.env.PRETTIFY_TEST_WORKSPACE ?? path.join(__dirname, "../workspace");
 
 /**
  * Opens a document in the test workspace.
@@ -22,75 +23,21 @@ export async function openDocument(fileName: string): Promise<void> {
   openDoc = doc;
 }
 
-/**
- * Ensures the TypeScript language server is fully initialized and ready to provide rich type information.
- *
- * This function works by:
- * 1. Opening a 'canary.ts' file which contains a known type (`ServerReadinessProbe`).
- * 2. Activating the 'prettify-ts' extension.
- * 3. Repeatedly triggering a hover on the `ServerReadinessProbe` type.
- * 4. Waiting until the hover content no longer shows a "loading..." message and includes
- *    detailed metadata (specifically, "a?: string" from the `ServerReadinessProbe` type).
- *    This indicates that the server has fully parsed the AST and is operational.
- *
- * @remarks
- * This method of waiting for server readiness by inspecting hover content is a heuristic.
- * More robust or direct methods for determining server readiness should be explored
- * for better test stability and reliability.
- */
+/** Wait for the plugin itself, so native hover cannot hide an initialization failure. */
 export async function ensureTypeScriptServerReady(fileName: string, keyword: string): Promise<void> {
   await openDocument(fileName);
-
-  console.log("Waiting for TypeScript server to be ready...");
-
-  const extensionId = "MylesMurphy.prettify-ts";
-  const extension = vscode.extensions.getExtension(extensionId);
-
+  const extension = vscode.extensions.getExtension("MylesMurphy.prettify-ts");
   assert.ok(extension, "Extension not found");
   await extension.activate();
-  assert.ok(extension.isActive, "Extension failed to activate");
-
-  if (!openDoc) {
-    throw new Error("Document 'canary.ts' was not opened successfully.");
+  for (let attempt = 0; attempt < 60; attempt++) {
+    try {
+      await getPrettifyTypeInfo(keyword, 0);
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
   }
-
-  const position = openDoc.positionAt(openDoc.getText().indexOf(keyword));
-
-  let attempt = 0;
-  const maxAttempts = 60; // Approx 30 seconds if each attempt is 500ms
-  const retryDelay = 500; // ms
-
-  while (attempt < maxAttempts) {
-    attempt++;
-    const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
-      "vscode.executeHoverProvider",
-      openDoc.uri,
-      position,
-    );
-
-    // We are interested in the first hover provider, which is TypeScript's native hover.
-    const content = hovers?.[0]?.contents[0];
-    if (!content) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelay));
-      continue;
-    }
-
-    const hover = typeof content === "string" ? content : content.value;
-
-    // Check for specific content indicating the server is ready and AST is parsed
-    // "a?: string" is part of the ServerReadinessProbe type definition in canary.ts
-    if (!hover.includes("loading") && hover.includes("a?: string")) {
-      console.log(`TypeScript server is ready after ${attempt} attempts.`);
-      return; // Server is ready
-    }
-
-    if (attempt % 10 === 0) {
-      // Log progress occasionally
-      console.log(`Still waiting for TS server... Attempt ${attempt}.`);
-    }
-    await new Promise((resolve) => setTimeout(resolve, retryDelay));
-  }
-  throw new Error(`TypeScript server did not become ready after ${maxAttempts} attempts.`);
+  throw new Error("The Prettify TypeScript plugin did not become ready.");
 }
 
 /**
@@ -120,22 +67,20 @@ type PrettifySettings = {
 export async function applySettings(overrides: PrettifySettings = {}) {
   const config = vscode.workspace.getConfiguration("prettify-ts");
 
-  const defaults: Required<PrettifySettings> = {
-    enabled: true,
-    typeIndentation: 4,
-    maxCharacters: 20000,
-    hidePrivateProperties: true,
-    treatUnderscoreAsPrivate: true,
-    maxDepth: 2,
-    maxProperties: 100,
-    maxSubProperties: 5,
-    maxUnionMembers: 15,
-    maxFunctionSignatures: 5,
-    skippedTypeNames: [],
-    unwrapArrays: true,
-    unwrapFunctions: true,
-    unwrapGenericArgumentsTypeNames: ["Promise"],
+  // Read the contributed defaults so fresh-install behavior and tests cannot drift.
+  const manifest = JSON.parse(
+    await import("node:fs/promises").then((fs) =>
+      fs.readFile(path.join(__dirname, "../../packages/vscode-extension/package.json"), "utf8"),
+    ),
+  ) as {
+    contributes: { configuration: { properties: Record<string, { default: unknown }> } };
   };
+  const defaults = Object.fromEntries(
+    Object.entries(manifest.contributes.configuration.properties).map(([key, value]) => [
+      key.replace("prettify-ts.", ""),
+      value.default,
+    ]),
+  ) as Required<PrettifySettings>;
 
   const merged = { ...defaults, ...overrides };
 
@@ -145,28 +90,15 @@ export async function applySettings(overrides: PrettifySettings = {}) {
 }
 
 /**
- * Retrieves the hover information for a given keyword in the currently opened document.
- * @returns {Promise<string>} The prettified type string from the hover content with whitespace normalized.
+ * Retrieves plugin/renderer output directly; UI provider flows have separate integration tests.
+ * @returns The prettified type string with whitespace normalized.
  */
 export async function getHover(keyword: string, characterOffset = 1): Promise<string[]> {
   const offset = openDoc.getText().indexOf(keyword);
   assert.ok(offset >= 0, `Fixture keyword not found: ${keyword}`);
-  const position = openDoc.positionAt(offset + characterOffset);
-
-  const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
-    "vscode.executeHoverProvider",
-    openDoc.uri,
-    position,
-  );
-
-  assert.ok(hovers, "Expected hover results to be defined");
-  assert.ok(hovers.length > 0, "Expected at least one hover result");
-
-  return hovers
-    .map((hover) => hover.contents[0])
-    .filter((content) => content !== undefined)
-    .map((content) => (typeof content === "string" ? content : content.value))
-    .map(normalizeTypeString); // Normalize each hover content type string
+  // Type assertions use the plugin directly: native hovers must not mask extraction regressions.
+  // Actual provider registration and unsaved-document flows are covered in commands.test.ts.
+  return [normalizeTypeString(await renderPrettifiedType(keyword, characterOffset))];
 }
 
 /**
@@ -218,30 +150,38 @@ export async function getPrettifyTypeInfo(keyword: string, characterOffset = 1, 
   assert.ok(offset >= 0, `Fixture keyword not found: ${keyword}`);
   const position = openDoc.positionAt(offset + characterOffset);
   const response = await vscode.commands.executeCommand<{
-    body?: { __prettifyResponse?: { declaration: string; typeTree: unknown } };
-  }>("typescript.tsserverRequest", "completionInfo", {
-    file: openDoc.uri.fsPath,
-    line: position.line + 1,
-    offset: position.character + 1,
-    triggerCharacter: {
-      meta: "prettify-type-info-request",
-      options: {
-        hidePrivateProperties: true,
-        maxDepth: 3,
-        maxProperties: 100,
-        maxSubProperties: 5,
-        maxUnionMembers: 15,
-        maxFunctionSignatures: 5,
-        skippedTypeNames: [],
-        unwrapArrays: true,
-        unwrapFunctions: true,
-        unwrapGenericArgumentsTypeNames: ["Promise"],
-        ...overrides,
+    body?: { __prettifyResponse?: TypeInfo };
+  }>(
+    "typescript.tsserverRequest",
+    "completionInfo",
+    {
+      file: openDoc.uri,
+      line: position.line + 1,
+      offset: position.character + 1,
+      triggerCharacter: {
+        meta: "prettify-type-info-request",
+        options: {
+          hidePrivateProperties: true,
+          maxDepth: 3,
+          maxProperties: 100,
+          maxSubProperties: 5,
+          maxUnionMembers: 15,
+          maxFunctionSignatures: 5,
+          skippedTypeNames: [],
+          unwrapArrays: true,
+          unwrapFunctions: true,
+          unwrapGenericArgumentsTypeNames: ["Promise"],
+          ...overrides,
+        },
       },
     },
-  });
+    { executionTarget: 0 },
+  );
   const info = response?.body?.__prettifyResponse;
   assert.ok(info, "Expected a response from the Prettify TypeScript plugin");
+  if (process.env.PRETTIFY_TEST_USE_WORKSPACE_TYPESCRIPT === "1") {
+    assert.match(info.compilerVersion ?? "", /^5[.]9[.]/, "Expected the workspace TypeScript compiler");
+  }
   return info;
 }
 
@@ -249,17 +189,28 @@ export async function getPrettifyTypeInfo(keyword: string, characterOffset = 1, 
 export async function renderPrettifiedType(keyword: string, characterOffset = 1): Promise<string> {
   const config = vscode.workspace.getConfiguration("prettify-ts");
   const overrides: PrettifySettings = {};
-  for (const key of ["maxDepth", "skippedTypeNames", "unwrapArrays", "unwrapFunctions"] as const) {
+  for (const key of [
+    "hidePrivateProperties",
+    "treatUnderscoreAsPrivate",
+    "maxDepth",
+    "maxProperties",
+    "maxSubProperties",
+    "maxUnionMembers",
+    "maxFunctionSignatures",
+    "skippedTypeNames",
+    "unwrapArrays",
+    "unwrapFunctions",
+    "unwrapGenericArgumentsTypeNames",
+  ] as const) {
     Object.assign(overrides, { [key]: config.get(key) });
   }
   const info = await getPrettifyTypeInfo(keyword, characterOffset, overrides);
   // Load the same compiled formatter used by the extension, without requiring editor focus.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const formatter = require("../../packages/vscode-extension/out/stringify-type-tree") as {
-    stringifyTypeTree(tree: unknown, anonymousFunction: boolean): string;
-    prettyPrintTypeString(text: string, indentation: number): string;
+    renderTypeInfo(info: TypeInfo, indentation: number): string;
   };
-  return info.declaration + formatter.prettyPrintTypeString(formatter.stringifyTypeTree(info.typeTree, false), 4);
+  return formatter.renderTypeInfo(info, 4);
 }
 
 export function getOpenDocument(): vscode.TextDocument {

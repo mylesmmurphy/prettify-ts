@@ -17,30 +17,57 @@ concurrency:
 jobs:
   ci:
     if: github.event.pull_request.draft == false || github.event_name == 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      PRETTIFY_TEST_VSCODE_VERSION: '1.100.0'
+      PRETTIFY_TEST_VUE_EXTENSION_VERSION: '3.1.1'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm test:unit
+      - name: Minimum-editor integration
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm test
+      - name: Minimum-editor integration
+        if: runner.os == 'Windows'
+        run: pnpm test
+      - name: Installed VSIX integration
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm test:package
+      - uses: actions/upload-artifact@v6
+        if: runner.os == 'Linux'
+        with:
+          name: prettify-ts-vsix
+          path: packages/vscode-extension/*.vsix
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Type check
-        run: pnpm typecheck
-
-      - name: Run linter
-        run: pnpm lint
-
-      - name: Run tests
+  current-editor:
+    if: github.event.pull_request.draft == false || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRETTIFY_TEST_VSCODE_VERSION: stable
+      PRETTIFY_TEST_VUE_EXTENSION_VERSION: latest
+      PRETTIFY_TEST_USE_WORKSPACE_TYPESCRIPT: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Latest editor and Vue with workspace TypeScript
         run: xvfb-run -a pnpm test

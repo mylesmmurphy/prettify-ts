@@ -6,10 +6,12 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 export default [
   {
     ignores: [
-      "**/out/**", // Ignore all out directories
+      "**/out/**", // Generated builds
+      "test/out-unit/**", // Compiled unit-test entry points
       "scripts/**", // Ignore scripts directory
       "eslint.config.mjs", // Ignore this config file
-      "test/.vscode-test.js", // Ignore VSCode test file,
+      "test/.vscode-test.js",
+      "test/unit/*.cjs", // Executed directly by the Node test runner
       ".vscode-test/**", // Ignore all VSCode test files
     ],
   },

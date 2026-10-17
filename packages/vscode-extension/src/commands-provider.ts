@@ -1,96 +1,61 @@
-import type { TypeInfo } from "@prettify-ts/typescript-plugin/src/type-tree/types";
 import * as vscode from "vscode";
-import { stringifyTypeTree, prettyPrintTypeString } from "./stringify-type-tree";
+import { toggleEnabled, readSettings } from "./configuration";
+import { renderTypeInfo } from "./stringify-type-tree";
+import { limitPreview, supportedLanguages } from "./type-client";
+import type { TypeClient } from "./type-client";
 
-import type { PrettifyRequest } from "@prettify-ts/typescript-plugin/src/request";
-
-// MAX_SETTINGS is an extremely high constant used to represent "unlimited" or "maximum possible" settings.
-// It is intended for advanced scenarios (e.g., full type tree processing) and may have performance implications.
-const MAX_SETTINGS = 999999999999;
-
-export function registerCommands(context: vscode.ExtensionContext): void {
-  const toggleCommand = vscode.commands.registerCommand("prettify-ts.toggle", async (option?: boolean) => {
-    const config = vscode.workspace.getConfiguration("prettify-ts");
-    if (option === true || option === false) {
-      await config.update("enabled", option, vscode.ConfigurationTarget.Global);
-      return;
-    }
-
-    await config.update("enabled", !config.get("enabled", true), vscode.ConfigurationTarget.Global);
-  });
-
-  async function copyType(full = false): Promise<void> {
-    const config = vscode.workspace.getConfiguration("prettify-ts");
+export function registerCommands(context: vscode.ExtensionContext, client: TypeClient): void {
+  async function copyType(full: boolean): Promise<void> {
     const editor = vscode.window.activeTextEditor;
-    if (!editor) return;
-
-    const indentation = config.get("typeIndentation", 4);
-    const options = {
-      hidePrivateProperties: config.get("hidePrivateProperties", true),
-      treatUnderscoreAsPrivate: config.get("treatUnderscoreAsPrivate", true),
-      maxDepth: config.get("maxDepth", 2),
-      maxProperties: config.get("maxProperties", 100),
-      maxSubProperties: config.get("maxSubProperties", 5),
-      maxUnionMembers: config.get("maxUnionMembers", 15),
-      maxFunctionSignatures: config.get("maxFunctionSignatures", 5),
-      skippedTypeNames: config.get("skippedTypeNames", [] as string[]),
-      unwrapArrays: config.get("unwrapArrays", true),
-      unwrapFunctions: config.get("unwrapFunctions", true),
-      unwrapGenericArgumentsTypeNames: config.get("unwrapGenericArgumentsTypeNames", [] as string[]),
-    };
-
-    if (full) {
-      options.maxDepth = MAX_SETTINGS;
-      options.maxProperties = MAX_SETTINGS;
-      options.maxSubProperties = MAX_SETTINGS;
-      options.maxUnionMembers = MAX_SETTINGS;
-      options.maxFunctionSignatures = MAX_SETTINGS;
-      options.unwrapArrays = true;
-      options.unwrapFunctions = true;
-    }
-
-    const request: PrettifyRequest = {
-      meta: "prettify-type-info-request",
-      options,
-    };
-
-    const cursorPosition = editor.selection.active;
-    const location = {
-      file: editor.document.uri.fsPath,
-      line: cursorPosition.line + 1,
-      offset: cursorPosition.character + 1,
-    };
-
-    const response: any = await vscode.commands.executeCommand("typescript.tsserverRequest", "completionInfo", {
-      ...location,
-      triggerCharacter: request,
-    });
-
-    const prettifyResponse: TypeInfo | undefined = response?.body?.__prettifyResponse;
-    if (!prettifyResponse || !prettifyResponse.typeTree) {
-      await vscode.window.showErrorMessage("No type information found at cursor position");
+    if (!editor || !supportedLanguages.includes(editor.document.languageId)) {
+      void vscode.window.showInformationMessage("Open a TypeScript, JavaScript, or Vue document to copy its type.");
       return;
     }
-
-    const { typeTree, declaration } = prettifyResponse;
-
-    const typeString = stringifyTypeTree(typeTree, false);
-    const prettyTypeString = prettyPrintTypeString(typeString, indentation);
-
-    await vscode.env.clipboard.writeText(declaration + prettyTypeString);
-    await vscode.window.showInformationMessage("Type copied to clipboard");
+    const document = editor.document;
+    const position = editor.selection.active;
+    const settings = readSettings(document, full);
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: full ? "Expanding type" : "Copying type",
+        cancellable: true,
+      },
+      async (_, token) => {
+        const info = await client.request(document, position, settings.options, token);
+        if (token.isCancellationRequested) return;
+        if (!info) {
+          void vscode.window.showErrorMessage(
+            "No type information found. See the Prettify TS output for request errors.",
+          );
+          return;
+        }
+        const rendered = renderTypeInfo(info, settings.indentation);
+        const text = full ? rendered : limitPreview(rendered, settings.maxCharacters);
+        const truncated = text !== rendered || !!info.truncationReasons?.length;
+        await vscode.env.clipboard.writeText(
+          text +
+            (info.truncationReasons?.length
+              ? "\n/* Expansion limited: " + info.truncationReasons.join(", ") + " */"
+              : ""),
+        );
+        void vscode.window.showInformationMessage(
+          truncated ? "Type copied with expansion limits." : "Type copied to clipboard",
+        );
+      },
+    );
   }
-
-  const copyFunction = async () =>
-    await copyType().catch(() => vscode.window.showErrorMessage("Failed to copy prettified type"));
-
-  const fullCopyFunction = async () =>
-    await copyType(true).catch(() => vscode.window.showErrorMessage("Failed to copy fully prettified type"));
-
-  const copyCommand = vscode.commands.registerCommand("prettify-ts.copyPrettifiedType", copyFunction);
-  const fullCopyCommand = vscode.commands.registerCommand("prettify-ts.fullCopyPrettifiedType", fullCopyFunction);
-
-  context.subscriptions.push(toggleCommand);
-  context.subscriptions.push(copyCommand);
-  context.subscriptions.push(fullCopyCommand);
+  for (const [command, full] of [
+    ["prettify-ts.copyPrettifiedType", false],
+    ["prettify-ts.fullCopyPrettifiedType", true],
+  ] as const) {
+    context.subscriptions.push(
+      vscode.commands.registerCommand(command, () =>
+        copyType(full).catch((error: unknown) => {
+          client.log(error);
+          void vscode.window.showErrorMessage("Failed to copy type. See the Prettify TS output for details.");
+        }),
+      ),
+    );
+  }
+  context.subscriptions.push(vscode.commands.registerCommand("prettify-ts.toggle", toggleEnabled));
 }

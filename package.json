@@ -11,14 +11,16 @@
     "test": "vscode-test --config ./test/.vscode-test.js",
     "build": "pnpm -r run build",
     "build:debug": "pnpm --filter @prettify-ts/typescript-plugin build:debug && pnpm --filter prettify-ts run build",
-    "package": "pnpm build && pnpm --filter prettify-ts run package && node ./scripts/post-package.js && pnpm install",
-    "typecheck": "tsc --noEmit -p packages/typescript-plugin && tsc --noEmit -p packages/vscode-extension && tsc --noEmit -p test"
+    "package": "pnpm build && node ./scripts/package.js",
+    "typecheck": "tsc --noEmit -p packages/typescript-plugin && tsc --noEmit -p packages/vscode-extension && tsc --noEmit -p test && tsc --noEmit -p test/unit",
+    "test:unit": "node scripts/test-unit.js",
+    "test:package": "pnpm build && tsc -p test && node scripts/test-package.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.19.2",
-    "@types/vscode": "1.44.0",
+    "@types/vscode": "1.100.0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.1.0",
     "esbuild": "^0.28.2",

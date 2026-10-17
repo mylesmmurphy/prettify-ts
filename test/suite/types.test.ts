@@ -91,7 +91,7 @@ suite("Hover Types", () => {
 
     test("multiple signatures", async () => {
       const hover = await getHover("TestFunctionMultipleObj");
-      const expected = /* ts */ `type TestFunctionMultipleObj = { value: { (string: string) => string; (number: number) => number; }; };`;
+      const expected = /* ts */ `type TestFunctionMultipleObj = { value: { (string: string): string; (number: number): number; }; };`;
       assertHover(hover, expected);
     });
 
@@ -151,7 +151,7 @@ suite("Hover Types", () => {
     test("generic variadic tuple retains its spread and following element", async () => {
       assertHover(
         [await renderPrettifiedType("TestVariadicTupleObj")],
-        "type TestVariadicTupleObj = { value: [first: string, ...rest: T, last: boolean]; };",
+        "type TestVariadicTupleObj<T extends unknown[]> = { value: [first: string, ...rest: T, last: boolean]; };",
       );
     });
 

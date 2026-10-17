@@ -6,16 +6,16 @@
   "version": "0.3.9",
   "main": "./out/extension.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --noEmit && esbuild src/*.ts --bundle --platform=node --format=cjs --external:vscode --outdir=out --sourcemap",
     "esbuild": "esbuild ./src/extension.ts --bundle --minify --sourcemap --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
-    "package": "pnpm esbuild && node ../../scripts/pre-package.js && vsce --version && vsce package --dependencies"
+    "package": "node ../../scripts/package.js"
   },
   "dependencies": {
     "@prettify-ts/typescript-plugin": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
-    "@types/vscode": "1.44.0",
+    "@types/vscode": "1.100.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
     "typescript": "~5.9.3"
@@ -25,7 +25,7 @@
   "preview": false,
   "icon": "assets/logo.png",
   "engines": {
-    "vscode": "^1.44.0"
+    "vscode": "^1.100.0"
   },
   "repository": {
     "type": "git",
@@ -38,11 +38,11 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished",
     "onLanguage:typescript",
     "onLanguage:javascript",
     "onLanguage:typescriptreact",
-    "onLanguage:javascriptreact"
+    "onLanguage:javascriptreact",
+    "onLanguage:vue"
   ],
   "contributes": {
     "typescriptServerPlugins": [
@@ -73,7 +73,7 @@
         {
           "submenu": "prettify.copy",
           "group": "9_cutcopypaste",
-          "when": "editorLangId == 'typescript' || editorLangId == 'typescriptreact'"
+          "when": "editorLangId =~ /^(typescript|typescriptreact|javascript|javascriptreact|vue)$/"
         }
       ],
       "prettify.copy": [
@@ -97,66 +97,86 @@
         "prettify-ts.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable or disable Prettify TS."
+          "description": "Enable or disable Prettify TS.",
+          "scope": "language-overridable"
         },
         "prettify-ts.typeIndentation": {
-          "type": "number",
+          "type": "integer",
           "default": 4,
-          "minimum": 0
+          "minimum": 0,
+          "scope": "language-overridable",
+          "maximum": 8
         },
         "prettify-ts.maxDepth": {
-          "type": "number",
+          "type": "integer",
           "default": 1,
-          "minimum": 0
+          "minimum": 0,
+          "scope": "language-overridable",
+          "maximum": 20,
+          "description": "Object-property expansion depth. Independent safety budgets also limit every type traversal."
         },
         "prettify-ts.maxProperties": {
-          "type": "number",
+          "type": "integer",
           "default": 1000,
           "minimum": 1,
-          "description": "The maximum number of properties (including sub-properties) to show in a type preview. The number of lines shown will be at most this number."
+          "description": "Maximum total object properties and index signatures across the expansion. Omitted members are marked.",
+          "scope": "language-overridable",
+          "maximum": 5000
         },
         "prettify-ts.maxSubProperties": {
-          "type": "number",
+          "type": "integer",
           "default": 10,
           "minimum": 1,
-          "description": "The maximum number of properties to show in a nested (depth greater than 1) type."
+          "description": "Maximum properties in each nested object, within the total Max Properties budget.",
+          "scope": "language-overridable",
+          "maximum": 5000
         },
         "prettify-ts.maxUnionMembers": {
-          "type": "number",
+          "type": "integer",
           "default": 15,
           "minimum": 1,
-          "description": "The maximum number of members to show in a union."
+          "description": "The maximum number of members to show in a union.",
+          "scope": "language-overridable",
+          "maximum": 100
         },
         "prettify-ts.maxFunctionSignatures": {
-          "type": "number",
+          "type": "integer",
           "default": 5,
           "minimum": 1,
-          "description": "The maximum number of function signatures to show."
+          "description": "The maximum number of function signatures to show.",
+          "scope": "language-overridable",
+          "maximum": 50
         },
         "prettify-ts.hidePrivateProperties": {
           "type": "boolean",
           "default": true,
-          "description": "Hide private and protected members, including JavaScript private fields. Underscore-prefixed members are also hidden when Treat Underscore As Private is enabled."
+          "description": "Hide private and protected members, including JavaScript private fields. Underscore-prefixed members are also hidden when Treat Underscore As Private is enabled.",
+          "scope": "language-overridable"
         },
         "prettify-ts.treatUnderscoreAsPrivate": {
           "type": "boolean",
           "default": true,
-          "description": "Treat underscore-prefixed properties and methods as private when Hide Private Properties is enabled. Disable to show public underscore-prefixed members while keeping private and protected members hidden."
+          "description": "Treat underscore-prefixed properties and methods as private when Hide Private Properties is enabled. Disable to show public underscore-prefixed members while keeping private and protected members hidden.",
+          "scope": "language-overridable"
         },
         "prettify-ts.unwrapFunctions": {
           "type": "boolean",
           "default": true,
-          "description": "Prettify function parameters and return types."
+          "description": "Prettify function parameters and return types.",
+          "scope": "language-overridable"
         },
         "prettify-ts.unwrapArrays": {
           "type": "boolean",
           "default": true,
-          "description": "Prettify array element types."
+          "description": "Prettify array element types.",
+          "scope": "language-overridable"
         },
         "prettify-ts.unwrapPromises": {
           "type": "boolean",
           "default": true,
-          "description": "Prettify the resolved type of a promise."
+          "description": "Legacy Promise override. False preserves Promise references; true follows the generic expansion list.",
+          "scope": "language-overridable",
+          "deprecationMessage": "Use Unwrap Generic Arguments Type Names instead. False still preserves Promise references for compatibility."
         },
         "prettify-ts.skippedTypeNames": {
           "type": "array",
@@ -164,20 +184,18 @@
             "type": "string"
           },
           "default": [
-            "Array",
             "ArrayBuffer",
             "Buffer",
             "Date",
             "Element",
             "Error",
-            "Map",
             "Number",
             "RegExp",
-            "Set",
             "String",
             "Symbol"
           ],
-          "description": "Types that won't be unwrapped, by name. Generic types are supported, with their arguments replaced by ellipses (e.g., `ZodObject<...>`)."
+          "description": "Names to preserve instead of expanding. Explicit skips take precedence over array, function, and generic argument expansion.",
+          "scope": "language-overridable"
         },
         "prettify-ts.unwrapGenericArgumentsTypeNames": {
           "type": "array",
@@ -190,14 +208,16 @@
             "Map",
             "Observable"
           ],
-          "description": "A list of generic type names whose arguments will be unwrapped, instead of the apparent (final) type."
+          "description": "A list of generic type names whose arguments will be unwrapped, instead of the apparent (final) type.",
+          "scope": "language-overridable"
         },
         "prettify-ts.maxCharacters": {
-          "type": "number",
+          "type": "integer",
           "default": 20000,
           "minimum": 0,
           "maximum": 99000,
-          "description": "The maximum number of string characters to show in a type preview before cutting off. (High performance impact)"
+          "description": "Maximum characters of hover and regular copy output. Full copy uses a larger, bounded analysis budget.",
+          "scope": "language-overridable"
         }
       }
     }
