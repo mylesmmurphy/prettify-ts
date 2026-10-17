@@ -32,7 +32,7 @@ Run editor suites sequentially on the same desktop: clipboard integration tests 
 
 ## Real-world suite (optional)
 
-`pnpm test:real-world` (or `node scripts/test-real-world.js`) runs the plugin over large open-source projects. It is not part of `pnpm test` or PR CI; the `Real-world sweep` workflow runs it weekly and on demand.
+`pnpm test:real-world` (or `node scripts/test-real-world.js`) runs the plugin over large open-source projects. It is not part of `pnpm test` or PR CI; the `Real-world sweep` workflow runs it weekly, on demand, and on pull requests labelled `real-world` (never a required check).
 
 - Projects, pinned commits, install commands, tsconfig and sampled directories live in `test/real-world/projects.json`. Clones and installs (lifecycle scripts disabled) are kept in `.vscode-test/real-world/` and reused while the commit and install command are unchanged.
 - The headless sweep (`test/real-world/sweep.ts`) loads each project's tsconfig into a LanguageService with the project's own TypeScript, attaches the plugin through its `create` entry, and requests a deterministic sample of identifiers: every position in hover mode (`DEFAULT_OPTIONS`) and every 8th distinct name as a full copy (`fullExpansion`).
