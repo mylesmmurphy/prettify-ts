@@ -3,10 +3,10 @@
 **Get useful type information where you need it**
 
 [![Installs](https://badgen.net/vs-marketplace/i/MylesMurphy.prettify-ts)](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
-[![GitHub Repo stars](https://badgen.net/github/stars/mylesmmurphy/prettify-ts)](https://github.com/mylesmmurphy/prettify-ts)
+[![GitHub Repo stars](https://img.shields.io/github/stars/mylesmmurphy/prettify-ts?style=social)](https://github.com/mylesmmurphy/prettify-ts)
 [![Version](https://badgen.net/vs-marketplace/v/MylesMurphy.prettify-ts)](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
-[![CI](https://badgen.net/static/CI/GitHub%20Actions/blue)](https://github.com/mylesmmurphy/prettify-ts/actions/workflows/ci.yml)
-[![License](https://badgen.net/github/license/mylesmmurphy/prettify-ts)](https://github.com/mylesmmurphy/prettify-ts/blob/main/LICENSE)
+[![CI](https://github.com/mylesmmurphy/prettify-ts/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mylesmmurphy/prettify-ts/actions/workflows/ci.yml)
+[![License](https://badgen.net/static/license/MIT/blue)](https://github.com/mylesmmurphy/prettify-ts/blob/main/LICENSE)
 
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable and configurable way.
 
