@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { toggleEnabled, readSettings } from "./configuration";
 import { renderTypeInfo } from "./stringify-type-tree";
-import { limitPreview, reportedLimits, supportedLanguages } from "./type-client";
+import { reportedLimits, supportedLanguages } from "./type-client";
 import type { TypeClient } from "./type-client";
 
 export function registerCommands(context: vscode.ExtensionContext, client: TypeClient): void {
@@ -29,15 +29,14 @@ export function registerCommands(context: vscode.ExtensionContext, client: TypeC
           );
           return;
         }
-        const rendered = renderTypeInfo(info, settings.indentation);
-        const text = full ? rendered : limitPreview(rendered, settings.maxCharacters);
+        // Copies are never cut by Max Characters; that setting only limits hover previews.
+        const text = renderTypeInfo(info, settings.indentation);
         const limits = reportedLimits(info);
-        const truncated = text !== rendered || !!limits.length;
         await vscode.env.clipboard.writeText(
           text + (limits.length ? "\n/* Expansion limited: " + limits.join(", ") + " */" : ""),
         );
         void vscode.window.showInformationMessage(
-          truncated ? "Type copied with expansion limits." : "Type copied to clipboard",
+          limits.length ? "Type copied with expansion limits." : "Type copied to clipboard",
         );
       },
     );

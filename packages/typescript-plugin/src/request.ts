@@ -11,9 +11,6 @@ export type PrettifyOptions = {
    */
   hidePrivateProperties: boolean;
 
-  /** Legacy Promise override. False keeps the original Promise reference. */
-  unwrapPromises?: boolean;
-
   /** A larger, still bounded analysis budget for explicit copy requests. */
   fullExpansion?: boolean;
 

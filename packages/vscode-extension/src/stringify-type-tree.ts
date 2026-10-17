@@ -44,8 +44,9 @@ function signatureText(signature: TypeFunctionSignature, context: RenderContext)
   );
 }
 
-function omitted(count: number, label: string): string {
-  return count > 0 ? " /* ... " + count + " more " + label + " */" : "";
+/** Same wording as earlier releases (`... 3 more`), inside a comment so copied output stays valid TypeScript. */
+function omitted(count: number, separator = ""): string {
+  return count > 0 ? " /* " + separator + "... " + count + " more */" : "";
 }
 
 /** Index just past the quoted or template literal starting at `start`, including nested `${}` expressions. */
@@ -125,7 +126,7 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
             ? "(" + text + ")"
             : text;
         })
-        .join(" | ") + omitted(tree.excessMembers, "union members")
+        .join(" | ") + omitted(tree.excessMembers, "| ")
     );
   }
   if (tree.kind === "object") {
@@ -133,9 +134,13 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
       return "{}";
     const signatures = (tree.signatures ?? []).map((signature) => signatureText(signature, "call") + ";");
     const properties = tree.properties.map((property) => {
-      // Digit-only string keys retain their identity, including leading zeroes and large integers.
+      // Canonical numeric keys stay bare (`0: string`); "01" or unsafe integers keep quotes to retain their identity.
       const name =
-        property.computed || /^[a-zA-Z_$][\w$]*$/.test(property.name) ? property.name : JSON.stringify(property.name);
+        property.computed ||
+        /^[a-zA-Z_$][\w$]*$/.test(property.name) ||
+        (/^(?:0|[1-9]\d*)$/.test(property.name) && Number.isSafeInteger(Number(property.name)))
+          ? property.name
+          : JSON.stringify(property.name);
       return (
         (property.readonly ? "readonly " : "") +
         name +
@@ -145,13 +150,9 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
         ";"
       );
     });
-    return (
-      "{ " +
-      [...signatures, ...properties].join(" ") +
-      omitted(tree.excessProperties, "properties") +
-      omitted(tree.excessSignatures ?? 0, "signatures") +
-      " }"
-    );
+    const members = [...signatures, ...properties].join(" ");
+    const markers = (omitted(tree.excessProperties) + omitted(tree.excessSignatures ?? 0)).trimStart();
+    return "{ " + (members && markers ? members + " " + markers : members || markers) + " }";
   }
   if (tree.kind === "tuple") {
     return (
@@ -184,11 +185,11 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
   }
   if (tree.kind === "function") {
     if (tree.signatures.length === 1)
-      return signatureText(tree.signatures[0]!, context) + omitted(tree.excessSignatures, "signatures");
+      return signatureText(tree.signatures[0]!, context) + omitted(tree.excessSignatures);
     return (
       "{ " +
       tree.signatures.map((signature) => signatureText(signature, "call") + ";").join(" ") +
-      omitted(tree.excessSignatures, "signatures") +
+      omitted(tree.excessSignatures) +
       " }"
     );
   }
@@ -198,9 +199,38 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
   return tree.typeName;
 }
 
+const NODE_MODULES = "node_modules/";
+
+/**
+ * Show `typeof import("/abs/path/node_modules/pkg/x")` as `typeof import("pkg/x")`, as earlier releases did.
+ * Only module specifiers are rewritten; other string and template literal contents are left untouched.
+ */
+function shortenModulePaths(text: string): string {
+  if (!text.includes(NODE_MODULES)) return text;
+  let result = "";
+  let copied = 0;
+  for (let index = 0; index < text.length; index++) {
+    const character = text[index]!;
+    if (text.startsWith("/*", index)) {
+      const end = text.indexOf("*/", index + 2);
+      index = end < 0 ? text.length : end + 1;
+    } else if (["'", '"', "`"].includes(character)) {
+      const end = literalEnd(text, index);
+      const at = text.indexOf(NODE_MODULES, index);
+      if (character === '"' && text.endsWith("typeof import(", index) && at >= 0 && at < end) {
+        result += text.slice(copied, index + 1);
+        copied = at + NODE_MODULES.length;
+      }
+      index = end - 1;
+    }
+  }
+  return result + text.slice(copied);
+}
+
 /** Format whitespace only. Quoted text, template literals, and comments are opaque. */
 export function prettyPrintTypeString(input: string, indentation = 2): string {
-  const spaces = integerSetting(indentation, 4, 0, 8);
+  input = shortenModulePaths(input);
+  const spaces = integerSetting(indentation, 4, 0);
   if (!spaces) return input;
   // Build completed lines separately so formatting stays linear in the input size.
   const lines: string[] = [];
@@ -220,6 +250,10 @@ export function prettyPrintTypeString(input: string, indentation = 2): string {
     line = "";
     lineStart = true;
   }
+  function skipSpace(from: number): number {
+    while (from < input.length && /\s/.test(input[from]!)) from++;
+    return from;
+  }
   for (let index = 0; index < input.length; index++) {
     const character = input[index]!;
     if (["'", '"', "`"].includes(character)) {
@@ -232,11 +266,15 @@ export function prettyPrintTypeString(input: string, indentation = 2): string {
       write(input.slice(index, stop));
       index = stop - 1;
     } else if (character === "{") {
-      let close = index + 1;
-      while (close < input.length && /\s/.test(input[close]!)) close++;
+      const close = skipSpace(index + 1);
+      const commentEnd = input.startsWith("/*", close) ? input.indexOf("*/", close + 2) : -1;
       if (input[close] === "}") {
         write("{}");
         index = close;
+      } else if (commentEnd >= 0 && input[skipSpace(commentEnd + 2)] === "}") {
+        // A collapsed object (`{ ... 2 more }`) stays on one line.
+        write("{ " + input.slice(close, commentEnd + 2) + " }");
+        index = skipSpace(commentEnd + 2);
       } else {
         write("{");
         depth++;
@@ -257,19 +295,67 @@ export function prettyPrintTypeString(input: string, indentation = 2): string {
   return lines.join("\n") + "\n";
 }
 
-export function renderTypeInfo(info: TypeInfo, indentation: number): string {
+/** The declaration prefix and the formatted type, rendered separately for hover deduplication. */
+export function renderTypeParts(info: TypeInfo, indentation: number): { declaration: string; type: string } {
   let declaration = info.declaration;
   const tree = info.typeTree;
   if (declaration.startsWith("function")) {
-    if (tree.kind === "function" && tree.signatures.length === 1 && !tree.signatures[0]!.construct) {
-      return declaration + prettyPrintTypeString(stringifyTypeTree(tree, "declaration"), indentation);
+    if (tree.kind === "function" && tree.signatures.length === 1) {
+      // Constructors keep the familiar `function Foo(value: string): Foo` form.
+      const signature = { ...tree.signatures[0]!, construct: false };
+      const type = stringifyTypeTree({ ...tree, signatures: [signature] }, "declaration");
+      return { declaration, type: prettyPrintTypeString(type, indentation) };
     }
     declaration = "const " + info.name + ": ";
   }
-  return declaration + prettyPrintTypeString(stringifyTypeTree(tree, "type"), indentation);
+  return { declaration, type: prettyPrintTypeString(stringifyTypeTree(tree, "type"), indentation) };
 }
 
-/** Preserve literal contents and namespaces; deduplication must not erase type semantics. */
+const OMISSION_MARKER = /^\/\* (\| )?\.\.\. (\d+) more \*\/$/;
+
+/**
+ * Hover previews keep the compact markers of earlier releases (`{ ... 2 more }`, `a: 1; ... 2 more;`, `| ... 5 more`).
+ * Copies keep the comment form so pasted output remains valid TypeScript.
+ */
+export function hoverMarkers(text: string): string {
+  let result = "";
+  let previous = "";
+  for (let index = 0; index < text.length; index++) {
+    const character = text[index]!;
+    let piece = character;
+    if (["'", '"', "`"].includes(character)) {
+      const end = literalEnd(text, index);
+      piece = text.slice(index, end);
+      index = end - 1;
+    } else if (text.startsWith("/*", index)) {
+      const close = text.indexOf("*/", index + 2);
+      const end = close < 0 ? text.length : close + 2;
+      piece = text.slice(index, end);
+      const match = OMISSION_MARKER.exec(piece);
+      if (match?.[1]) piece = "| ... " + match[2] + " more";
+      else if (match && previous === "{") piece = "... " + match[2] + " more";
+      else if (match && previous === ";") piece = "... " + match[2] + " more;";
+      index = end - 1;
+    }
+    result += piece;
+    if (piece.trim()) previous = piece.trimEnd().slice(-1);
+  }
+  return result;
+}
+
+export function renderTypeInfo(info: TypeInfo, indentation: number): string {
+  const { declaration, type } = renderTypeParts(info, indentation);
+  return declaration + type;
+}
+
+/**
+ * Sanitizes a string by removing leading words, whitespace, newlines, and semicolons.
+ * Used only to decide whether TypeScript's own hover already shows the same type.
+ */
 export function sanitizeString(str: string): string {
-  return str.trim();
+  return str
+    .replace(/^[a-z]+\s/, "") // Remove the leading word, ex: type, const, interface
+    .replace(/\s/g, "") // Remove all whitespace
+    .replace(/;/g, "") // Remove all semicolons
+    .replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\./g, ""); // Remove namespaces (e.g., z.)
 }

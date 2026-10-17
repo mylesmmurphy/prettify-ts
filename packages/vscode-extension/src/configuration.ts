@@ -13,12 +13,11 @@ export function readSettings(document?: vscode.TextDocument, full = false) {
   for (const key of Object.keys(DEFAULT_OPTIONS) as (keyof typeof DEFAULT_OPTIONS)[]) {
     Object.assign(options, { [key]: config.get(key, DEFAULT_OPTIONS[key]) });
   }
-  options.unwrapPromises = config.get("unwrapPromises", true);
   options.fullExpansion = full;
   return {
     config,
     enabled: config.get("enabled", DISPLAY_DEFAULTS.enabled),
-    indentation: integerSetting(config.get("typeIndentation"), DISPLAY_DEFAULTS.typeIndentation, 0, 8),
+    indentation: integerSetting(config.get("typeIndentation"), DISPLAY_DEFAULTS.typeIndentation, 0),
     maxCharacters: integerSetting(config.get("maxCharacters"), DISPLAY_DEFAULTS.maxCharacters, 0, 99000),
     options: normalizeOptions(options),
   };

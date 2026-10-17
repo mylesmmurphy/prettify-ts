@@ -75,5 +75,5 @@ export function reportedLimits(info: TypeInfo): string[] {
 }
 
 export function limitPreview(text: string, limit: number): string {
-  return text.length > limit ? text.slice(0, limit) + "\n/* Preview truncated by maxCharacters */" : text;
+  return text.length > limit ? text.slice(0, limit) + "..." : text;
 }

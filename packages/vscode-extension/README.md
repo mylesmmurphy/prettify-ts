@@ -55,7 +55,7 @@ To use Prettify TS with Vue projects, you need:
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | **Type Indentation**                    | Controls the indentation level of types.                                                                                    |
 | **Max Depth**                           | Sets the maximum depth to which types should be expanded.                                                                   |
-| **Max Properties**                      | Limits total properties and index signatures across the expansion. Omitted members are marked.                 |
+| **Max Properties**                      | Limits the number of properties displayed for each type. Excess properties will be displayed with ellipsis.                 |
 | **Max Sub-Properties**                  | Limits the number of sub-properties (on nested objects) displayed for each property. Excess will be shown as ellipsis.      |
 | **Max Union Members**                   | Limits the number of union members shown per union. Excess members will be displayed with ellipsis.                         |
 | **Max Function Signatures**             | Limits the number of function signatures shown. Excess signatures will be replaced with ellipsis.                           |
@@ -65,7 +65,7 @@ To use Prettify TS with Vue projects, you need:
 | **Hide Private Properties**             | Hides private/protected members, JavaScript private fields, and optionally underscore-prefixed members.                     |
 | **Treat Underscore As Private**         | When hiding private members, also hides underscore-prefixed properties and methods. Defaults to enabled.                    |
 | **Skipped Type Names**                  | List of type names that should not be expanded. Generics are supported and replaced with ellipses (e.g., `ZodObject<...>`). |
-| **Max Characters**                      | Limits hover and regular copy characters. Full copy has independent safety limits.                                       |
+| **Max Characters**                      | Sets a maximum character limit for output. If exceeded, the result will be truncated.                                       |
 
 To show public underscore-prefixed members while keeping private and protected members hidden, use:
 
@@ -76,19 +76,13 @@ To show public underscore-prefixed members while keeping private and protected m
 }
 ```
 
-Private-member and underscore settings apply to hover previews and both copy commands. Disabling **Hide Private Properties** shows all members regardless of **Treat Underscore As Private**. Computed symbol keys remain visible unless the member is explicitly private or protected.
+These settings apply to hover previews and both copy commands. Disabling **Hide Private Properties** shows all members regardless of **Treat Underscore As Private**. Computed symbol keys remain visible unless the member is explicitly private or protected.
 
-## Expansion and copy limits
+## Large and recursive types
 
-Regular copy follows the same presentation settings as hover, including Max Characters. Copy Fully Prettified Type expands arrays/functions and relaxes depth/member limits, while preserving private-member filtering and explicit skipped names. Both commands show progress and support cancellation. Output clearly marks omitted members and budget-limited expansions.
+Hover previews and both copy commands are protected by internal time and size limits, so very large or self-referencing types cannot stall the TypeScript server. These limits are far above what normal previews use; when one is reached, the output says so. Copied types mark omitted members as `/* ... 3 more */` comments, so pasted output stays valid TypeScript.
 
-All requests retain internal limits on nodes, recursion, time, type text, and response size. Full copy never disables these protections. Max Depth describes object-property nesting; it is separate from the hard traversal guard for functions, tuples, arrays, and generics.
-
-Explicit skipped names take precedence over expansion settings. Array, Map, and Set are no longer skipped by default, so their expansion controls work consistently. Generic argument expansion supports aliases as well as interfaces/classes.
-
-The legacy Unwrap Promises setting is deprecated: use Unwrap Generic Arguments Type Names. Setting the legacy option to false still preserves Promise references. Configuration can be overridden per folder and language; Toggle Preview updates the effective override.
-
-Type display uses valid function/call/construct signature contexts and preserves generic binders, predicates, optional/readonly modifiers, explicit undefined, quoted keys, and readonly-array grouping. See the Prettify TS output channel for request failures.
+Settings can also be overridden per language, and **Toggle Preview** updates whichever setting is currently in effect. Request failures are logged to the **Prettify TS** output channel.
 
 ## Sidebar View (Deprecated)
 

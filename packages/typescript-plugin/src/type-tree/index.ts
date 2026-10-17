@@ -2,7 +2,7 @@ import type * as ts from "typescript";
 import type { Language } from "@volar/language-core";
 import type { TypeFunctionSignature, TypeInfo, TypeProperty, TypeTree } from "./types";
 import type { PrettifyOptions } from "../request";
-import { MAX_ANALYSIS_NODES, MAX_OUTPUT_CHARACTERS, MAX_TRAVERSAL_DEPTH, normalizeOptions } from "../options";
+import { FULL_COPY_LIMITS, PREVIEW_LIMITS, normalizeOptions } from "../options";
 import { getDescendantAtRange } from "./get-ast-node";
 import { getPositionForVue } from "./vue";
 import { enumParent, resolvedReadonly } from "./compiler-internals";
@@ -24,16 +24,16 @@ export function getTypeInfoAtPosition(
   control: AnalysisControl = {},
 ): TypeInfo | undefined {
   const options = normalizeOptions(prettifyOptions);
-  const deadline = Date.now() + (options.fullExpansion ? 1500 : 300);
+  const limits = options.fullExpansion ? FULL_COPY_LIMITS : PREVIEW_LIMITS;
+  const deadline = Date.now() + limits.milliseconds;
   const reasons = new Set<string>();
   let nodes = 0;
-  let propertiesUsed = 0;
   let textCharacters = 0;
   const exactOptional = control.compilerOptions?.exactOptionalPropertyTypes === true;
   // Approximate serialized bytes per visited node, so traversal stops with a partial tree
   // before the response-size check below has to discard the whole result.
   const serializedNodeEstimate = 80;
-  const responseBudget = MAX_OUTPUT_CHARACTERS * 0.9;
+  const responseBudget = limits.characters * 0.9;
 
   function checkBudget(visited: Set<ts.Type>): boolean {
     if (control.isCancellationRequested?.()) {
@@ -41,8 +41,8 @@ export function getTypeInfoAtPosition(
       return false;
     }
     if (
-      ++nodes > MAX_ANALYSIS_NODES ||
-      visited.size >= MAX_TRAVERSAL_DEPTH ||
+      ++nodes > limits.nodes ||
+      visited.size >= limits.depth ||
       textCharacters + nodes * serializedNodeEstimate >= responseBudget ||
       Date.now() > deadline
     ) {
@@ -53,7 +53,7 @@ export function getTypeInfoAtPosition(
   }
 
   function boundedText(text: string): string {
-    if (text.length > 4096 || textCharacters + text.length > MAX_OUTPUT_CHARACTERS) {
+    if (textCharacters + text.length > limits.characters) {
       reasons.add("type text budget");
       return "unknown /* type text limit */";
     }
@@ -94,13 +94,15 @@ export function getTypeInfoAtPosition(
     return { kind: "reference", typeName: boundedText(text) };
   }
 
-  function optionalMembers(type: ts.Type, annotation?: ts.Node): ts.Type[] | undefined {
+  /**
+   * Members shown after `?:`. Without exactOptionalPropertyTypes, `a?: T | undefined` means `a?: T`, so undefined is
+   * dropped as in earlier releases; with it, only the implicit "missing" member is dropped.
+   */
+  function optionalMembers(type: ts.Type): ts.Type[] | undefined {
     if (!type.isUnion()) return undefined;
-    const explicitUndefined = annotation && /\bundefined\b/.test(annotation.getText());
     return type.types.filter((member) => {
       if (!(member.flags & typescript.TypeFlags.Undefined)) return true;
-      if (exactOptional) return (member as ts.Type & { debugIntrinsicName?: string }).debugIntrinsicName !== "missing";
-      return !!explicitUndefined;
+      return exactOptional && (member as ts.Type & { debugIntrinsicName?: string }).debugIntrinsicName !== "missing";
     });
   }
 
@@ -130,10 +132,6 @@ export function getTypeInfoAtPosition(
     const apparent = checker.getApparentType(type);
     if (type.isIntersection() && type.types.some(isPrimitiveType)) return reference(type, true);
     if (isPrimitiveType(type)) {
-      if (type.flags & typescript.TypeFlags.StringLiteral && (type as ts.StringLiteralType).value.length > 4000) {
-        reasons.add("type text budget");
-        return { kind: "reference", typeName: "unknown /* literal limit */" };
-      }
       return {
         kind: "primitive",
         typeName: boundedText(
@@ -154,23 +152,26 @@ export function getTypeInfoAtPosition(
           ? checker.getTypeArguments(type as ts.TypeReference)
           : [];
     const name = aliasName ?? type.getSymbol()?.getName();
+    // Arrays and tuples are expanded before skipped names apply, so "Array" in the list only affects
+    // explicit `Array<T>` annotations (handled by getSkippedTypeName above).
+    const arrayLike = checker.isArrayType(apparent) || checker.isTupleType(apparent);
     if (
-      (name && options.skippedTypeNames.includes(name)) ||
-      (genericName && options.skippedTypeNames.includes(genericName))
+      !arrayLike &&
+      ((name && options.skippedTypeNames.includes(name)) ||
+        (genericName && options.skippedTypeNames.includes(genericName)))
     ) {
       return { kind: "reference", typeName: boundedText((genericName ?? name)! + (args.length ? "<...>" : "")) };
     }
-    if (genericName === "Promise" && options.unwrapPromises === false) return reference(type);
     if (genericName && args.length && options.unwrapGenericArgumentsTypeNames.includes(genericName)) {
       return {
         kind: "generic",
         typeName: boundedText(genericName),
-        arguments: args.slice(0, 100).map((arg) => getTypeTree(arg, depth, next)),
+        arguments: args.map((arg) => getTypeTree(arg, depth, next)),
       };
     }
 
     if (apparent.isUnion()) {
-      const members = optional ? (optionalMembers(apparent, annotation) ?? apparent.types) : apparent.types;
+      const members = optional ? (optionalMembers(apparent) ?? apparent.types) : apparent.types;
       if (members.length === 1) return getTypeTree(members[0]!, depth, visited);
       // Boolean is represented by false | true in larger compiler unions.
       const sorted = [...members].sort(sortUnionTypes);
@@ -185,30 +186,23 @@ export function getTypeInfoAtPosition(
 
     if (checker.isTupleType(apparent)) {
       const tuple = apparent as ts.TupleTypeReference;
-      const elements = checker
-        .getTypeArguments(tuple)
-        .slice(0, 100)
-        .map((element, index) => {
-          const flags = tuple.target.elementFlags[index] ?? typescript.ElementFlags.Required;
-          const declaration = tuple.target.labeledElementDeclarations?.[index];
-          const arrayRest = !!(flags & typescript.ElementFlags.Rest);
-          const variadic = !!(flags & typescript.ElementFlags.Variadic);
-          const annotation = arrayRest ? getArrayElementAnnotation(declaration?.type) : declaration?.type;
-          let tree = variadic
-            ? reference(element)
-            : getTypeTree(element, depth, next, annotation, !!(flags & typescript.ElementFlags.Optional));
-          if (arrayRest) tree = { kind: "array", typeName: "", readonly: false, elementType: tree };
-          return {
-            name: declaration && typescript.isIdentifier(declaration.name) ? declaration.name.text : undefined,
-            optional: !!(flags & typescript.ElementFlags.Optional),
-            rest: arrayRest || variadic,
-            type: tree,
-          };
-        });
-      if (tuple.target.elementFlags.length > elements.length) {
-        reasons.add("tuple element limit");
-        return reference(type);
-      }
+      const elements = checker.getTypeArguments(tuple).map((element, index) => {
+        const flags = tuple.target.elementFlags[index] ?? typescript.ElementFlags.Required;
+        const declaration = tuple.target.labeledElementDeclarations?.[index];
+        const arrayRest = !!(flags & typescript.ElementFlags.Rest);
+        const variadic = !!(flags & typescript.ElementFlags.Variadic);
+        const annotation = arrayRest ? getArrayElementAnnotation(declaration?.type) : declaration?.type;
+        let tree = variadic
+          ? reference(element)
+          : getTypeTree(element, depth, next, annotation, !!(flags & typescript.ElementFlags.Optional));
+        if (arrayRest) tree = { kind: "array", typeName: "", readonly: false, elementType: tree };
+        return {
+          name: declaration && typescript.isIdentifier(declaration.name) ? declaration.name.text : undefined,
+          optional: !!(flags & typescript.ElementFlags.Optional),
+          rest: arrayRest || variadic,
+          type: tree,
+        };
+      });
       return { kind: "tuple", typeName: "", readonly: tuple.target.readonly, elements };
     }
     if (checker.isArrayType(apparent)) {
@@ -268,8 +262,7 @@ export function getTypeInfoAtPosition(
       const properties: TypeProperty[] = [];
       let local = 0;
       for (const index of indexes) {
-        if (local >= limit || propertiesUsed >= options.maxProperties || !checkBudget(next)) break;
-        propertiesUsed++;
+        if (local >= limit || !checkBudget(next)) break;
         local++;
         const identifier = index.declaration?.parameters[0]?.name?.getText() ?? "key";
         properties.push({
@@ -281,8 +274,7 @@ export function getTypeInfoAtPosition(
         });
       }
       for (const symbol of members) {
-        if (local >= limit || propertiesUsed >= options.maxProperties || !checkBudget(next)) break;
-        propertiesUsed++;
+        if (local >= limit || !checkBudget(next)) break;
         local++;
         const optional = !!(symbol.flags & typescript.SymbolFlags.Optional);
         properties.push({
@@ -325,7 +317,7 @@ export function getTypeInfoAtPosition(
         ? getTypeTree(type, depth, visited, annotation, optional)
         : { kind: "reference", typeName: boundedText(getSkippedTypeName(annotation) ?? checker.typeToString(type)) };
     const symbols = signature.thisParameter ? [signature.thisParameter, ...signature.parameters] : signature.parameters;
-    const parameters = symbols.slice(0, 100).map((symbol) => {
+    const parameters = symbols.map((symbol) => {
       const declaration = symbol.valueDeclaration ?? symbol.declarations?.[0];
       const param = declaration && typescript.isParameter(declaration) ? declaration : undefined;
       const optional = !!param && checker.isOptionalParameter(param);
@@ -351,7 +343,6 @@ export function getTypeInfoAtPosition(
         type: tree,
       };
     });
-    if (symbols.length > parameters.length) reasons.add("parameter limit");
     const typeParameters = signature.typeParameters?.map((parameter) => {
       const defaultType = checker.getDefaultFromTypeParameter(parameter);
       const declaration = parameter.symbol.declarations?.find(typescript.isTypeParameterDeclaration);
@@ -633,7 +624,7 @@ export function getTypeInfoAtPosition(
     let symbol = checker.getSymbolAtLocation(node);
     if (!symbol) return undefined;
     if (symbol.flags & typescript.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
-    let type = checker.getTypeAtLocation(node);
+    const type = checker.getTypeAtLocation(node);
     const typeReference = typescript.isTypeReferenceNode(node.parent) ? node.parent : undefined;
     const typeDeclaration =
       typeReference &&
@@ -665,8 +656,21 @@ export function getTypeInfoAtPosition(
       typescript.isNewExpression(callee.parent) && callee.parent.expression === callee ? callee.parent : undefined;
     let tree: TypeTree;
     let declaration: string;
-    if (kind === typescript.SyntaxKind.ClassDeclaration && newExpression) {
-      const signature = checker.getResolvedSignature(newExpression);
+    const constructSignatures = type.getConstructSignatures();
+    // Class values (constructor calls, static access, `extends`) show the constructor; declarations and imports do not.
+    if (
+      kind === typescript.SyntaxKind.ClassDeclaration &&
+      !typescript.isClassDeclaration(node.parent) &&
+      !typescript.findAncestor(
+        node,
+        (ancestor) =>
+          typescript.isImportDeclaration(ancestor) ||
+          typescript.isImportSpecifier(ancestor) ||
+          typescript.isImportClause(ancestor),
+      ) &&
+      (newExpression || constructSignatures.length)
+    ) {
+      const signature = newExpression ? checker.getResolvedSignature(newExpression) : constructSignatures[0];
       if (!signature) return undefined;
       tree = {
         kind: "function",
@@ -674,9 +678,8 @@ export function getTypeInfoAtPosition(
         excessSignatures: 0,
         signatures: [getSignature(signature, 0, new Set(), true)],
       };
-      declaration = "const " + name + ": ";
+      declaration = getSyntaxKindDeclaration(typescript.SyntaxKind.Constructor, name);
     } else {
-      if (typescript.isExpressionWithTypeArguments(node.parent)) type = checker.getDeclaredTypeOfSymbol(symbol);
       tree = getTypeTree(
         type,
         0,
@@ -706,7 +709,7 @@ export function getTypeInfoAtPosition(
       compilerVersion: typescript.version,
       ...(reasons.size ? { truncationReasons: [...reasons] } : {}),
     };
-    if (JSON.stringify(result).length > MAX_OUTPUT_CHARACTERS) {
+    if (JSON.stringify(result).length > limits.characters) {
       result.typeTree = { kind: "reference", typeName: "unknown /* response size limit */" };
       reasons.add("response size limit");
       result.truncationReasons = [...reasons];

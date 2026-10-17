@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { renderTypeInfo, sanitizeString } from "./stringify-type-tree";
+import { hoverMarkers, renderTypeParts, sanitizeString } from "./stringify-type-tree";
 import { readSettings } from "./configuration";
 import { limitPreview, reportedLimits, supportedLanguages } from "./type-client";
 import type { TypeClient } from "./type-client";
@@ -17,11 +17,21 @@ export function registerHoverProvider(context: vscode.ExtensionContext, client: 
     if (!info || token.isCancellationRequested) return;
     if (settings.options.skippedTypeNames.includes(info.name)) return;
     try {
-      const text = renderTypeInfo(info, settings.indentation);
+      const parts = renderTypeParts(info, settings.indentation);
+      const declaration = parts.declaration;
+      const type = hoverMarkers(parts.type);
+      const text = declaration + type;
       const limits = reportedLimits(info);
       const quickInfo = await client.quickInfo(document, position, token);
       if (token.isCancellationRequested || document.version !== version) return;
-      if (quickInfo && !limits.length && sanitizeString(quickInfo) === sanitizeString(text)) return;
+      // Skip the hover when TypeScript's own hover already shows the same type.
+      if (
+        quickInfo &&
+        !limits.length &&
+        /^(?:type|const|let|var|function)\b/.test(declaration) &&
+        sanitizeString(quickInfo).includes(sanitizeString(type))
+      )
+        return;
       const markdown = new vscode.MarkdownString();
       markdown.appendCodeblock(limitPreview(text, settings.maxCharacters), "typescript");
       if (limits.length) markdown.appendText("\nExpansion limited: " + limits.join(", ") + ".");

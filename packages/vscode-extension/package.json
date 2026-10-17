@@ -101,51 +101,44 @@
           "scope": "language-overridable"
         },
         "prettify-ts.typeIndentation": {
-          "type": "integer",
+          "type": "number",
           "default": 4,
           "minimum": 0,
-          "scope": "language-overridable",
-          "maximum": 8
+          "scope": "language-overridable"
         },
         "prettify-ts.maxDepth": {
-          "type": "integer",
+          "type": "number",
           "default": 1,
           "minimum": 0,
-          "scope": "language-overridable",
-          "maximum": 20,
-          "description": "Object-property expansion depth. Independent safety budgets also limit every type traversal."
+          "scope": "language-overridable"
         },
         "prettify-ts.maxProperties": {
-          "type": "integer",
+          "type": "number",
           "default": 1000,
           "minimum": 1,
-          "description": "Maximum total object properties and index signatures across the expansion. Omitted members are marked.",
-          "scope": "language-overridable",
-          "maximum": 5000
+          "description": "The maximum number of properties (including sub-properties) to show in a type preview. The number of lines shown will be at most this number.",
+          "scope": "language-overridable"
         },
         "prettify-ts.maxSubProperties": {
-          "type": "integer",
+          "type": "number",
           "default": 10,
           "minimum": 1,
-          "description": "Maximum properties in each nested object, within the total Max Properties budget.",
-          "scope": "language-overridable",
-          "maximum": 5000
+          "description": "The maximum number of properties to show in a nested (depth greater than 1) type.",
+          "scope": "language-overridable"
         },
         "prettify-ts.maxUnionMembers": {
-          "type": "integer",
+          "type": "number",
           "default": 15,
           "minimum": 1,
           "description": "The maximum number of members to show in a union.",
-          "scope": "language-overridable",
-          "maximum": 100
+          "scope": "language-overridable"
         },
         "prettify-ts.maxFunctionSignatures": {
-          "type": "integer",
+          "type": "number",
           "default": 5,
           "minimum": 1,
           "description": "The maximum number of function signatures to show.",
-          "scope": "language-overridable",
-          "maximum": 50
+          "scope": "language-overridable"
         },
         "prettify-ts.hidePrivateProperties": {
           "type": "boolean",
@@ -174,9 +167,8 @@
         "prettify-ts.unwrapPromises": {
           "type": "boolean",
           "default": true,
-          "description": "Legacy Promise override. False preserves Promise references; true follows the generic expansion list.",
-          "scope": "language-overridable",
-          "deprecationMessage": "Use Unwrap Generic Arguments Type Names instead. False still preserves Promise references for compatibility."
+          "description": "Prettify the resolved type of a promise.",
+          "scope": "language-overridable"
         },
         "prettify-ts.skippedTypeNames": {
           "type": "array",
@@ -184,17 +176,20 @@
             "type": "string"
           },
           "default": [
+            "Array",
             "ArrayBuffer",
             "Buffer",
             "Date",
             "Element",
             "Error",
+            "Map",
             "Number",
             "RegExp",
+            "Set",
             "String",
             "Symbol"
           ],
-          "description": "Names to preserve instead of expanding. Explicit skips take precedence over array, function, and generic argument expansion.",
+          "description": "Types that won't be unwrapped, by name. Generic types are supported, with their arguments replaced by ellipses (e.g., `ZodObject<...>`).",
           "scope": "language-overridable"
         },
         "prettify-ts.unwrapGenericArgumentsTypeNames": {
@@ -212,11 +207,11 @@
           "scope": "language-overridable"
         },
         "prettify-ts.maxCharacters": {
-          "type": "integer",
+          "type": "number",
           "default": 20000,
           "minimum": 0,
           "maximum": 99000,
-          "description": "Maximum characters of hover and regular copy output. Full copy uses a larger, bounded analysis budget.",
+          "description": "The maximum number of string characters to show in a type preview before cutting off. (High performance impact)",
           "scope": "language-overridable"
         }
       }

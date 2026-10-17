@@ -122,7 +122,7 @@ test("default parameters retain actual cardinality", () => {
   assert.match(beforeRequired, /a: number \| undefined, b: string/);
   parses(beforeRequired);
 });
-test("constructors select resolved overloads and inference; extends shows instances", () => {
+test("constructors select resolved overloads and inference; class values show the constructor", () => {
   const text = inspect(
     "class Example { constructor(value: string); constructor(value: number); constructor(value: unknown) {} } new Example(1);",
     "Example(1)",
@@ -133,9 +133,14 @@ test("constructors select resolved overloads and inference; extends shows instan
   assert.match(generic, /value: string/);
   assert.match(generic, /Box<string>/);
   parses(generic);
-  const heritage = inspect("class Parent { value = 1; } class Child extends Parent {}", "Parent {}").text;
-  assert.match(heritage, /value: number/);
-  assert.doesNotMatch(heritage, /new /);
+  // As in earlier releases: class values, including `extends` clauses, show the constructor.
+  const heritage = inspect(
+    "class Parent { constructor(public value: number) {} } class Child extends Parent {}",
+    "Parent {}",
+  );
+  assert.equal(heritage.text.trim(), "function Parent(value: number): Parent");
+  const declaration = inspect("class Test { value = 1; }").text;
+  assert.match(declaration, /^class Test \{ value: number; \}/);
 });
 test("numeric-looking property keys retain exact names", () => {
   const text = equivalent('type Test = { "01": string; "9007199254740993": number };');
@@ -164,15 +169,18 @@ test("native completions preserve receiver and all arguments", () => {
   proxy.getCompletionsAtPosition("file.ts", 1, {}, format);
   assert.equal(observed[3], format);
 });
-test("Promise override works and Array/Map/Set defaults are consistent", () => {
-  assert.ok(["Array", "Map", "Set"].every((n) => !api.DEFAULT_OPTIONS.skippedTypeNames.includes(n)));
-  assert.equal(
-    inspect("declare const Test: Promise<{ value: string }>;", "Test", { unwrapPromises: false }).info.typeTree.kind,
-    "reference",
+test("default skip list keeps earlier behavior for Array, Map and Set", () => {
+  const defaults = { skippedTypeNames: api.DEFAULT_OPTIONS.skippedTypeNames };
+  assert.ok(["Array", "Map", "Set"].every((n) => api.DEFAULT_OPTIONS.skippedTypeNames.includes(n)));
+  // "Array" in the list never stopped array expansion; it only keeps explicit Array<T> annotations.
+  assert.match(
+    inspect("declare const Test: { a: { v: string }[] };", "Test", { ...defaults, maxDepth: 2 }).text,
+    /a: \{ v: string; \}\[\]/,
   );
-  const map = inspect("declare const Test: Map<string, { value: string }>;").text;
-  assert.match(map, /Map<string, \{/);
-  assert.match(map, /value: string/);
+  assert.match(inspect("declare const Test: { a: Array<string> };", "Test", defaults).text, /a: Array<\.\.\.>/);
+  assert.match(inspect("declare const Test: Map<string, { value: string }>;", "Test", defaults).text, /Map<\.\.\.>/);
+  const unskipped = inspect("declare const Test: Map<string, { value: string }>;").text;
+  assert.match(unskipped, /Map<string, \{ value: string;/);
 });
 test("configured generic aliases retain wrapper and expand arguments", () => {
   const text = inspect("type Wrap<T> = { v: T }; declare const Test: Wrap<{ value: string }>;", "Test", {
@@ -180,44 +188,46 @@ test("configured generic aliases retain wrapper and expand arguments", () => {
   }).text;
   assert.match(text, /Wrap<\{ value: string;/);
 });
-test("total property budgets apply across nested objects", () => {
-  const { info } = inspect("type Test = { a: { x: string; y: string }; b: { x: string; y: string } };", "Test", {
-    maxProperties: 2,
-  });
-  function count(t) {
-    return t.kind === "object"
-      ? t.properties.length + t.properties.reduce((n, p) => n + count(p.type), 0)
-      : t.kind === "union"
-        ? t.types.reduce((n, t) => n + count(t), 0)
-        : 0;
-  }
-  assert.ok(count(info.typeTree) <= 2);
+test("property limits apply per object, as in earlier releases", () => {
+  const { info, text } = inspect(
+    "type Test = { a: { x: string; y: string; z: string }; b: { x: string; y: string; z: string }; c: string };",
+    "Test",
+    { maxProperties: 2, maxSubProperties: 2 },
+  );
+  assert.equal(
+    text,
+    "type Test = { a: { x: string; y: string; /* ... 1 more */ }; b: { x: string; y: string; /* ... 1 more */ }; /* ... 1 more */ }",
+  );
   assert.ok(info.truncationReasons.includes("property limit"));
 });
 test("one retained overload still reports omissions", () => {
   const { info, text } = inspect("type Test = { (x: string): string; (x: number): number };", "Test", {
     maxFunctionSignatures: 1,
   });
-  assert.match(text, /1 more signatures/);
+  assert.match(text, /\/\* \.\.\. 1 more \*\//);
   assert.ok(info.truncationReasons.includes("function signature limit"));
 });
-test("numeric settings and full copy stay finite and bounded", () => {
+test("numeric settings are finite and large user values are honored", () => {
   const o = api.normalizeOptions({ maxDepth: Infinity, maxProperties: -3, maxUnionMembers: 1.5 });
   assert.equal(o.maxDepth, api.DEFAULT_OPTIONS.maxDepth);
   assert.equal(o.maxProperties, 1);
   assert.equal(o.maxUnionMembers, 1);
+  const large = api.normalizeOptions({ maxDepth: 30, maxUnionMembers: 500, maxProperties: 50000 });
+  assert.deepEqual([large.maxDepth, large.maxUnionMembers, large.maxProperties], [30, 500, 50000]);
   const full = api.normalizeOptions({ fullExpansion: true });
-  assert.equal(full.maxProperties, api.MAX_ANALYSIS_NODES);
-  assert.ok(full.maxDepth < 100);
+  assert.equal(full.maxProperties, api.MAX_SETTING);
+  assert.ok(Number.isFinite(full.maxDepth));
 });
 test("recursive generics terminate even with full copy", () => {
   for (const source of [
     "type Chain<T> = () => Chain<T[]>; type Test = Chain<number>;",
     "type Chain<T> = { next: Chain<T[]> }; type Test = Chain<number>;",
   ]) {
+    const started = Date.now();
     const { info } = inspect(source, "Test", { fullExpansion: true });
-    assert.ok(info.truncationReasons.length);
-    assert.ok(JSON.stringify(info).length < 99000);
+    assert.ok(info.truncationReasons.includes("analysis budget"));
+    assert.ok(JSON.stringify(info).length < api.FULL_COPY_LIMITS.characters);
+    assert.ok(Date.now() - started < api.FULL_COPY_LIMITS.milliseconds + 2000);
   }
 });
 test("collapsed wide types do not carry hidden complete strings", () => {
@@ -278,7 +288,8 @@ test("manifest defaults agree with shared options", () => {
 test("object-constrained generic parameters and const inference remain bound", () => {
   equivalent("type Test = <T extends { value: string }>(x: T) => T;");
   assert.match(equivalent("type Test = <const T extends readonly string[]>(x: T) => T;"), /<const T/);
-  assert.match(equivalent("type Test = { a?: string | undefined };", "Test", {}, false), /undefined/);
+  // Without exactOptionalPropertyTypes, `a?: string | undefined` is `a?: string`, displayed as before.
+  assert.doesNotMatch(equivalent("type Test = { a?: string | undefined };", "Test", {}, false), /undefined/);
 });
 
 test("generic type declarations retain outer parameter binders", () => {
@@ -311,17 +322,20 @@ test("type parameter constraints keep their declared form", () => {
   assert.match(declared, /<O extends object, K extends keyof O>/);
   parses(declared);
 });
-test("only the constructed class is shown as a constructor", () => {
+test("classes inside another new expression show their own constructor, not the outer one", () => {
   const argument = inspect(
-    "class Foo { a = 1 } class Wrapper { constructor(c: typeof Foo) {} } new Wrapper(Foo);",
+    "class Foo { constructor(a: string) {} } class Wrapper { constructor(c: typeof Foo) {} } new Wrapper(Foo);",
     "Foo)",
   );
-  assert.doesNotMatch(argument.text, /Wrapper/);
+  assert.equal(argument.text.trim(), "function Foo(a: string): Foo");
   const typeArgument = inspect("class Foo { a = 1 } new Map<string, Foo>();", "Foo>");
   assert.doesNotMatch(typeArgument.text, /Map|iterable/);
-  assert.match(
-    inspect("namespace NS { export class Foo { constructor(public a: number) {} } } new NS.Foo(1);", "Foo(1)").text,
-    /new \(a: number\) => Foo/,
+  assert.equal(
+    inspect(
+      "namespace NS { export class Foo { constructor(public a: number) {} } } new NS.Foo(1);",
+      "Foo(1)",
+    ).text.trim(),
+    "function Foo(a: number): Foo",
   );
 });
 test("generic mapped types and the object keyword are not erased to {}", () => {
@@ -332,16 +346,43 @@ test("generic mapped types and the object keyword are not erased to {}", () => {
   }
   assert.match(equivalent("type Test = { a: object; b: {} };"), /a: object; b: \{\};/);
 });
-test("large types degrade to a partial preview instead of an empty response", () => {
-  const source =
-    "declare const Test: { " + Array.from({ length: 2000 }, (_, i) => "p" + i + ": string").join(";") + " };";
-  const { info, text } = inspect(source, "Test", { maxProperties: 1000 });
+test("runaway expansion degrades to a partial preview instead of an empty response", () => {
+  // Every level creates new types, so only the internal safety limits stop it.
+  const source = "type Fan<T> = { a: Fan<[T]>; b: Fan<[T]>; c: Fan<[T]> }; declare const Test: Fan<0>;";
+  const { info } = inspect(source, "Test", { maxDepth: 20 });
   assert.equal(info.typeTree.kind, "object");
-  assert.ok(info.typeTree.properties.length > 100);
+  assert.ok(info.typeTree.properties.length >= 1);
   assert.ok(info.truncationReasons.includes("analysis budget"));
   assert.ok(!info.truncationReasons.includes("response size limit"));
-  assert.ok(JSON.stringify(info).length < 99000);
-  assert.match(text, /more properties/);
+  assert.ok(JSON.stringify(info).length < api.PREVIEW_LIMITS.characters);
+});
+test("hover markers match earlier releases; copies keep valid comments", () => {
+  const { text } = inspect("type Test = { a: { x: 1; y: 2 }; b: 'v1' | 'v2' | 'v3'; c: 1; d: 2 };", "Test", {
+    maxDepth: 1,
+    maxProperties: 3,
+    maxUnionMembers: 2,
+  });
+  assert.equal(
+    text,
+    'type Test = { a: { /* ... 2 more */ }; b: "v1" | "v2" /* | ... 1 more */; c: 1; /* ... 1 more */ }',
+  );
+  parses(text);
+  assert.equal(
+    api.hoverMarkers(api.prettyPrintTypeString(text.slice("type Test = ".length), 4)),
+    '{\n    a: { ... 2 more };\n    b: "v1" | "v2" | ... 1 more;\n    c: 1;\n    ... 1 more;\n}\n',
+  );
+  assert.equal(api.hoverMarkers('{ s: "/* ... 1 more */"; }'), '{ s: "/* ... 1 more */"; }');
+});
+test("numeric keys stay bare and module paths are shortened as before", () => {
+  assert.match(inspect("const Test = { 0: 'a', 1: 'b' };").text, /\{ 0: string; 1: string; \}/);
+  const q = '"';
+  assert.equal(
+    api.prettyPrintTypeString(
+      "{ m: typeof import(" + q + "/x/node_modules/pkg/lib" + q + "); s: " + q + "/x/node_modules/pkg" + q + "; }",
+      0,
+    ),
+    "{ m: typeof import(" + q + "pkg/lib" + q + "); s: " + q + "/x/node_modules/pkg" + q + "; }",
+  );
 });
 test("booleans keep their union position and safe references are not grouped", () => {
   assert.match(

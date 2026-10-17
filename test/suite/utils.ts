@@ -89,16 +89,45 @@ export async function applySettings(overrides: PrettifySettings = {}) {
   }
 }
 
-/**
- * Retrieves plugin/renderer output directly; UI provider flows have separate integration tests.
- * @returns The prettified type string with whitespace normalized.
- */
-export async function getHover(keyword: string, characterOffset = 1): Promise<string[]> {
+/** Real hover contents, plus the plugin's own rendering when available so a native hover cannot mask it. */
+export type HoverResult = string[] & { rendered?: string };
+
+/** The normalized contents of every hover VS Code shows at the keyword (Prettify's and TypeScript's). */
+export async function getHoverContents(keyword: string, characterOffset = 1): Promise<string[]> {
   const offset = openDoc.getText().indexOf(keyword);
   assert.ok(offset >= 0, `Fixture keyword not found: ${keyword}`);
-  // Type assertions use the plugin directly: native hovers must not mask extraction regressions.
-  // Actual provider registration and unsaved-document flows are covered in commands.test.ts.
-  return [normalizeTypeString(await renderPrettifiedType(keyword, characterOffset))];
+  const position = openDoc.positionAt(offset + characterOffset);
+  const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+    "vscode.executeHoverProvider",
+    openDoc.uri,
+    position,
+  );
+  return (hovers ?? [])
+    .map((hover) => hover.contents[0])
+    .filter((content) => content !== undefined)
+    .map((content) => (typeof content === "string" ? content : content.value))
+    .map(normalizeTypeString);
+}
+
+/**
+ * Hovers through VS Code's real hover providers, as users see them.
+ * The plugin's own rendering is attached, so assertHover also checks it directly: a matching native
+ * TypeScript hover cannot hide a Prettify regression.
+ */
+export async function getHover(keyword: string, characterOffset = 1): Promise<HoverResult> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const formatter = require("../../packages/vscode-extension/out/stringify-type-tree") as {
+    hoverMarkers(text: string): string;
+  };
+  const rendered = normalizeTypeString(formatter.hoverMarkers(await renderPrettifiedType(keyword, characterOffset)));
+  let hovers: string[] = [];
+  // Settings changes reach the hover provider asynchronously; wait briefly for the current rendering.
+  for (let attempt = 0; attempt < 20; attempt++) {
+    hovers = await getHoverContents(keyword, characterOffset);
+    if (hovers.includes(rendered)) break;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return Object.assign(hovers, { rendered });
 }
 
 /**
@@ -108,17 +137,8 @@ export async function getHover(keyword: string, characterOffset = 1): Promise<st
 function normalizeTypeString(input: string): string {
   let type = input;
 
-  // Remove the specific TypeScript Markdown fences
-  const leadingFence = "\n```typescript\n";
-  const trailingFence = "\n\n```\n";
-
-  if (type.startsWith(leadingFence)) {
-    type = type.substring(leadingFence.length);
-  }
-
-  if (type.endsWith(trailingFence)) {
-    type = type.substring(0, type.length - trailingFence.length);
-  }
+  // Remove the Markdown code fences of Prettify's and TypeScript's hovers
+  type = type.replace(/^\s*```typescript\s*/, "").replace(/\s*```\s*$/, "");
 
   type = type
     .replace(/\s+/g, " ") // Collapse all whitespace (including newlines/tabs) to single spaces
@@ -136,8 +156,11 @@ function normalizeTypeString(input: string): string {
  * Asserts that actual hover contents match the expected content
  * after normalization (e.g. whitespace and Markdown fences removed).
  */
-export function assertHover(hovers: string[], expected: string): void {
+export function assertHover(hovers: HoverResult, expected: string): void {
   const normalizedExpected = normalizeTypeString(expected);
+  if (hovers.rendered !== undefined) {
+    assert.strictEqual(hovers.rendered, normalizedExpected, "Prettify plugin output");
+  }
   assert.ok(
     hovers.map(normalizeTypeString).includes(normalizedExpected),
     `Expected hover content to be "${expected}", but got "${hovers.join(", ")}"`,

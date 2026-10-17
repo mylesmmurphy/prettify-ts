@@ -24,7 +24,7 @@ Environment selectors:
 
 Each editor run uses a disposable workspace copy. Settings updates and Vue edit regressions do not change tracked fixtures. Extension installation also uses explicit isolated profile and extension directories.
 
-Type-output assertions request the plugin and use the real renderer, so a native TypeScript hover cannot hide a plugin failure. Editor registration, actual unsaved-file hover/copy, workspace toggling, and private-member copy behavior have separate integration coverage. The unit suite additionally parses emitted types and checks mutual assignability for representative complete expansions. Fresh-install defaults are checked against the shared options definition.
+Hover assertions go through VS Code's real hover providers, as users see them, and also check the plugin's own rendering, so a matching native TypeScript hover cannot hide a Prettify regression. The hover suite also covers duplicate hiding, the omission marker, and the enabled setting. The unit suite additionally parses emitted types and checks mutual assignability for representative complete expansions. Fresh-install defaults are checked against the shared options definition.
 
 The built formatter is loaded from development output by type-output assertions even during installed-VSIX runs; actual hover/copy integration tests exercise the installed bundled renderer. Run the build before invoking the test CLI directly.
 

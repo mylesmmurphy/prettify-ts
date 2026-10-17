@@ -153,7 +153,7 @@ test("toggle writes the highest effective workspace or language override", async
   assert.equal(updates[0].target, 2);
   assert.equal(updates[0].language, true);
 });
-test("copy honors display limits; full copy uses bounded expansion and preserves private choices", async () => {
+test("copies ignore Max Characters as before; full copy expands everything and preserves private choices", async () => {
   values.maxCharacters = 5;
   values.hidePrivateProperties = false;
   const seen = [];
@@ -163,11 +163,40 @@ test("copy honors display limits; full copy uses bounded expansion and preserves
   };
   api.registerCommands({ subscriptions: [] }, client());
   await commands.get("prettify-ts.copyPrettifiedType")();
-  assert.match(clipboard, /Preview truncated/);
+  assert.equal(clipboard, "type Test = {\n    value: string;\n}\n");
   await commands.get("prettify-ts.fullCopyPrettifiedType")();
   assert.match(clipboard, /value: string/);
-  assert.ok(seen[1].maxDepth < 100);
+  assert.equal(seen[1].fullExpansion, true);
   assert.equal(seen[1].hidePrivateProperties, false);
+});
+test("hover shows earlier markers and hides duplicates of TypeScript's own hover", async () => {
+  api.registerHoverProvider({ subscriptions: [] }, client());
+  const collapsed = {
+    ...info,
+    typeTree: {
+      ...info.typeTree,
+      properties: [
+        {
+          name: "nested",
+          optional: false,
+          readonly: false,
+          type: { kind: "object", typeName: "", properties: [], excessProperties: 2 },
+        },
+      ],
+    },
+  };
+  handler = async (command, method) =>
+    method === "completionInfo"
+      ? { body: { __prettifyResponse: collapsed } }
+      : { body: { displayString: "type Test = Other" } };
+  let hover = await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token);
+  assert.equal(hover.contents.value, "type Test = {\n    nested: { ... 2 more };\n}\n");
+  handler = async (command, method) =>
+    method === "completionInfo"
+      ? { body: { __prettifyResponse: info } }
+      : { body: { displayString: "type Test = {\n  value: string;\n}" } };
+  hover = await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token);
+  assert.equal(hover, undefined);
 });
 test("inline presentation limits do not add hover footers; invisible safety limits do", async () => {
   api.registerHoverProvider({ subscriptions: [] }, client());
