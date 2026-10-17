@@ -29,7 +29,7 @@ export function getPositionForVue(language: Language, fileName: string, startPos
       const snapshotLength = getMappingOffset(language, serviceScript);
 
       for (const [generatedLocation] of sourceMap.toGeneratedLocation(startPos)) {
-        if (generatedLocation) {
+        if (generatedLocation !== undefined) {
           startPos = generatedLocation + snapshotLength;
         }
       }

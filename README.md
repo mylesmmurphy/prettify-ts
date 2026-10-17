@@ -68,21 +68,15 @@ During development, pnpm automatically symlinks the plugin into the extension’
 
 ### Packaging Workflow
 
-To prepare for publishing:
+Run pnpm package to build a VSIX. Packaging stages the manifest, bundle, assets, and plugin in a temporary directory and removes that directory on success or failure. It never rewrites the checkout manifest or replaces workspace dependency symlinks.
 
-1. **Prepackage:**
+Run pnpm test:package to install the generated VSIX in an isolated editor profile and run the integration suite against the installed extension. Tests use a disposable copy of the workspace fixtures.
 
-   * Copies actual plugin files into the extension
-   * Rewrites `workspace:*` to `*` for `vsce` compatibility
+### Correctness and compatibility
 
-2. **Package:**
+The minimum supported editor is VS Code 1.100.0. CI exercises that editor with Vue - Official 3.1.1 and its bundled compiler, plus the current editor/Vue with workspace TypeScript. Compiler-backed regression tests also cover type equivalence, mapped modifiers, generic signatures, cancellation, bounded recursive expansion, and packaging failure cleanup.
 
-   * Runs `vsce package` to produce `.vsix`
-
-3. **Postpackage:**
-
-   * Reverts everything back for dev (restores `workspace:*` and symlinks)
-
+Run pnpm test:unit for the compiler and client regression suite. See [the audit coverage checklist](./docs/audit-fixes.md) for the issues covered by this change.
 
 ## VSCode Debug Configs
 

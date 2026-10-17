@@ -32,6 +32,10 @@ Prettify TS is a Visual Studio Code extension that enhances your TypeScript deve
 
 Hover previews also work in JavaScript and JSX files using TypeScript's inferred types and JSDoc annotations. For configured projects, include JavaScript files with `allowJs` in `tsconfig.json`, or use a `jsconfig.json`.
 
+## Requirements
+
+VS Code 1.100.0 or newer. Workspace TypeScript 5.9 and the bundled compilers in the minimum/current editors are exercised by the test suites.
+
 ## Prerequisites for Vue Projects
 
 To use Prettify TS with Vue projects, you need:
@@ -73,6 +77,12 @@ To show public underscore-prefixed members while keeping private and protected m
 ```
 
 These settings apply to hover previews and both copy commands. Disabling **Hide Private Properties** shows all members regardless of **Treat Underscore As Private**. Computed symbol keys remain visible unless the member is explicitly private or protected.
+
+## Large and recursive types
+
+Hover previews and both copy commands are protected by internal time and size limits, so very large or self-referencing types cannot stall the TypeScript server. These limits are far above what normal previews use; when one is reached, the output says so. Copied types mark omitted members as `/* ... 3 more */` comments, so pasted output stays valid TypeScript.
+
+Settings can also be overridden per language, and **Toggle Preview** updates whichever setting is currently in effect. Request failures are logged to the **Prettify TS** output channel.
 
 ## Sidebar View (Deprecated)
 

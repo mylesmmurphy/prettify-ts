@@ -25,6 +25,9 @@ export type TypeFunctionParameter = {
 export type TypeFunctionSignature = {
   returnType: TypeTree;
   parameters: TypeFunctionParameter[];
+  typeParameters?: { modifiers?: string[]; name: string; constraint?: TypeTree; default?: TypeTree }[];
+  predicate?: { parameter: string; asserts: boolean; type?: TypeTree };
+  construct?: boolean;
 };
 
 /** A tuple slot retains its label, cardinality, and spread syntax. */
@@ -41,7 +44,13 @@ export type TypeTupleElement = {
  */
 export type TypeTree = { typeName: string } & (
   | { kind: "union"; excessMembers: number; types: TypeTree[] }
-  | { kind: "object"; excessProperties: number; properties: TypeProperty[] }
+  | {
+      kind: "object";
+      excessProperties: number;
+      properties: TypeProperty[];
+      signatures?: TypeFunctionSignature[];
+      excessSignatures?: number;
+    }
   | { kind: "tuple"; readonly: boolean; elements: TypeTupleElement[] }
   | { kind: "array"; readonly: boolean; elementType: TypeTree }
   | {
@@ -62,4 +71,6 @@ export type TypeInfo = {
   typeTree: TypeTree;
   declaration: string;
   name: string;
+  truncationReasons?: string[];
+  compilerVersion?: string;
 };

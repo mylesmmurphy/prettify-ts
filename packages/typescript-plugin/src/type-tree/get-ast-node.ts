@@ -22,6 +22,8 @@ export function getDescendantAtRange(
     const start = node.getStart(sourceFile);
     const end = node.getEnd();
 
+    if (start > range[0] || end < range[1]) return;
+
     if (start <= range[0] && end >= range[1]) {
       if (start >= bestMatch.start && end <= bestMatch.end) {
         bestMatch = { node, start, end };
@@ -29,7 +31,10 @@ export function getDescendantAtRange(
     }
 
     node.forEachChild((child) => {
+      // Children are in source order; later siblings cannot contain this range.
+      if (child.pos > range[1]) return true;
       searchDescendants(child);
+      return undefined;
     });
   }
 }

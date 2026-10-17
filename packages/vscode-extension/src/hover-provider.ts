@@ -1,94 +1,47 @@
 import * as vscode from "vscode";
-import type { PrettifyRequest } from "@prettify-ts/typescript-plugin/src/request";
-import type { TypeInfo } from "@prettify-ts/typescript-plugin/src/type-tree/types";
-import { prettyPrintTypeString, stringifyTypeTree, sanitizeString } from "./stringify-type-tree";
+import { hoverMarkers, renderTypeParts, sanitizeString } from "./stringify-type-tree";
+import { readSettings } from "./configuration";
+import { limitPreview, reportedLimits, supportedLanguages } from "./type-client";
+import type { TypeClient } from "./type-client";
 
-export function registerHoverProvider(context: vscode.ExtensionContext): void {
+export function registerHoverProvider(context: vscode.ExtensionContext, client: TypeClient): void {
   async function provideHover(
     document: vscode.TextDocument,
     position: vscode.Position,
+    token: vscode.CancellationToken,
   ): Promise<vscode.Hover | undefined> {
-    const config = vscode.workspace.getConfiguration("prettify-ts");
-    if (!config.get("enabled", true)) return;
-
-    const indentation = config.get("typeIndentation", 4);
-    const maxCharacters = config.get("maxCharacters", 20000);
-
-    const options = {
-      hidePrivateProperties: config.get("hidePrivateProperties", true),
-      treatUnderscoreAsPrivate: config.get("treatUnderscoreAsPrivate", true),
-      maxDepth: config.get("maxDepth", 2),
-      maxProperties: config.get("maxProperties", 100),
-      maxSubProperties: config.get("maxSubProperties", 5),
-      maxUnionMembers: config.get("maxUnionMembers", 15),
-      maxFunctionSignatures: config.get("maxFunctionSignatures", 5),
-      skippedTypeNames: config.get("skippedTypeNames", [] as string[]),
-      unwrapArrays: config.get("unwrapArrays", true),
-      unwrapFunctions: config.get("unwrapFunctions", true),
-      unwrapGenericArgumentsTypeNames: config.get("unwrapGenericArgumentsTypeNames", [] as string[]),
-    };
-
-    const request: PrettifyRequest = {
-      meta: "prettify-type-info-request",
-      options,
-    };
-
-    const location = {
-      file: document.uri.fsPath,
-      line: position.line + 1,
-      offset: position.character + 1,
-    };
-
-    const response: any = await vscode.commands.executeCommand("typescript.tsserverRequest", "completionInfo", {
-      ...location,
-      triggerCharacter: request,
-    });
-
-    const prettifyResponse: TypeInfo | undefined = response?.body?.__prettifyResponse;
-    if (!prettifyResponse) return;
-
-    const { typeTree, name } = prettifyResponse;
-
-    let declaration = prettifyResponse.declaration;
-
-    if (options.skippedTypeNames.includes(name)) return;
-
-    const typeString = stringifyTypeTree(typeTree, false);
-    let prettyTypeString = prettyPrintTypeString(typeString, indentation);
-
-    if (prettyTypeString.length > maxCharacters) {
-      prettyTypeString = prettyTypeString.substring(0, maxCharacters) + "...";
+    const settings = readSettings(document);
+    if (!settings.enabled || token.isCancellationRequested) return;
+    const version = document.version;
+    const info = await client.request(document, position, settings.options, token);
+    if (!info || token.isCancellationRequested) return;
+    if (settings.options.skippedTypeNames.includes(info.name)) return;
+    try {
+      const parts = renderTypeParts(info, settings.indentation);
+      const declaration = parts.declaration;
+      const type = hoverMarkers(parts.type);
+      const text = declaration + type;
+      const limits = reportedLimits(info);
+      const quickInfo = await client.quickInfo(document, position, token);
+      if (token.isCancellationRequested || document.version !== version) return;
+      // Skip the hover when TypeScript's own hover already shows the same type.
+      if (
+        quickInfo &&
+        !limits.length &&
+        /^(?:type|const|let|var|function)\b/.test(declaration) &&
+        sanitizeString(quickInfo).includes(sanitizeString(type))
+      )
+        return;
+      const markdown = new vscode.MarkdownString();
+      markdown.appendCodeblock(limitPreview(text, settings.maxCharacters), "typescript");
+      if (limits.length) markdown.appendText("\nExpansion limited: " + limits.join(", ") + ".");
+      return new vscode.Hover(markdown);
+    } catch (error) {
+      client.log(error);
+      return undefined;
     }
-
-    if (declaration.startsWith("function") && prettyTypeString.startsWith("{")) {
-      declaration += " ";
-    }
-
-    // Ignore hover if the type is already displayed from TS quick info
-    if (
-      declaration.startsWith("type") ||
-      declaration.startsWith("const") ||
-      declaration.startsWith("let") ||
-      declaration.startsWith("var") ||
-      declaration.startsWith("function")
-    ) {
-      const quickInfo: any = await vscode.commands.executeCommand("typescript.tsserverRequest", "quickinfo", location);
-      const quickInfoDisplayString: string = quickInfo?.body?.displayString;
-
-      const washedQuickInfo = sanitizeString(quickInfoDisplayString);
-      const washedType = sanitizeString(typeString.replace(/ } & { /g, " "));
-
-      if (washedQuickInfo.includes(washedType)) return;
-    }
-
-    const hoverText = new vscode.MarkdownString();
-    hoverText.appendCodeblock(declaration + prettyTypeString, "typescript");
-    return new vscode.Hover(hoverText);
   }
-
-  context.subscriptions.push(vscode.languages.registerHoverProvider("typescript", { provideHover }));
-  context.subscriptions.push(vscode.languages.registerHoverProvider("typescriptreact", { provideHover }));
-  context.subscriptions.push(vscode.languages.registerHoverProvider("vue", { provideHover }));
-  context.subscriptions.push(vscode.languages.registerHoverProvider("javascript", { provideHover }));
-  context.subscriptions.push(vscode.languages.registerHoverProvider("javascriptreact", { provideHover }));
+  for (const language of supportedLanguages) {
+    context.subscriptions.push(vscode.languages.registerHoverProvider({ language }, { provideHover }));
+  }
 }

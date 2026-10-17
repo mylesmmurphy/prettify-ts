@@ -26,14 +26,14 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
      * This is a hack to allow us to use the completions API to trigger type information requests
      * TS does not provide a direct way to get type information otherwise, so we use the completions API
      */
-    proxy.getCompletionsAtPosition = (fileName, position, options) => {
+    proxy.getCompletionsAtPosition = (fileName, position, options, formattingSettings) => {
       const requestBody = options?.triggerCharacter as PrettifyCompletionsTriggerCharacter;
       if (!isPrettifyRequest(requestBody)) {
         // If the request is not a prettify request, call the original method
-        return info.languageService.getCompletionsAtPosition(fileName, position, options);
+        return info.languageService.getCompletionsAtPosition(fileName, position, options, formattingSettings);
       }
 
-      const program = info.project["program"] as ts.Program | undefined;
+      const program = info.languageService.getProgram();
       if (!program) return undefined;
 
       const sourceFile = program.getSourceFile(fileName);
@@ -48,6 +48,11 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         position,
         requestBody.options,
         getVueLanguage(info.project) || getVueLanguage(program),
+        {
+          compilerOptions: program.getCompilerOptions(),
+          isCancellationRequested: () => info.project.getCancellationToken().isCancellationRequested(),
+          onError: (error) => info.project.projectService.logger.info("Prettify analysis failed: " + String(error)),
+        },
       );
 
       const response: PrettifyResponse = {

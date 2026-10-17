@@ -26,3 +26,8 @@ packages/*/out
 test/workspace/.vscode
 !test/workspace/.vscode/settings.json
 
+
+# Local package-manager cache
+.pnpm-store/
+
+test/out-unit/
