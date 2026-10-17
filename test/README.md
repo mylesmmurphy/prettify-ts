@@ -9,7 +9,7 @@ Use Node 24 and the pinned pnpm version.
 - pnpm test builds and runs the editor integration suite.
 - pnpm test:package builds a VSIX, installs it in an isolated profile, and runs the integration suite using the installed artifact directory as the test extension.
 
-The reproducible editor baseline is VS Code 1.100.0 with Vue - Official 3.1.1. The normal editor run uses that editor's bundled compiler. CI also tests the current stable editor/latest Vue using workspace TypeScript. Linux editor tests require xvfb-run -a.
+The reproducible editor baseline is VS Code 1.100.0 with Vue - Official 3.1.1. The normal editor run uses that editor's bundled compiler. CI also tests the current stable editor/latest Vue using workspace TypeScript. The Windows job runs after merging to main, or on any branch from the CI workflow's Run workflow button. Linux editor tests require xvfb-run -a.
 
 Environment selectors:
 
