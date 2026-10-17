@@ -53,14 +53,34 @@ export function stringifyTypeTree(typeTree: TypeTree, anonymousFunction = true):
   }
 
   if (typeTree.kind === "tuple") {
-    const elementTypesString = typeTree.elementTypes.map((t) => stringifyTypeTree(t)).join(", ");
+    const elements = typeTree.elements
+      .map((element) => {
+        let type = element.type;
+        if (element.optional && type.kind === "union") {
+          const types = type.types.filter((member) => member.typeName !== "undefined");
+          type = types.length === 1 ? types[0]! : { ...type, types };
+        }
+        let typeString = stringifyTypeTree(type);
+        const rest = element.rest ? "..." : "";
+        const optional = element.optional ? "?" : "";
+        if (element.name) return `${rest}${element.name}${optional}: ${typeString}`;
+        if (element.optional && (type.kind === "union" || type.kind === "function")) {
+          typeString = `(${typeString})`;
+        }
+        return `${rest}${typeString}${optional}`;
+      })
+      .join(", ");
 
-    return `${typeTree.readonly ? "readonly " : ""}[${elementTypesString}]`;
+    return `${typeTree.readonly ? "readonly " : ""}[${elements}]`;
   }
 
   if (typeTree.kind === "array") {
     let elementTypeString = stringifyTypeTree(typeTree.elementType);
-    if (elementTypeString.includes("|") || elementTypeString.includes("&")) {
+    if (
+      typeTree.elementType.kind === "function" ||
+      elementTypeString.includes("|") ||
+      elementTypeString.includes("&")
+    ) {
       elementTypeString = `(${elementTypeString})`;
     }
 

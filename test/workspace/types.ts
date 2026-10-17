@@ -78,6 +78,14 @@ type TestReadonlyTupleObj = { value: ReadonlyTuple };
 type OptionalRestTuple = [a: string, b?: number, ...rest: boolean[]];
 type TestOptionalRestTupleObj = { value: OptionalRestTuple };
 
+// === Tuple Labels, Optional Elements, and Spreads ===
+type TestReadonlyOptionalRestTupleObj = { value: readonly [first: string, second?: number, ...rest: boolean[]] };
+type TestUnlabeledOptionalTupleObj = { value: [string, (number | null)?] };
+type TestUnlabeledRestTupleObj = { value: [number, ...string[]] };
+type TestVariadicTupleObj<T extends unknown[]> = { value: [first: string, ...rest: T, last: boolean] };
+type TestFunctionRestTupleObj = { value: [first: string, ...callbacks: ((value: number) => string)[]] };
+type TestExpandedTupleObj = { value: [item: { nested: { value: string } }] };
+
 // === Array Type ===
 type ArrayType = number[];
 type TestArrayObj = { value: ArrayType };

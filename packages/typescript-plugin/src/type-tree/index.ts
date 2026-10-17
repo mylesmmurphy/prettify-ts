@@ -310,16 +310,36 @@ function getTypeTree(type: ts.Type, depth: number, visited: Set<ts.Type>, annota
 
   // Tuples
   if (checker.isTupleType(apparentType)) {
-    const readonly = (apparentType as ts.TupleTypeReference)?.target?.readonly ?? false;
-    const elementTypes = checker
-      .getTypeArguments(apparentType as ts.TupleTypeReference)
-      .map((t) => getTypeTree(t, depth, new Set(visited)));
+    const tuple = apparentType as ts.TupleTypeReference;
+    const elements = checker.getTypeArguments(tuple).map((type, index) => {
+      const flags = tuple.target.elementFlags[index] ?? typescript.ElementFlags.Required;
+      const declaration = tuple.target.labeledElementDeclarations?.[index];
+      const arrayRest = Boolean(flags & typescript.ElementFlags.Rest);
+      const variadic = Boolean(flags & typescript.ElementFlags.Variadic);
+      const annotation = arrayRest ? getArrayElementAnnotation(declaration?.type) : declaration?.type;
+      let elementType: TypeTree = variadic
+        ? {
+            kind: "reference",
+            typeName: checker.typeToString(type, undefined, typescript.TypeFormatFlags.NoTruncation),
+          }
+        : getTypeTree(type, depth, new Set(visited), annotation);
+      if (arrayRest) {
+        // Compiler tuple rest arguments contain the array's element type, not its array wrapper.
+        elementType = { kind: "array", typeName: `${elementType.typeName}[]`, readonly: false, elementType };
+      }
+      return {
+        name: declaration && typescript.isIdentifier(declaration.name) ? declaration.name.text : undefined,
+        optional: Boolean(flags & typescript.ElementFlags.Optional),
+        rest: arrayRest || variadic,
+        type: elementType,
+      };
+    });
 
     return {
       kind: "tuple",
       typeName,
-      readonly,
-      elementTypes,
+      readonly: tuple.target.readonly,
+      elements,
     };
   }
 

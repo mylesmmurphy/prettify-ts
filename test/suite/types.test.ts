@@ -1,4 +1,11 @@
-import { applySettings, assertHover, openDocument, getHover, ensureTypeScriptServerReady } from "./utils";
+import {
+  applySettings,
+  assertHover,
+  openDocument,
+  getHover,
+  ensureTypeScriptServerReady,
+  renderPrettifiedType,
+} from "./utils";
 
 suite("Hover Types", () => {
   suiteSetup(async () => {
@@ -114,11 +121,52 @@ suite("Hover Types", () => {
       assertHover(hover, expected);
     });
 
-    // TODO: Implement optional and rest tuple support in the extension
-    test.skip("optional and rest tuple", async () => {
-      const hover = await getHover("TestOptionalRestTupleObj");
-      const expected = /* ts */ `type TestOptionalRestTupleObj = { value: [a: string, b?: number, ...rest: boolean[]] };`;
-      assertHover(hover, expected);
+    test("optional and rest tuple", async () => {
+      const rendered = await renderPrettifiedType("TestOptionalRestTupleObj");
+      const expected = /* ts */ `type TestOptionalRestTupleObj = { value: [a: string, b?: number, ...rest: boolean[]]; };`;
+      assertHover([rendered], expected);
+    });
+
+    test("readonly optional and rest tuple", async () => {
+      assertHover(
+        [await renderPrettifiedType("TestReadonlyOptionalRestTupleObj")],
+        "type TestReadonlyOptionalRestTupleObj = { value: readonly [first: string, second?: number, ...rest: boolean[]]; };",
+      );
+    });
+
+    test("unlabeled optional tuple retains null", async () => {
+      assertHover(
+        [await renderPrettifiedType("TestUnlabeledOptionalTupleObj")],
+        "type TestUnlabeledOptionalTupleObj = { value: [string, (number | null)?]; };",
+      );
+    });
+
+    test("unlabeled tuple rest elements remain arrays", async () => {
+      assertHover(
+        [await renderPrettifiedType("TestUnlabeledRestTupleObj")],
+        "type TestUnlabeledRestTupleObj = { value: [number, ...string[]]; };",
+      );
+    });
+
+    test("generic variadic tuple retains its spread and following element", async () => {
+      assertHover(
+        [await renderPrettifiedType("TestVariadicTupleObj")],
+        "type TestVariadicTupleObj = { value: [first: string, ...rest: T, last: boolean]; };",
+      );
+    });
+
+    test("tuple rest arrays parenthesize function elements", async () => {
+      assertHover(
+        [await renderPrettifiedType("TestFunctionRestTupleObj")],
+        "type TestFunctionRestTupleObj = { value: [first: string, ...callbacks: ((value: number) => string)[]]; };",
+      );
+    });
+
+    test("named tuple members still expand nested objects", async () => {
+      assertHover(
+        [await renderPrettifiedType("TestExpandedTupleObj")],
+        "type TestExpandedTupleObj = { value: [item: { nested: { value: string; }; }]; };",
+      );
     });
 
     test("array", async () => {

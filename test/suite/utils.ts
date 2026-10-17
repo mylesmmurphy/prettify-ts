@@ -205,7 +205,7 @@ function normalizeTypeString(input: string): string {
 export function assertHover(hovers: string[], expected: string): void {
   const normalizedExpected = normalizeTypeString(expected);
   assert.ok(
-    hovers.includes(normalizedExpected),
+    hovers.map(normalizeTypeString).includes(normalizedExpected),
     `Expected hover content to be "${expected}", but got "${hovers.join(", ")}"`,
   );
 }
