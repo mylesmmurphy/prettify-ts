@@ -476,3 +476,20 @@ test("the const in `as const` has no type preview", () => {
   const info = api.getTypeInfoAtPosition(ts, checker, sourceFile, source.lastIndexOf("const") + 1, api.DEFAULT_OPTIONS);
   assert.equal(info, undefined);
 });
+test("hovering the default keyword of a default export shows its type", () => {
+  assert.equal(
+    inspect("export default function () { return 1; }", "default").text.trim(),
+    "function default(): number",
+  );
+  assert.equal(
+    inspect("export default function named(a: string) { return a; }", "default").text.trim(),
+    "function default(a: string): string",
+  );
+  assert.equal(inspect("export default class { x = 1 }", "default").text.trim(), "class default { x: number; }");
+  // Type/value name collisions still resolve by the hovered meaning.
+  assert.match(
+    inspect("const Shared = { runtime: 1 }; type Shared = { typeOnly: string }; declare const r: Shared;", "Shared;")
+      .text,
+    /typeOnly/,
+  );
+});

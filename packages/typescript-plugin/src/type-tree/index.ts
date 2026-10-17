@@ -678,7 +678,16 @@ export function getTypeInfoAtPosition(
     let symbol = checker.getSymbolAtLocation(node);
     if (!symbol) return undefined;
     if (symbol.flags & typescript.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
-    const type = checker.getTypeAtLocation(node);
+    // getTypeAtLocation picks the right meaning for names shared by a type and a value, but returns `any` for
+    // keywords such as `default` in `export default function`; the symbol's type is correct there.
+    let type = checker.getTypeAtLocation(node);
+    if (type.flags & typescript.TypeFlags.Any && !typescript.isIdentifier(node)) {
+      // A class declaration shows its instance members, as when hovering a class name.
+      type =
+        symbol.flags & typescript.SymbolFlags.Class && typescript.isClassDeclaration(node.parent)
+          ? checker.getDeclaredTypeOfSymbol(symbol)
+          : checker.getTypeOfSymbolAtLocation(symbol, node);
+    }
     const typeReference = typescript.isTypeReferenceNode(node.parent) ? node.parent : undefined;
     const typeDeclaration =
       typeReference &&
