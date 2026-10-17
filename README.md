@@ -84,9 +84,11 @@ To release:
 
 One-time setup:
 
-1. Create a VS Code Marketplace personal access token (Azure DevOps, organization **All accessible organizations**, scope **Marketplace → Manage**) for the `MylesMurphy` publisher, and an [Open VSX](https://open-vsx.org/user-settings/tokens) access token.
-2. Add them as repository secrets named `VSCE_PAT` and `OVSX_PAT`. Open VSX publishing is skipped when `OVSX_PAT` is not set.
-3. Create a `release` environment (Settings → Environments) with required reviewers.
+1. Create a `release` environment (Settings → Environments) with required reviewers. Optionally restrict it to `v*` tags.
+2. **VS Code Marketplace:** in an Azure DevOps organization, create a personal access token with organization **All accessible organizations** and scope **Marketplace → Manage**, for an account with access to the `MylesMurphy` publisher. Add it as the repository secret `VSCE_PAT`. Azure DevOps retires these global tokens on December 1, 2026; the Marketplace's own trusted publishing (`vsce publish --oidc`) is not available yet.
+3. **Open VSX:** no token is stored. As the `MylesMurphy` namespace owner, register a [trusted publisher](https://open-vsx.org/user-settings/trusted-publishers) for `prettify-ts` with provider GitHub Actions, owner `mylesmmurphy`, repository `prettify-ts`, workflow `release.yml` and environment `release`. The publish job exchanges its GitHub OIDC token for a short-lived token scoped to the extension. Do not add an `OVSX_PAT` secret.
+
+Both publish steps pass `--skip-duplicate`, so after a partial failure re-run the failed `publish` job.
 
 ### Correctness and compatibility
 

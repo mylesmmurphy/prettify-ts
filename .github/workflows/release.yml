@@ -69,6 +69,8 @@ jobs:
     environment: release
     permissions:
       contents: write
+      # Open VSX trusted publishing: exchanged for a short-lived token scoped to this extension.
+      id-token: write
     env:
       VSIX: dist/${{ needs.verify.outputs.vsix }}
     steps:
@@ -79,18 +81,13 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+      # --skip-duplicate on both registries lets a failed run be re-run after a partial publish.
       - name: Publish to VS Code Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx --yes @vscode/vsce@4.0.0 publish --packagePath "$VSIX"
-      - name: Check for Open VSX token
-        id: ovsx
-        run: echo "enabled=${{ secrets.OVSX_PAT != '' }}" >> "$GITHUB_OUTPUT"
+        run: npx --yes @vscode/vsce@4.0.0 publish --packagePath "$VSIX" --skip-duplicate
       - name: Publish to Open VSX
-        if: steps.ovsx.outputs.enabled == 'true'
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: npx --yes ovsx@1.3.0 publish "$VSIX"
+        run: npx --yes ovsx@1.3.0 publish "$VSIX" --trusted-publishing --skip-duplicate
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
