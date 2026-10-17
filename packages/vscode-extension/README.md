@@ -28,6 +28,10 @@ Prettify TS is a Visual Studio Code extension that enhances your TypeScript deve
 * **Copy Commands** – Use `Copy Prettified Type` or `Copy Fully Prettified Type` to grab the prettified result to your clipboard.
 * **Highly Configurable** – Fine-tune output style, max depth, expansion behavior, and character limits.
 
+## JavaScript Projects
+
+Hover previews also work in JavaScript and JSX files using TypeScript's inferred types and JSDoc annotations. For configured projects, include JavaScript files with `allowJs` in `tsconfig.json`, or use a `jsconfig.json`.
+
 ## Prerequisites for Vue Projects
 
 To use Prettify TS with Vue projects, you need:

@@ -57,6 +57,14 @@ export type TypeFunctionSignature = {
   parameters: TypeFunctionParameter[];
 };
 
+/** A tuple slot retains its label, cardinality, and spread syntax. */
+export type TypeTupleElement = {
+  name?: string;
+  optional: boolean;
+  rest: boolean;
+  type: TypeTree;
+};
+
 /**
  * TypeTree is a tree representation of a TypeScript type.
  * Discriminated by the `kind` field.
@@ -64,7 +72,7 @@ export type TypeFunctionSignature = {
 export type TypeTree = { typeName: string } & (
   | { kind: "union"; excessMembers: number; types: TypeTree[] }
   | { kind: "object"; excessProperties: number; properties: TypeProperty[] }
-  | { kind: "tuple"; readonly: boolean; elementTypes: TypeTree[] }
+  | { kind: "tuple"; readonly: boolean; elements: TypeTupleElement[] }
   | { kind: "array"; readonly: boolean; elementType: TypeTree }
   | {
       kind: "function";
