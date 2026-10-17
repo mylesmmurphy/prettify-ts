@@ -7,67 +7,57 @@
 [![Version](https://badgen.net/vs-marketplace/v/MylesMurphy.prettify-ts)](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
 [![License](https://badgen.net/static/license/MIT/blue)](https://github.com/mylesmmurphy/prettify-ts/blob/main/LICENSE)
 
-## Overview
+Prettify TS replaces hard-to-read TypeScript hovers with fully resolved, nicely formatted types. Hover over a type, interface, class, function, or variable to see what it actually is, without chasing through intersections, mapped types, and generics.
 
-Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides better hover previews for TypeScript types, classes, interfaces, and more, formatted in a more readable and highly configurable way.
-
-## Example
-
-<img src="./assets/example.png" width="300" alt="Example Screenshot" />
-
-## Watch This
+<img src="./assets/example.png" width="300" alt="Prettified hover preview" />
 
 <a href="https://www.youtube.com/shorts/9GRzNXKVa2o" target="_blank">
-  <img src="https://raw.githubusercontent.com/mylesmmurphy/prettify-ts/refs/heads/main/assets/demo-preview.png" alt="Watch Demo Video" width="500" />
+  <img src="https://raw.githubusercontent.com/mylesmmurphy/prettify-ts/refs/heads/main/assets/demo-preview.png" alt="Watch the demo video" width="500" />
 </a>
 
 ## Features
 
-* **Prettified Type Hovers** – Enhanced and formatted hover displays for interfaces, aliases, functions, unions, arrays, and more.
-* **Toggle Command** – Use `Toggle Preview` to quickly enable or disable prettified previews.
-* **Copy Commands** – Use `Copy Prettified Type` or `Copy Fully Prettified Type` to grab the prettified result to your clipboard.
-* **Highly Configurable** – Fine-tune output style, max depth, expansion behavior, and character limits.
-
-## JavaScript Projects
-
-Hover previews also work in JavaScript and JSX files using TypeScript's inferred types and JSDoc annotations. For configured projects, include JavaScript files with `allowJs` in `tsconfig.json`, or use a `jsconfig.json`.
+* **Prettified hovers** for interfaces, type aliases, classes, functions, unions, arrays, and more.
+* **Copy as TypeScript**: right-click and choose **Prettify → Copy Prettified Type** or **Copy Fully Prettified Type**. Copied output is valid TypeScript you can paste straight into your code.
+* **Toggle Preview**: run **Prettify TS: Toggle Preview** from the Command Palette to switch prettified hovers on or off.
+* **Configurable**: control depth, indentation, how much is shown, and which types are left as-is.
+* **TypeScript, JavaScript, and Vue**: works in `.ts`, `.tsx`, `.js`, `.jsx`, and `.vue` files.
 
 ## Requirements
 
-VS Code 1.100.0 or newer. Workspace TypeScript 5.9 and the bundled compilers in the minimum/current editors are exercised by the test suites.
+* VS Code **1.100.0** or newer.
+* Works with the editor's bundled TypeScript or your workspace TypeScript.
 
-## Prerequisites for Vue Projects
+### JavaScript projects
 
-To use Prettify TS with Vue projects, you need:
+Hovers use TypeScript's inferred types and JSDoc annotations. For configured projects, include JavaScript files with `allowJs` in `tsconfig.json`, or use a `jsconfig.json`.
 
-* **Vue.Volar extension** version **2.0.16** or higher
-* **For Volar v2**: Add the following configuration to your VSCode settings:
-  ```json
-  {
-    "vue.server.hybridMode": true
-  }
-  ```
-* **For Volar v3**: No additional configuration required
+### Vue projects
+
+* Install the [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) extension, version **3.1.1** or newer. No extra configuration is needed.
 
 ## Extension Settings
 
-| Setting                                 | Description                                                                                                                 |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Type Indentation**                    | Controls the indentation level of types.                                                                                    |
-| **Max Depth**                           | Sets the maximum depth to which types should be expanded.                                                                   |
-| **Max Properties**                      | Limits the number of properties displayed for each type. Excess properties will be displayed with ellipsis.                 |
-| **Max Sub-Properties**                  | Limits the number of sub-properties (on nested objects) displayed for each property. Excess will be shown as ellipsis.      |
-| **Max Union Members**                   | Limits the number of union members shown per union. Excess members will be displayed with ellipsis.                         |
-| **Max Function Signatures**             | Limits the number of function signatures shown. Excess signatures will be replaced with ellipsis.                           |
-| **Unwrap Functions**                    | If enabled, expands function parameter and return types.                                                                    |
-| **Unwrap Arrays**                       | If enabled, expands the element types of arrays.                                                                            |
-| **Unwrap Generic Arguments Type Names** | A list of generic type names whose arguments should be unwrapped instead of using their resolved output (e.g., `Promise`).  |
-| **Hide Private Properties**             | Hides private/protected members, JavaScript private fields, and optionally underscore-prefixed members.                     |
-| **Treat Underscore As Private**         | When hiding private members, also hides underscore-prefixed properties and methods. Defaults to enabled.                    |
-| **Skipped Type Names**                  | List of type names that should not be expanded. Generics are supported and replaced with ellipses in hovers (e.g., `ZodObject<...>`); copies keep the arguments. |
-| **Max Characters**                      | Sets a maximum character limit for output. If exceeded, the result will be truncated.                                       |
+All settings are under `prettify-ts.*` and can be overridden per language.
 
-To show public underscore-prefixed members while keeping private and protected members hidden, use:
+| Setting | Default | Description |
+| --- | --- | --- |
+| `enabled` | `true` | Turns prettified hovers on or off. **Toggle Preview** flips this. |
+| `typeIndentation` | `4` | Spaces used to indent nested types. |
+| `maxDepth` | `1` | How many levels of nested types to expand. |
+| `maxProperties` | `1000` | Maximum properties shown in total, including nested ones. |
+| `maxSubProperties` | `10` | Maximum properties shown on each nested object. |
+| `maxUnionMembers` | `15` | Maximum members shown per union. |
+| `maxFunctionSignatures` | `5` | Maximum overloads shown per function. |
+| `unwrapFunctions` | `true` | Expands function parameter and return types. |
+| `unwrapArrays` | `true` | Expands array element types. |
+| `unwrapGenericArgumentsTypeNames` | `Promise`, `Set`, `Map`, `Observable` | Generic types whose arguments are expanded instead of the type itself. |
+| `skippedTypeNames` | `Array`, `Date`, `Map`, `Set`, … | Types that are never expanded. Hovers show generics as `ZodObject<...>`; copies keep the arguments. |
+| `hidePrivateProperties` | `true` | Hides private and protected members and JavaScript `#private` fields. |
+| `treatUnderscoreAsPrivate` | `true` | Also hides `_underscore` members when `hidePrivateProperties` is on. |
+| `maxCharacters` | `20000` | Maximum characters in a preview before it is cut off. Higher values are slower. |
+
+To show public `_underscore` members while still hiding private and protected ones:
 
 ```json
 {
@@ -76,32 +66,28 @@ To show public underscore-prefixed members while keeping private and protected m
 }
 ```
 
-These settings apply to hover previews and both copy commands. Disabling **Hide Private Properties** shows all members regardless of **Treat Underscore As Private**. Computed symbol keys remain visible unless the member is explicitly private or protected.
-
 ## Large and recursive types
 
-Hover previews and both copy commands are protected by internal time and size limits, so very large or self-referencing types cannot stall the TypeScript server. These limits are far above what normal previews use; when one is reached, the output says so. Copied types mark omitted members as `/* ... 3 more */` comments, are never cut by the compiler's own text truncation (hovers may show `Foo<...>`), and keep the arguments of skipped types, so pasted output stays valid TypeScript.
+Very large or self-referencing types can't stall the TypeScript server: previews and copies have internal time and size limits well above normal use, and the output says when one is reached. Copied types mark omitted members with comments like `/* ... 3 more */`, so pasted output stays valid TypeScript.
 
-Settings can also be overridden per language, and **Toggle Preview** updates whichever setting is currently in effect. Request failures are logged to the **Prettify TS** output channel.
+If something goes wrong, check the **Prettify TS** output channel for details.
 
-## Sidebar View (Deprecated)
+## Related Projects
 
-As of v0.1.0, Prettify TS focuses on hover previews only and no longer includes a sidebar Type View.
-
-If you're looking for a sidebar-based type explorer, check out:
+Want to explore types in a sidebar tree? Check out:
 
 * [TypeScript Explorer](https://marketplace.visualstudio.com/items?itemName=mxsdev.typescript-explorer)
 * [ts-type-expand](https://marketplace.visualstudio.com/items?itemName=kimuson.ts-type-expand)
 
 ## Contributing
 
-Bug reports, suggestions, and pull requests are welcome. Visit [GitHub Issues](https://github.com/mylesmmurphy/prettify-ts/issues) to contribute.
+Bug reports, suggestions, and pull requests are welcome on [GitHub](https://github.com/mylesmmurphy/prettify-ts/issues).
 
 ## Acknowledgements
 
-* [@mattpocock](https://github.com/mattpocock) – original inspiration via Prettify Type
-* [@willbattel](https://github.com/willbattel) – early beta testing and feedback
-* [@mattiamanzati](https://github.com/mattiamanzati) – TypeScript compiler insights
+* [@mattpocock](https://github.com/mattpocock): original inspiration via Prettify Type
+* [@willbattel](https://github.com/willbattel): early beta testing and feedback
+* [@mattiamanzati](https://github.com/mattiamanzati): TypeScript compiler insights
 
 ## License
 
