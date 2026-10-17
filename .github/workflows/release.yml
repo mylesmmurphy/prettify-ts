@@ -59,8 +59,11 @@ jobs:
           path: dist/${{ steps.version.outputs.vsix }}
           if-no-files-found: error
 
+  real-world:
+    uses: ./.github/workflows/real-world.yml
+
   publish:
-    needs: verify
+    needs: [verify, real-world]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: release

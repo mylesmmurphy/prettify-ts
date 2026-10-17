@@ -74,13 +74,13 @@ Run pnpm test:package to install the generated VSIX in an isolated editor profil
 
 ### Release Workflow
 
-Pushing a `v*` tag runs [`.github/workflows/release.yml`](./.github/workflows/release.yml). It fails if the tag does not match the version in `packages/vscode-extension/package.json`, runs the CI checks, builds the VSIX once, runs the installed-VSIX tests against that file, and uploads it as an artifact. After approval, the `publish` job publishes that same artifact to the VS Code Marketplace and Open VSX, then creates a GitHub release with the VSIX attached.
+Pushing a `v*` tag runs [`.github/workflows/release.yml`](./.github/workflows/release.yml). It fails if the tag does not match the version in `packages/vscode-extension/package.json`, runs the CI checks, builds the VSIX once, runs the installed-VSIX tests against that file, and uploads it as an artifact. The [real-world sweep](./test/README.md#real-world-suite-optional) runs in parallel and must also pass. After approval, the `publish` job publishes that same artifact to the VS Code Marketplace and Open VSX, then creates a GitHub release with the VSIX attached.
 
 To release:
 
 1. Bump `version` in `packages/vscode-extension/package.json` (and the plugin package if it changed), then merge to `main`.
 2. Tag the release commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-3. When the `verify` job passes, approve the `release` environment deployment in the workflow run.
+3. When the `verify` and `real-world` jobs pass, approve the `release` environment deployment in the workflow run.
 
 One-time setup:
 

@@ -1,11 +1,13 @@
 name: Real-world sweep
 
 # Optional end-to-end coverage over large open-source projects (test/real-world/projects.json).
-# Slow, network-bound and informational, so it never runs on pull requests by default and is never a
-# required check. Add the `real-world` label to a pull request to run it there (again on each push).
+# Slow and network-bound, so it never runs on pull requests by default and is never a required PR
+# check. Add the `real-world` label to a pull request to run it there (again on each push).
+# The release workflow calls it, so a release cannot publish unless the sweep passes.
 on:
   pull_request:
     types: [labeled, synchronize, reopened]
+  workflow_call:
   workflow_dispatch:
     inputs:
       positions:
