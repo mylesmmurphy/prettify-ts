@@ -30,6 +30,6 @@ User-facing behavior is otherwise unchanged from the previous release: setting d
 
 The Vue generated-offset-zero edge case is also fixed and covered by a mapping-level test.
 
-Additional design changes centralize defaults/configuration/client requests, remove mutable compiler globals, reject stale results, expose progress and cancellation, activate only for supported languages, and show copy menus consistently in TS/TSX/JS/JSX/Vue. CI includes Windows and Linux integration, and the packaged VSIX is exercised on Linux.
+Additional design changes centralize defaults/configuration/client requests, remove mutable compiler globals, reject stale results, expose progress and cancellation, activate only for supported languages, and show copy menus consistently in TS/TSX/JS/JSX/Vue. CI includes Windows (after merge to main) and Linux integration, and the packaged VSIX is exercised on Linux.
 
 Compiler internals required for mapped readonly and Vue integration remain isolated concerns. The compatibility matrix tests known compiler/editor combinations rather than promising every historical workspace TypeScript version.
