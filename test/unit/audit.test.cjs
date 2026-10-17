@@ -217,6 +217,8 @@ test("numeric settings are finite and large user values are honored", () => {
   const full = api.normalizeOptions({ fullExpansion: true });
   assert.equal(full.maxProperties, api.MAX_SETTING);
   assert.ok(Number.isFinite(full.maxDepth));
+  assert.equal(full.copy, true);
+  assert.equal(api.normalizeOptions({}).copy, false);
 });
 test("recursive generics terminate even with full copy", () => {
   for (const source of [
@@ -419,4 +421,58 @@ test("expansions that fit the budget are unchanged by fair re-expansion", () => 
   const { info, text } = inspect(source, "Test", { fullExpansion: true });
   assert.equal(info.truncationReasons, undefined);
   assert.equal(text, "type Test = { a: { b: { c: { d: string; }; }; }; e: number; }");
+});
+
+test("copies are not cut by compiler truncation; previews keep the compact form", () => {
+  const source =
+    "type Box<A, B> = { first: A; second: B };" +
+    "type Check<Actual, Expected> = [Expected] extends [Box<Actual, Expected>]" +
+    " ? Box<Box<Box<Actual, Expected>, Box<Expected, Actual>>, Box<Box<Actual, Actual>, Box<Expected, Expected>>>" +
+    " : unknown;" +
+    "declare function Test<E>(value: Check<{ first: string; second: number; third: boolean }, E>): void;";
+  assert.match(inspect(source, "Test").text, /Box<\.\.\.>/);
+  // Declared constraints of instantiated signatures are printed by the node builder, which also truncates.
+  const numbers = Array.from({ length: 60 }, (_, i) => i).join(", ");
+  const constrained =
+    "declare function make<T>(v: T): { is: <E extends [T, E]>(e: E) => void };" +
+    `const Test = make([${numbers}] as const);`;
+  assert.match(inspect(constrained, "Test").text, /\.\.\. \d+ more \.\.\./);
+  for (const overrides of [{ copy: true }, { fullExpansion: true }]) {
+    assert.doesNotMatch(inspect(constrained, "Test", overrides).text, /\.\.\./);
+    parses(inspect(constrained, "Test", overrides).text);
+    const { info, text } = inspect(source, "Test", overrides);
+    assert.doesNotMatch(text, /\.\.\./, text);
+    assert.match(text, /, Box<E, E>>> : unknown\): void$/);
+    assert.equal(info.truncationReasons, undefined);
+    parses(text);
+  }
+});
+test("skipped types keep their arguments in copies", () => {
+  const source =
+    "const Test = { entries: new Map<string, number>(), seen: new Set<string>() };" +
+    "declare const annotated: { cache: Map<string, Set<number>> };";
+  const skippedTypeNames = ["Map", "Set"];
+  assert.match(inspect(source, "Test", { skippedTypeNames }).text, /entries: Map<\.\.\.>; seen: Set<\.\.\.>;/);
+  for (const overrides of [{ copy: true }, { fullExpansion: true }]) {
+    const { text } = inspect(source, "Test", { skippedTypeNames, ...overrides });
+    assert.match(text, /entries: Map<string, number>; seen: Set<string>;/);
+    parses(text);
+    const property = inspect(source, "annotated", { skippedTypeNames, ...overrides }).text;
+    assert.match(property, /cache: Map<string, Set<number>>;/);
+    parses(property);
+  }
+});
+test("interfaces without an object body are written as aliases", () => {
+  const { text } = inspect("let list: ReadonlyArray<string>;", "ReadonlyArray");
+  assert.match(text, /^type ReadonlyArray = readonly T\[\]/);
+  parses(text);
+  const skipped = inspect("let created: Date;", "Date", { skippedTypeNames: ["Date"], copy: true }).text;
+  assert.equal(skipped, "type Date = Date");
+  parses(skipped);
+});
+test("the const in `as const` has no type preview", () => {
+  const source = 'const colors = ["red", "blue"] as const;';
+  const { checker, sourceFile } = programFor(source);
+  const info = api.getTypeInfoAtPosition(ts, checker, sourceFile, source.lastIndexOf("const") + 1, api.DEFAULT_OPTIONS);
+  assert.equal(info, undefined);
 });

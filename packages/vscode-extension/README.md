@@ -64,7 +64,7 @@ To use Prettify TS with Vue projects, you need:
 | **Unwrap Generic Arguments Type Names** | A list of generic type names whose arguments should be unwrapped instead of using their resolved output (e.g., `Promise`).  |
 | **Hide Private Properties**             | Hides private/protected members, JavaScript private fields, and optionally underscore-prefixed members.                     |
 | **Treat Underscore As Private**         | When hiding private members, also hides underscore-prefixed properties and methods. Defaults to enabled.                    |
-| **Skipped Type Names**                  | List of type names that should not be expanded. Generics are supported and replaced with ellipses (e.g., `ZodObject<...>`). |
+| **Skipped Type Names**                  | List of type names that should not be expanded. Generics are supported and replaced with ellipses in hovers (e.g., `ZodObject<...>`); copies keep the arguments. |
 | **Max Characters**                      | Sets a maximum character limit for output. If exceeded, the result will be truncated.                                       |
 
 To show public underscore-prefixed members while keeping private and protected members hidden, use:
@@ -80,7 +80,7 @@ These settings apply to hover previews and both copy commands. Disabling **Hide 
 
 ## Large and recursive types
 
-Hover previews and both copy commands are protected by internal time and size limits, so very large or self-referencing types cannot stall the TypeScript server. These limits are far above what normal previews use; when one is reached, the output says so. Copied types mark omitted members as `/* ... 3 more */` comments, so pasted output stays valid TypeScript.
+Hover previews and both copy commands are protected by internal time and size limits, so very large or self-referencing types cannot stall the TypeScript server. These limits are far above what normal previews use; when one is reached, the output says so. Copied types mark omitted members as `/* ... 3 more */` comments, are never cut by the compiler's own text truncation (hovers may show `Foo<...>`), and keep the arguments of skipped types, so pasted output stays valid TypeScript.
 
 Settings can also be overridden per language, and **Toggle Preview** updates whichever setting is currently in effect. Request failures are logged to the **Prettify TS** output channel.
 

@@ -189,7 +189,7 @@
             "String",
             "Symbol"
           ],
-          "description": "Types that won't be unwrapped, by name. Generic types are supported, with their arguments replaced by ellipses (e.g., `ZodObject<...>`).",
+          "description": "Types that won't be unwrapped, by name. Generic types are supported, with their arguments replaced by ellipses in hovers (e.g., `ZodObject<...>`); copies keep the arguments.",
           "scope": "language-overridable"
         },
         "prettify-ts.unwrapGenericArgumentsTypeNames": {

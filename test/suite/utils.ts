@@ -168,7 +168,11 @@ export function assertHover(hovers: HoverResult, expected: string): void {
 }
 
 /** Request the plugin directly so native TypeScript hover output cannot mask a regression. */
-export async function getPrettifyTypeInfo(keyword: string, characterOffset = 1, overrides: PrettifySettings = {}) {
+export async function getPrettifyTypeInfo(
+  keyword: string,
+  characterOffset = 1,
+  overrides: PrettifySettings & { copy?: boolean } = {},
+) {
   const offset = openDoc.getText().indexOf(keyword);
   assert.ok(offset >= 0, `Fixture keyword not found: ${keyword}`);
   const position = openDoc.positionAt(offset + characterOffset);

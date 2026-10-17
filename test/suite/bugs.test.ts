@@ -84,6 +84,9 @@ suite("Open bug regressions", () => {
   test("generic skip names keep their abbreviated arguments (#93)", async () => {
     const info = await getPrettifyTypeInfo("bugGeneric:", 0, { skippedTypeNames: ["BugGeneric"] });
     assert.deepStrictEqual(info.typeTree, { kind: "reference", typeName: "BugGeneric<...>" });
+    // Copies stay valid TypeScript, so they keep the arguments.
+    const copied = await getPrettifyTypeInfo("bugGeneric:", 0, { skippedTypeNames: ["BugGeneric"], copy: true });
+    assert.deepStrictEqual(copied.typeTree, { kind: "reference", typeName: "BugGeneric<string>" });
   });
 
   test("array and function unwrap settings work independently (#82)", async () => {
