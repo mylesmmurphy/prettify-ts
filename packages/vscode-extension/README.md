@@ -11,6 +11,8 @@ Prettify TS replaces hard-to-read TypeScript hovers with fully resolved, nicely 
 
 <img src="./assets/example.png" width="300" alt="Prettified hover preview" />
 
+## Watch This
+
 <a href="https://www.youtube.com/shorts/9GRzNXKVa2o" target="_blank">
   <img src="https://raw.githubusercontent.com/mylesmmurphy/prettify-ts/refs/heads/main/assets/demo-preview.png" alt="Watch the demo video" width="500" />
 </a>
