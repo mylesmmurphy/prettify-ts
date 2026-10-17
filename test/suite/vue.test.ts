@@ -6,7 +6,8 @@ suite("Vue Hover Types", () => {
   suiteSetup(async function () {
     const vue = vscode.extensions.getExtension("vue.volar");
     assert.ok(vue, "Vue extension must be installed for the Vue tests");
-    const version = process.env.PRETTIFY_TEST_VUE_VERSION;
+    console.log(`Testing Vue - Official extension ${String(vue.packageJSON.version)}`);
+    const version = process.env.PRETTIFY_TEST_VUE_EXTENSION_VERSION;
     if (version && version !== "latest") {
       assert.strictEqual(vue.packageJSON.version, version);
     }

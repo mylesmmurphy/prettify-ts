@@ -47,13 +47,15 @@ pnpm test
 
 > This runs the tests using the VS Code Test CLI. Linux needs a display server; use `xvfb-run -a pnpm test` in CI.
 
-CI runs against both Vue 3.1.1 and the latest Vue extension. To select the older version locally:
+CI tests the current stable Vue - Official editor extension (`vue.volar`). Its version is independent of the Vue framework package. The installer explicitly updates cached extensions and the suite logs the version actually loaded.
+
+For a historical reproduction, select an editor extension version manually:
 
 ```bash
-PRETTIFY_TEST_VUE_VERSION=3.1.1 pnpm test
+PRETTIFY_TEST_VUE_EXTENSION_VERSION=3.1.1 pnpm test
 ```
 
-Each version uses a dedicated test profile with automatic extension updates disabled. Tests verify the loaded Vue version and request this plugin directly, including a Vue document edit that replaces the compiler program. Bug regressions also cover computed and quoted keys, type/value name collisions, skipped aliases, unwrap settings, and JavaScript/JSX hover registration.
+Each selection uses a dedicated test profile with automatic extension updates disabled. Direct plugin assertions cover Vue source mapping before and after edits, independently of the extension's release number. Bug regressions also cover computed and quoted keys, type/value name collisions, skipped aliases, unwrap settings, JavaScript/JSX hover registration, and tuple labels and cardinality.
 
 ---
 
