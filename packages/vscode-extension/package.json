@@ -14,11 +14,11 @@
     "@prettify-ts/typescript-plugin": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "18.x",
-    "@types/vscode": "^1.44.0",
-    "@vscode/vsce": "^3.4.2",
-    "esbuild": "^0.25.5",
-    "typescript": "^5.4.5"
+    "@types/node": "^24.19.2",
+    "@types/vscode": "1.44.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "typescript": "~5.9.3"
   },
   "displayName": "Prettify TypeScript: Better Type Previews",
   "description": "View \"prettified\" and nested types in hover tooltips.",

@@ -443,23 +443,23 @@ function isPrimitiveType(type: ts.Type): boolean {
 
   return Boolean(
     typeFlags & typescript.TypeFlags.String ||
-      typeFlags & typescript.TypeFlags.StringLiteral ||
-      typeFlags & typescript.TypeFlags.TemplateLiteral ||
-      typeFlags & typescript.TypeFlags.Number ||
-      typeFlags & typescript.TypeFlags.NumberLiteral ||
-      typeFlags & typescript.TypeFlags.Boolean ||
-      typeFlags & typescript.TypeFlags.BooleanLike ||
-      typeFlags & typescript.TypeFlags.BooleanLiteral ||
-      typeFlags & typescript.TypeFlags.Undefined ||
-      typeFlags & typescript.TypeFlags.Null ||
-      typeFlags & typescript.TypeFlags.Void ||
-      typeFlags & typescript.TypeFlags.BigInt ||
-      typeFlags & typescript.TypeFlags.BigIntLiteral ||
-      typeFlags & typescript.TypeFlags.ESSymbol ||
-      typeFlags & typescript.TypeFlags.UniqueESSymbol ||
-      typeFlags & typescript.TypeFlags.Never ||
-      typeFlags & typescript.TypeFlags.Unknown ||
-      typeFlags & typescript.TypeFlags.Any,
+    typeFlags & typescript.TypeFlags.StringLiteral ||
+    typeFlags & typescript.TypeFlags.TemplateLiteral ||
+    typeFlags & typescript.TypeFlags.Number ||
+    typeFlags & typescript.TypeFlags.NumberLiteral ||
+    typeFlags & typescript.TypeFlags.Boolean ||
+    typeFlags & typescript.TypeFlags.BooleanLike ||
+    typeFlags & typescript.TypeFlags.BooleanLiteral ||
+    typeFlags & typescript.TypeFlags.Undefined ||
+    typeFlags & typescript.TypeFlags.Null ||
+    typeFlags & typescript.TypeFlags.Void ||
+    typeFlags & typescript.TypeFlags.BigInt ||
+    typeFlags & typescript.TypeFlags.BigIntLiteral ||
+    typeFlags & typescript.TypeFlags.ESSymbol ||
+    typeFlags & typescript.TypeFlags.UniqueESSymbol ||
+    typeFlags & typescript.TypeFlags.Never ||
+    typeFlags & typescript.TypeFlags.Unknown ||
+    typeFlags & typescript.TypeFlags.Any,
   );
 }
 
@@ -529,14 +529,12 @@ function isPublicProperty(symbol: ts.Symbol): boolean {
   if (name.startsWith("_") || name.startsWith("#")) return false;
 
   return declarations.every((declaration) => {
-    if (
-      !(
-        typescript.isMethodDeclaration(declaration) ||
-        typescript.isMethodSignature(declaration) ||
-        typescript.isPropertyDeclaration(declaration) ||
-        typescript.isPropertySignature(declaration)
-      )
-    )
+    if (!(
+      typescript.isMethodDeclaration(declaration) ||
+      typescript.isMethodSignature(declaration) ||
+      typescript.isPropertyDeclaration(declaration) ||
+      typescript.isPropertySignature(declaration)
+    ))
       return true;
 
     const modifiers = declaration.modifiers ?? [];

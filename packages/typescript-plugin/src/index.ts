@@ -13,6 +13,8 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     // Set up decorator object
     const proxy: ts.LanguageService = Object.create(null);
     for (const k of Object.keys(info.languageService) as Array<keyof ts.LanguageService>) {
+      // Preserve the language service receiver when forwarding methods.
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       const x = info.languageService[k]!;
       // @ts-expect-error - JS runtime trickery which is tricky to type tersely
       proxy[k] = (...args: unknown[]) => x.apply(info.languageService, args);

@@ -3,4 +3,7 @@ packages:
 onlyBuiltDependencies:
   - '@vscode/vsce-sign'
   - esbuild
-  - keytar
+# Mocha still pins older majors of these packages; use the security-fixed releases.
+overrides:
+  'mocha>diff': '^8.0.4'
+  'mocha>serialize-javascript': '^7.1.2'

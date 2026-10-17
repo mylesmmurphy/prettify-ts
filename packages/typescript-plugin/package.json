@@ -9,10 +9,10 @@
     "build:debug": "tsup --sourcemap"
   },
   "devDependencies": {
-    "@types/ts-expose-internals": "npm:ts-expose-internals@5.4.5",
-    "@volar/language-core": "^2.4.15",
-    "@volar/typescript": "^2.4.15",
-    "tsup": "^8.5.0",
-    "typescript": "^5.4.5"
+    "@types/ts-expose-internals": "npm:ts-expose-internals@5.6.3",
+    "@volar/language-core": "^2.4.28",
+    "@volar/typescript": "^2.4.28",
+    "tsup": "^9.0.0",
+    "typescript": "~5.9.3"
   }
 }
