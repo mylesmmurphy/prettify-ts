@@ -52,6 +52,44 @@ export function getTypeInfoAtPosition(
     return true;
   }
 
+  /**
+   * Depth-first expansion lets an early, deep member use up the safety budget and starve its siblings.
+   * When the budget runs out, retry with increasing object depth and keep the deepest attempt that fits,
+   * so shallow members always appear before deeper levels are cut. Expansions that fit are returned as is.
+   */
+  function expandFairly<T>(build: () => T): T {
+    const start = { nodes, textCharacters, reasons: [...reasons] };
+    const exhausted = () => reasons.has("analysis budget") || reasons.has("cancelled");
+    const restore = (state: { nodes: number; textCharacters: number; reasons: string[] }) => {
+      nodes = state.nodes;
+      textCharacters = state.textCharacters;
+      reasons.clear();
+      for (const reason of state.reasons) reasons.add(reason);
+    };
+    const first = build();
+    if (!exhausted() || reasons.has("cancelled")) return first;
+    const firstState = { nodes, textCharacters, reasons: [...reasons] };
+    const requestedDepth = options.maxDepth;
+    let best: { tree: T; state: typeof firstState } | undefined;
+    try {
+      for (let depth = 0; depth < requestedDepth; depth++) {
+        restore(start);
+        options.maxDepth = depth;
+        const tree = build();
+        if (exhausted()) break;
+        best = { tree, state: { nodes, textCharacters, reasons: [...reasons, "analysis budget"] } };
+      }
+    } finally {
+      options.maxDepth = requestedDepth;
+    }
+    if (!best) {
+      restore(firstState);
+      return first;
+    }
+    restore(best.state);
+    return best.tree;
+  }
+
   function boundedText(text: string): string {
     if (textCharacters + text.length > limits.characters) {
       reasons.add("type text budget");
@@ -676,17 +714,14 @@ export function getTypeInfoAtPosition(
         kind: "function",
         typeName: "",
         excessSignatures: 0,
-        signatures: [getSignature(signature, 0, new Set(), true)],
+        signatures: [expandFairly(() => getSignature(signature, 0, new Set(), true))],
       };
       declaration = getSyntaxKindDeclaration(typescript.SyntaxKind.Constructor, name);
     } else {
-      tree = getTypeTree(
-        type,
-        0,
-        new Set(),
+      const annotation =
         typeReference ??
-          (typescript.isTypeAliasDeclaration(node.parent) ? node.parent.name : getTypeAnnotation(symbol)),
-      );
+        (typescript.isTypeAliasDeclaration(node.parent) ? node.parent.name : getTypeAnnotation(symbol));
+      tree = expandFairly(() => getTypeTree(type, 0, new Set(), annotation));
       const declaredParameters =
         declarationNode &&
         (typescript.isTypeAliasDeclaration(declarationNode) ||

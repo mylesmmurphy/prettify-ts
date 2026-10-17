@@ -351,7 +351,10 @@ test("runaway expansion degrades to a partial preview instead of an empty respon
   const source = "type Fan<T> = { a: Fan<[T]>; b: Fan<[T]>; c: Fan<[T]> }; declare const Test: Fan<0>;";
   const { info } = inspect(source, "Test", { maxDepth: 20 });
   assert.equal(info.typeTree.kind, "object");
-  assert.ok(info.typeTree.properties.length >= 1);
+  assert.deepEqual(
+    info.typeTree.properties.map((p) => p.name),
+    ["a", "b", "c"],
+  );
   assert.ok(info.truncationReasons.includes("analysis budget"));
   assert.ok(!info.truncationReasons.includes("response size limit"));
   assert.ok(JSON.stringify(info).length < api.PREVIEW_LIMITS.characters);
@@ -398,4 +401,22 @@ test("booleans keep their union position and safe references are not grouped", (
   ).text;
   assert.match(grouped, /a: \(keyof T\)\[\]; b: keyof T \| null; c: \(T extends string \? 1 : 2\) \| null;/);
   parses(grouped);
+});
+
+test("full copy keeps every top-level member when deep members exhaust the budget", () => {
+  const members = Array.from({ length: 50 }, (_, i) => "p" + i + ": string").join("; ");
+  const source =
+    "type Deep<T> = { x: Deep<[T]>; y: Deep<[T]>; z: Deep<[T]> }; type Test = { first: Deep<0>; " + members + " };";
+  const { info, text } = inspect(source, "Test", { fullExpansion: true });
+  assert.equal(info.typeTree.properties.length, 51);
+  assert.equal(info.typeTree.excessProperties, 0);
+  assert.ok(info.truncationReasons.includes("analysis budget"));
+  assert.match(text, /p49: string;/);
+  parses(text);
+});
+test("expansions that fit the budget are unchanged by fair re-expansion", () => {
+  const source = "type Test = { a: { b: { c: { d: string } } }; e: number };";
+  const { info, text } = inspect(source, "Test", { fullExpansion: true });
+  assert.equal(info.truncationReasons, undefined);
+  assert.equal(text, "type Test = { a: { b: { c: { d: string; }; }; }; e: number; }");
 });
