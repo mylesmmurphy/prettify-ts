@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PRETTIFY_TEST_VSCODE_VERSION: '1.100.0'
+      PRETTIFY_TEST_VUE_EXTENSION_VERSION: '3.1.1'
+    outputs:
+      vsix: ${{ steps.version.outputs.vsix }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check tag matches extension version
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(node -p "require('./packages/vscode-extension/package.json').version")
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::Tag $TAG does not match packages/vscode-extension/package.json version $version (expected v$version)"
+            exit 1
+          fi
+          echo "vsix=prettify-ts-$version.vsix" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm test:unit
+      - name: Minimum-editor integration
+        run: xvfb-run -a pnpm test
+      - name: Package VSIX
+        run: |
+          mkdir -p dist
+          node scripts/package.js "dist/${{ steps.version.outputs.vsix }}"
+      - name: Installed VSIX integration
+        run: |
+          pnpm exec tsc -p test
+          xvfb-run -a node scripts/test-package.js "dist/${{ steps.version.outputs.vsix }}"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: prettify-ts-vsix
+          path: dist/${{ steps.version.outputs.vsix }}
+          if-no-files-found: error
+
+  real-world:
+    uses: ./.github/workflows/real-world.yml
+
+  publish:
+    needs: [verify, real-world]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write
+      # Open VSX trusted publishing: exchanged for a short-lived token scoped to this extension.
+      id-token: write
+    env:
+      VSIX: dist/${{ needs.verify.outputs.vsix }}
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: prettify-ts-vsix
+          path: dist
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # --skip-duplicate on both registries lets a failed run be re-run after a partial publish.
+      - name: Publish to VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx --yes @vscode/vsce@4.0.0 publish --packagePath "$VSIX" --skip-duplicate
+      - name: Publish to Open VSX
+        run: npx --yes ovsx@1.3.0 publish "$VSIX" --trusted-publishing --skip-duplicate
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" "$VSIX" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --verify-tag
