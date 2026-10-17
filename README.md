@@ -70,7 +70,23 @@ During development, pnpm automatically symlinks the plugin into the extension’
 
 Run pnpm package to build a VSIX. Packaging stages the manifest, bundle, assets, and plugin in a temporary directory and removes that directory on success or failure. It never rewrites the checkout manifest or replaces workspace dependency symlinks.
 
-Run pnpm test:package to install the generated VSIX in an isolated editor profile and run the integration suite against the installed extension. Tests use a disposable copy of the workspace fixtures.
+Run pnpm test:package to install the generated VSIX in an isolated editor profile and run the integration suite against the installed extension. Tests use a disposable copy of the workspace fixtures. Pass a path (`node scripts/test-package.js path/to/file.vsix`) to test an existing VSIX instead of packaging a new one.
+
+### Release Workflow
+
+Pushing a `v*` tag runs [`.github/workflows/release.yml`](./.github/workflows/release.yml). It fails if the tag does not match the version in `packages/vscode-extension/package.json`, runs the CI checks, builds the VSIX once, runs the installed-VSIX tests against that file, and uploads it as an artifact. After approval, the `publish` job publishes that same artifact to the VS Code Marketplace and Open VSX, then creates a GitHub release with the VSIX attached.
+
+To release:
+
+1. Bump `version` in `packages/vscode-extension/package.json` (and the plugin package if it changed), then merge to `main`.
+2. Tag the release commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. When the `verify` job passes, approve the `release` environment deployment in the workflow run.
+
+One-time setup:
+
+1. Create a VS Code Marketplace personal access token (Azure DevOps, organization **All accessible organizations**, scope **Marketplace → Manage**) for the `MylesMurphy` publisher, and an [Open VSX](https://open-vsx.org/user-settings/tokens) access token.
+2. Add them as repository secrets named `VSCE_PAT` and `OVSX_PAT`. Open VSX publishing is skipped when `OVSX_PAT` is not set.
+3. Create a `release` environment (Settings → Environments) with required reviewers.
 
 ### Correctness and compatibility
 

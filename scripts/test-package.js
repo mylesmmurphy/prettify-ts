@@ -5,7 +5,7 @@ const { packageExtension } = require("./package");
 
 async function main() {
   const root = path.resolve(__dirname, "..");
-  const vsix = await packageExtension();
+  const vsix = process.argv[2] ? path.resolve(process.argv[2]) : await packageExtension();
   const executable =
     process.env.PRETTIFY_TEST_VSCODE_PATH ||
     (await downloadAndUnzipVSCode(process.env.PRETTIFY_TEST_VSCODE_VERSION || "1.100.0"));
