@@ -389,7 +389,13 @@ export function getTypeInfoAtPosition(
         };
       }
       return {
-        name: boundedText(symbol === signature.thisParameter ? "this" : symbol.getName()),
+        name: boundedText(
+          symbol === signature.thisParameter
+            ? "this"
+            : param && !typescript.isIdentifier(param.name)
+              ? bindingPatternText(param.name)
+              : symbol.getName(),
+        ),
         optional,
         isRestParameter: !!param?.dotDotDotToken,
         type: tree,
@@ -428,6 +434,27 @@ export function getTypeInfoAtPosition(
         : {}),
       returnType: construct ? reference(returnType) : signatureType(returnType, signature.getDeclaration()?.type),
     };
+  }
+
+  /** Destructured parameters are named `__0` by the compiler; show the pattern instead, as TypeScript's hover does. */
+  function bindingPatternText(pattern: ts.BindingName): string {
+    if (typescript.isIdentifier(pattern)) return pattern.text;
+    if (typescript.isObjectBindingPattern(pattern)) {
+      if (!pattern.elements.length) return "{}";
+      const elements = pattern.elements.map(
+        (element) =>
+          (element.dotDotDotToken ? "..." : "") +
+          (element.propertyName ? element.propertyName.getText() + ": " : "") +
+          bindingPatternText(element.name),
+      );
+      return "{ " + elements.join(", ") + " }";
+    }
+    const elements = pattern.elements.map((element) =>
+      typescript.isOmittedExpression(element)
+        ? ""
+        : (element.dotDotDotToken ? "..." : "") + bindingPatternText(element.name),
+    );
+    return "[" + elements.join(", ") + "]";
   }
 
   function isReadOnly(symbol: ts.Symbol): boolean {

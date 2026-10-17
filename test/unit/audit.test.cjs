@@ -122,6 +122,17 @@ test("default parameters retain actual cardinality", () => {
   assert.match(beforeRequired, /a: number \| undefined, b: string/);
   parses(beforeRequired);
 });
+test("destructured parameters show their binding pattern instead of __0", () => {
+  const object = inspect(
+    "function Test({ state, onRetry: retry = () => {}, ...rest }: { state: string; onRetry?: () => void; x: 1 }) {}",
+  ).text;
+  assert.doesNotMatch(object, /__\d/);
+  assert.match(object, /\(\{ state, onRetry: retry, \.\.\.rest \}: \{/);
+  parses(object);
+  const array = inspect("function Test([a, , [b], ...c]: number[][], {}: object) {}").text;
+  assert.match(array, /\(\[a, , \[b\], \.\.\.c\]: .*, \{\}: object\)/);
+  parses(array);
+});
 test("constructors select resolved overloads and inference; class values show the constructor", () => {
   const text = inspect(
     "class Example { constructor(value: string); constructor(value: number); constructor(value: unknown) {} } new Example(1);",
