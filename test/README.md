@@ -1,10 +1,10 @@
-# 💪 Extension Test Suite – Prettify TS
+# Extension Test Suite – Prettify TS
 
 This folder contains the integration test suite for the [Prettify TS](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts) VSCode extension. These tests verify hover content rendering, settings behavior, command functionality, and declaration support for various TypeScript type structures.
 
 ---
 
-## 📜 Folder Structure
+## Folder Structure
 
 ```
 test/
@@ -20,12 +20,12 @@ test/
 
 ---
 
-## ▶️ Running Tests
+## Running Tests
 
-### 📦 Requirements
+### Requirements
 
-* Node.js
-* `pnpm` (required)
+* Node.js 24 (`nvm use`)
+* The `pnpm` version pinned in the root `package.json`
 
 Install dependencies:
 
@@ -37,7 +37,7 @@ No global installations or manual build steps are necessary — the `pretest` sc
 
 ---
 
-### 🧪 Run Tests
+### Run Tests
 
 To run the full test suite:
 
@@ -49,7 +49,7 @@ pnpm test
 
 ---
 
-### 🛮️ Debugging with Breakpoints
+### Debugging with Breakpoints
 
 To run tests with breakpoint support, use the **"Run Tests"** launch configuration in `.vscode/launch.json`.
 
@@ -62,7 +62,7 @@ This launches a VSCode test instance with the extension loaded and breakpoints a
 
 ---
 
-## 📒 Test Format Overview
+## Test Format Overview
 
 Tests are grouped by category using `mocha`'s `suite()` API:
 
@@ -83,7 +83,7 @@ suite("Hover Types", () => {
 
 ---
 
-## 📚 Helpful Links
+## Helpful Links
 
 * [VSCode Extension Testing Docs](https://code.visualstudio.com/api/working-with-extensions/testing-extension)
 * [@vscode/test-cli](https://github.com/microsoft/vscode-test-cli)
@@ -91,7 +91,7 @@ suite("Hover Types", () => {
 
 ---
 
-## 💡 Tips
+## Tips
 
 * All test types are located in `test/workspace/<filename>.ts` matching their respective test files
 * Use `suiteSetup` to open the corresponding document for tests

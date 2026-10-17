@@ -3,7 +3,7 @@
 This package provides the TypeScript Language Service Plugin that powers the [Prettify TS](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts) VSCode extension. It enables structured type analysis, enabling improved and customizable type previews in editor hover tooltips.
 
 
-## ✨ Features
+## Features
 
 * Recursively traverses TypeScript types and builds a **tree-like representation**
 * Supports:

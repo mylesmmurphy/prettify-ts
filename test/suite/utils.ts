@@ -69,7 +69,7 @@ export async function ensureTypeScriptServerReady(fileName: string, keyword: str
     );
 
     // We are interested in the first hover provider, which is TypeScript's native hover.
-    const content = hovers[0]?.contents[0];
+    const content = hovers?.[0]?.contents[0];
     if (!content) {
       await new Promise((resolve) => setTimeout(resolve, retryDelay));
       continue;

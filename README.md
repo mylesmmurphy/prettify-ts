@@ -2,11 +2,11 @@
 
 **Get useful type information where you need it**
 
-[![Installs](https://img.shields.io/vscode-marketplace/i/MylesMurphy.prettify-ts)](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
-[![GitHub Repo stars](https://img.shields.io/github/stars/mylesmmurphy/prettify-ts?style=social)](https://github.com/mylesmmurphy/prettify-ts)
-[![Version](https://img.shields.io/vscode-marketplace/v/MylesMurphy.prettify-ts)](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
-[![CI](https://github.com/mylesmmurphy/prettify-ts/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/mylesmmurphy/prettify-ts/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/mylesmmurphy/prettify-ts)](https://github.com/mylesmmurphy/prettify-ts/blob/main/LICENSE)
+[![Installs](https://badgen.net/vs-marketplace/i/MylesMurphy.prettify-ts)](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
+[![GitHub Repo stars](https://badgen.net/github/stars/mylesmmurphy/prettify-ts)](https://github.com/mylesmmurphy/prettify-ts)
+[![Version](https://badgen.net/vs-marketplace/v/MylesMurphy.prettify-ts)](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts)
+[![CI](https://badgen.net/static/CI/GitHub%20Actions/blue)](https://github.com/mylesmmurphy/prettify-ts/actions/workflows/ci.yml)
+[![License](https://badgen.net/github/license/mylesmmurphy/prettify-ts)](https://github.com/mylesmmurphy/prettify-ts/blob/main/LICENSE)
 
 Prettify TS is a Visual Studio Code extension that enhances your TypeScript development experience. It provides hover information for TypeScript types, classes, interfaces, and more, formatted in a more readable and configurable way.
 
@@ -26,10 +26,14 @@ This README is for developing Prettify TS. The extension README (shown on the Ma
 
 ## Scripts
 
-> **Note:** `pnpm` is required. [Install it here](https://pnpm.io/installation).
+Use Node.js 24 (`nvm use`) and the pnpm version pinned in `package.json`. Enable Corepack with `corepack enable`, or [install the pinned pnpm version](https://pnpm.io/installation).
+
+TypeScript is kept on the 5.9 line while the language service plugin relies on the JavaScript compiler API. New compiler major versions require a separate compatibility review.
 
 ```bash
 pnpm install      # Installs all dependencies
+pnpm typecheck    # Checks the plugin, extension, and test types
+pnpm lint         # Checks code style and lint rules
 pnpm test         # Builds and runs the extension test suite
 pnpm build        # Compiles the codebase
 pnpm package      # Builds + prepares the VSIX package for publishing
@@ -93,4 +97,4 @@ Use the VSCode Run panel (Ctrl+Shift+D / Cmd+Shift+D) to start these sessions.
 
 [MIT](./LICENSE)
 
-Happy coding! 🎉
+Happy coding!

@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      tooling:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Compiler major upgrades need a language-service compatibility review.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
+      # Keep API declarations aligned with engines.vscode.
+      - dependency-name: "@types/vscode"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
