@@ -28,7 +28,14 @@ export type SweepOptions = {
   toleranceMs: number;
 };
 
-type Mode = "hover" | "full-copy";
+/** hover: what the hover provider requests. copy / full-copy: what the two copy commands request. */
+type Mode = "hover" | "copy" | "full-copy";
+
+const REQUEST_OPTIONS: Record<Mode, PrettifyOptions> = {
+  hover: DEFAULT_OPTIONS,
+  copy: { ...DEFAULT_OPTIONS, copy: true },
+  "full-copy": { ...DEFAULT_OPTIONS, fullExpansion: true, copy: true },
+};
 
 export type Failure = { mode: Mode; location: string; name?: string; kind: string; detail: string };
 
@@ -124,12 +131,26 @@ function collectIdentifiers(typescript: typeof ts, sourceFile: ts.SourceFile, li
   return Array.from({ length: limit }, (_, index) => identifiers[Math.floor(index * step)]!);
 }
 
-/** Copy output must be pasteable. `typeof import("x"): ...` is a display-only header, so check its type. */
+function parse(typescript: typeof ts, text: string): readonly ts.Diagnostic[] {
+  const file = typescript.createSourceFile("rendered.ts", text, typescript.ScriptTarget.Latest, true);
+  return (file as unknown as { parseDiagnostics: ts.Diagnostic[] }).parseDiagnostics;
+}
+
+/**
+ * Copy output must be pasteable, with three accepted exceptions:
+ * - `typeof import("x"): ...` is a display-only header, so only its type is checked;
+ * - names that are not identifiers (`default`, `export`, `aria-label`) are shown as written, so a placeholder is checked;
+ * - `-Infinity` is a type the compiler prints but TypeScript has no syntax for.
+ */
 function parseErrors(typescript: typeof ts, info: TypeInfo): { detail: string; signature: string }[] {
   const { declaration, type } = renderTypeParts(info, 4);
-  const text = declaration.startsWith("typeof import(") ? "type Rendered = " + type : renderTypeInfo(info, 4);
-  const file = typescript.createSourceFile("rendered.ts", text, typescript.ScriptTarget.Latest, true);
-  const diagnostics = (file as unknown as { parseDiagnostics: ts.Diagnostic[] }).parseDiagnostics;
+  let text = declaration.startsWith("typeof import(") ? "type Rendered = " + type : renderTypeInfo(info, 4);
+  text = text.replace(/(?<![\w$.])-Infinity\b/g, "number");
+  let diagnostics = parse(typescript, text);
+  if (diagnostics.length && parse(typescript, `let ${info.name};`).length && declaration.includes(info.name)) {
+    text = text.replace(info.name, "Rendered");
+    diagnostics = parse(typescript, text);
+  }
   return diagnostics.map((diagnostic) => {
     const message = typescript.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
     const start = diagnostic.start ?? 0;
@@ -163,6 +184,7 @@ export function sweep(projectDir: string, options: SweepOptions): SweepReport {
     warmupMs: 0,
     modes: {
       hover: { requests: 0, responses: 0, latencies: [], truncation: {} },
+      copy: { requests: 0, responses: 0, latencies: [], truncation: {} },
       "full-copy": { requests: 0, responses: 0, latencies: [], truncation: {} },
     },
     slowest: [],
@@ -194,9 +216,8 @@ export function sweep(projectDir: string, options: SweepOptions): SweepReport {
   if (!files.length) throw new Error("No source files matched the project's include prefixes");
 
   const request = (fileName: string, node: ts.Identifier, mode: Mode, sourceFile: ts.SourceFile) => {
-    const limits = mode === "hover" ? PREVIEW_LIMITS : FULL_COPY_LIMITS;
-    const requestOptions: PrettifyOptions =
-      mode === "hover" ? DEFAULT_OPTIONS : { ...DEFAULT_OPTIONS, fullExpansion: true };
+    const limits = mode === "full-copy" ? FULL_COPY_LIMITS : PREVIEW_LIMITS;
+    const requestOptions = REQUEST_OPTIONS[mode];
     const triggerCharacter: PrettifyRequest = { meta: "prettify-type-info-request", options: requestOptions };
     const position = node.getStart(sourceFile) + Math.floor(node.text.length / 2);
     const { line, character } = sourceFile.getLineAndCharacterOfPosition(position);
@@ -244,7 +265,8 @@ export function sweep(projectDir: string, options: SweepOptions): SweepReport {
     try {
       const rendered = renderTypeInfo(info, 4);
       preview = rendered.replace(/\s+/g, " ").slice(0, 120);
-      const [first, ...rest] = parseErrors(typescript, info);
+      // Hovers keep the compact display (`Foo<...>`, `{ ... 2 more }`); only copies must parse.
+      const [first, ...rest] = mode === "hover" ? [] : parseErrors(typescript, info);
       if (first) {
         const reasons = info.truncationReasons?.length ? ` [limits: ${info.truncationReasons.join(", ")}]` : "";
         const more = rest.length ? ` (+${rest.length} more)` : "";
@@ -279,6 +301,7 @@ export function sweep(projectDir: string, options: SweepOptions): SweepReport {
     const budget = Math.min(options.perFile, options.positions - report.positions);
     for (const node of collectIdentifiers(typescript, sourceFile, budget)) {
       request(fileName, node, "hover", sourceFile);
+      request(fileName, node, "copy", sourceFile);
       if (report.positions % options.fullCopyEvery === 0) fullCopyDue++;
       if (fullCopyDue && !fullCopied.has(node.text)) {
         fullCopied.add(node.text);
