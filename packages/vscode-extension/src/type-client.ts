@@ -60,6 +60,20 @@ export function createTypeClient(context: vscode.ExtensionContext) {
   };
 }
 
+// Configured presentation limits are already marked inline (`/* ... N more */`, named references at Max Depth).
+const inlineLimits = new Set([
+  "object depth limit",
+  "property limit",
+  "union member limit",
+  "function signature limit",
+  "circular reference",
+]);
+
+/** Limits that output does not show inline, such as safety budgets and compiler truncation. */
+export function reportedLimits(info: TypeInfo): string[] {
+  return (info.truncationReasons ?? []).filter((reason) => !inlineLimits.has(reason));
+}
+
 export function limitPreview(text: string, limit: number): string {
   return text.length > limit ? text.slice(0, limit) + "\n/* Preview truncated by maxCharacters */" : text;
 }

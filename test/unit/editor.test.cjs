@@ -169,3 +169,18 @@ test("copy honors display limits; full copy uses bounded expansion and preserves
   assert.ok(seen[1].maxDepth < 100);
   assert.equal(seen[1].hidePrivateProperties, false);
 });
+test("inline presentation limits do not add hover footers; invisible safety limits do", async () => {
+  api.registerHoverProvider({ subscriptions: [] }, client());
+  for (const [reasons, footer] of [
+    [["object depth limit", "property limit"], false],
+    [["object depth limit", "analysis budget"], true],
+  ]) {
+    handler = async (command, method) =>
+      method === "completionInfo"
+        ? { body: { __prettifyResponse: { ...info, truncationReasons: reasons } } }
+        : undefined;
+    const hover = await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token);
+    assert.equal(/Expansion limited/.test(hover.contents.value), footer, reasons.join());
+    if (footer) assert.doesNotMatch(hover.contents.value, /object depth limit/);
+  }
+});

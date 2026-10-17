@@ -48,6 +48,55 @@ function omitted(count: number, label: string): string {
   return count > 0 ? " /* ... " + count + " more " + label + " */" : "";
 }
 
+/** Index just past the quoted or template literal starting at `start`, including nested `${}` expressions. */
+function literalEnd(text: string, start: number): number {
+  const quote = text[start];
+  let index = start + 1;
+  while (index < text.length) {
+    if (text[index] === "\\") {
+      index += 2;
+      continue;
+    }
+    if (text[index] === quote) return index + 1;
+    if (quote === "`" && text[index] === "$" && text[index + 1] === "{") {
+      index += 2;
+      let braces = 1;
+      while (index < text.length && braces) {
+        if (["'", '"', "`"].includes(text[index]!)) index = literalEnd(text, index);
+        else {
+          if (text[index] === "{") braces++;
+          if (text[index] === "}") braces--;
+          index++;
+        }
+      }
+    } else index++;
+  }
+  return index;
+}
+
+/**
+ * Whether opaque type text must be parenthesized as a union member or array element.
+ * Only syntax at bracket depth zero matters: `Foo<A | B>` is safe, `() => A` and `A extends B ? C : D` are not.
+ */
+function needsGrouping(text: string, arrayElement: boolean): boolean {
+  if (arrayElement && /^(?:keyof|readonly|unique|infer)\s/.test(text)) return true;
+  let depth = 0;
+  for (let index = 0; index < text.length; index++) {
+    const character = text[index]!;
+    if (["'", '"', "`"].includes(character)) index = literalEnd(text, index) - 1;
+    else if (text.startsWith("/*", index)) {
+      const end = text.indexOf("*/", index + 2);
+      index = end < 0 ? text.length : end + 1;
+    } else if (text.startsWith("=>", index)) {
+      if (!depth) return true;
+      index++;
+    } else if ("([{<".includes(character)) depth++;
+    else if (")]}>".includes(character)) depth--;
+    else if (!depth && (character === "?" || (arrayElement && (character === "|" || character === "&")))) return true;
+  }
+  return false;
+}
+
 /** Pure serialization with explicit syntax contexts and precedence. */
 export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | RenderContext = true): string {
   const context =
@@ -58,15 +107,21 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
       (member) => member.kind === "primitive" && ["false", "true"].includes(member.typeName),
     );
     if (booleans.length === 2) {
-      types = types.filter((member) => !booleans.includes(member));
-      types = [...types, { kind: "primitive", typeName: "boolean" }];
+      // Collapse `false | true` where it first appears, as quick info does (`boolean | null`).
+      types = types.flatMap((member) =>
+        member === booleans[0]
+          ? [{ kind: "primitive", typeName: "boolean" } as const]
+          : booleans.includes(member)
+            ? []
+            : [member],
+      );
     }
     return (
       types
         .map((member) => {
           const text = stringifyTypeTree(member);
           return (member.kind === "function" && member.signatures.length === 1) ||
-            (member.kind === "reference" && !/^[a-zA-Z_$][\w$]*(?:\.[a-zA-Z_$][\w$]*)*$/.test(text))
+            ((member.kind === "reference" || member.kind === "primitive") && needsGrouping(text, false))
             ? "(" + text + ")"
             : text;
         })
@@ -74,6 +129,8 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
     );
   }
   if (tree.kind === "object") {
+    if (!tree.properties.length && !tree.signatures?.length && !tree.excessProperties && !tree.excessSignatures)
+      return "{}";
     const signatures = (tree.signatures ?? []).map((signature) => signatureText(signature, "call") + ";");
     const properties = tree.properties.map((property) => {
       // Digit-only string keys retain their identity, including leading zeroes and large integers.
@@ -120,7 +177,7 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
       element.kind === "union" ||
       element.kind === "function" ||
       ((element.kind === "array" || element.kind === "tuple") && element.readonly) ||
-      (element.kind === "reference" && !/^[a-zA-Z_$][\w$]*(?:\.[a-zA-Z_$][\w$]*)*$/.test(text))
+      ((element.kind === "reference" || element.kind === "primitive") && needsGrouping(text, true))
     )
       text = "(" + text + ")";
     return (tree.readonly ? "readonly " : "") + text + "[]";
@@ -145,58 +202,39 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
 export function prettyPrintTypeString(input: string, indentation = 2): string {
   const spaces = integerSetting(indentation, 4, 0, 8);
   if (!spaces) return input;
+  // Build completed lines separately so formatting stays linear in the input size.
+  const lines: string[] = [];
   let depth = 0;
-  let result = "";
+  let line = "";
   let lineStart = true;
   function write(text: string) {
     if (lineStart && text.trim()) {
-      result += " ".repeat(depth * spaces);
+      line = " ".repeat(depth * spaces);
       lineStart = false;
     }
-    result += text;
+    line += text;
   }
   function newline() {
-    result = result.trimEnd() + "\n";
+    const trimmed = line.trimEnd();
+    if (trimmed) lines.push(trimmed);
+    line = "";
     lineStart = true;
-  }
-  function quotedEnd(start: number): number {
-    const quote = input[start];
-    let index = start + 1;
-    while (index < input.length) {
-      if (input[index] === "\\") {
-        index += 2;
-        continue;
-      }
-      if (input[index] === quote) return index + 1;
-      if (quote === String.fromCharCode(96) && input[index] === "$" && input[index + 1] === "{") {
-        index += 2;
-        let braces = 1;
-        while (index < input.length && braces) {
-          if (["'", '"', String.fromCharCode(96)].includes(input[index]!)) index = quotedEnd(index);
-          else {
-            if (input[index] === "{") braces++;
-            if (input[index] === "}") braces--;
-            index++;
-          }
-        }
-      } else index++;
-    }
-    return index;
   }
   for (let index = 0; index < input.length; index++) {
     const character = input[index]!;
-    if (["'", '"', String.fromCharCode(96)].includes(character)) {
-      const end = quotedEnd(index);
+    if (["'", '"', "`"].includes(character)) {
+      const end = literalEnd(input, index);
       write(input.slice(index, end));
       index = end - 1;
-    } else if (input.slice(index, index + 2) === "/*") {
+    } else if (input.startsWith("/*", index)) {
       const end = input.indexOf("*/", index + 2);
       const stop = end < 0 ? input.length : end + 2;
       write(input.slice(index, stop));
       index = stop - 1;
     } else if (character === "{") {
-      if (input.slice(index + 1).match(/^\s*}/)) {
-        const close = input.indexOf("}", index + 1);
+      let close = index + 1;
+      while (close < input.length && /\s/.test(input[close]!)) close++;
+      if (input[close] === "}") {
         write("{}");
         index = close;
       } else {
@@ -212,10 +250,11 @@ export function prettyPrintTypeString(input: string, indentation = 2): string {
       write(";");
       newline();
     } else if (/\s/.test(character)) {
-      if (!lineStart && !result.endsWith(" ")) write(" ");
+      if (!lineStart && !line.endsWith(" ")) write(" ");
     } else write(character);
   }
-  return result.trimEnd() + "\n";
+  newline();
+  return lines.join("\n") + "\n";
 }
 
 export function renderTypeInfo(info: TypeInfo, indentation: number): string {

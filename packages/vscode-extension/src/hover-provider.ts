@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { renderTypeInfo, sanitizeString } from "./stringify-type-tree";
 import { readSettings } from "./configuration";
-import { limitPreview, supportedLanguages } from "./type-client";
+import { limitPreview, reportedLimits, supportedLanguages } from "./type-client";
 import type { TypeClient } from "./type-client";
 
 export function registerHoverProvider(context: vscode.ExtensionContext, client: TypeClient): void {
@@ -18,13 +18,13 @@ export function registerHoverProvider(context: vscode.ExtensionContext, client: 
     if (settings.options.skippedTypeNames.includes(info.name)) return;
     try {
       const text = renderTypeInfo(info, settings.indentation);
+      const limits = reportedLimits(info);
       const quickInfo = await client.quickInfo(document, position, token);
       if (token.isCancellationRequested || document.version !== version) return;
-      if (quickInfo && !info.truncationReasons?.length && sanitizeString(quickInfo) === sanitizeString(text)) return;
+      if (quickInfo && !limits.length && sanitizeString(quickInfo) === sanitizeString(text)) return;
       const markdown = new vscode.MarkdownString();
       markdown.appendCodeblock(limitPreview(text, settings.maxCharacters), "typescript");
-      if (info.truncationReasons?.length)
-        markdown.appendText("\nExpansion limited: " + info.truncationReasons.join(", ") + ".");
+      if (limits.length) markdown.appendText("\nExpansion limited: " + limits.join(", ") + ".");
       return new vscode.Hover(markdown);
     } catch (error) {
       client.log(error);

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { toggleEnabled, readSettings } from "./configuration";
 import { renderTypeInfo } from "./stringify-type-tree";
-import { limitPreview, supportedLanguages } from "./type-client";
+import { limitPreview, reportedLimits, supportedLanguages } from "./type-client";
 import type { TypeClient } from "./type-client";
 
 export function registerCommands(context: vscode.ExtensionContext, client: TypeClient): void {
@@ -31,12 +31,10 @@ export function registerCommands(context: vscode.ExtensionContext, client: TypeC
         }
         const rendered = renderTypeInfo(info, settings.indentation);
         const text = full ? rendered : limitPreview(rendered, settings.maxCharacters);
-        const truncated = text !== rendered || !!info.truncationReasons?.length;
+        const limits = reportedLimits(info);
+        const truncated = text !== rendered || !!limits.length;
         await vscode.env.clipboard.writeText(
-          text +
-            (info.truncationReasons?.length
-              ? "\n/* Expansion limited: " + info.truncationReasons.join(", ") + " */"
-              : ""),
+          text + (limits.length ? "\n/* Expansion limited: " + limits.join(", ") + " */" : ""),
         );
         void vscode.window.showInformationMessage(
           truncated ? "Type copied with expansion limits." : "Type copied to clipboard",

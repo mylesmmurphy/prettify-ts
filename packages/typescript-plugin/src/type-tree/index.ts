@@ -30,6 +30,10 @@ export function getTypeInfoAtPosition(
   let propertiesUsed = 0;
   let textCharacters = 0;
   const exactOptional = control.compilerOptions?.exactOptionalPropertyTypes === true;
+  // Approximate serialized bytes per visited node, so traversal stops with a partial tree
+  // before the response-size check below has to discard the whole result.
+  const serializedNodeEstimate = 80;
+  const responseBudget = MAX_OUTPUT_CHARACTERS * 0.9;
 
   function checkBudget(visited: Set<ts.Type>): boolean {
     if (control.isCancellationRequested?.()) {
@@ -39,7 +43,7 @@ export function getTypeInfoAtPosition(
     if (
       ++nodes > MAX_ANALYSIS_NODES ||
       visited.size >= MAX_TRAVERSAL_DEPTH ||
-      textCharacters >= MAX_OUTPUT_CHARACTERS ||
+      textCharacters + nodes * serializedNodeEstimate >= responseBudget ||
       Date.now() > deadline
     ) {
       reasons.add("analysis budget");
@@ -64,6 +68,28 @@ export function getTypeInfoAtPosition(
       undefined,
       expandAlias ? typescript.TypeFormatFlags.InTypeAlias : typescript.TypeFormatFlags.None,
     );
+    if (/\.\.\. \d+ more|\.\.\.$/.test(text)) reasons.add("compiler text limit");
+    return { kind: "reference", typeName: boundedText(text) };
+  }
+
+  /**
+   * Render the immediate constraint as declared (`K extends keyof T`, `T extends U`).
+   * The base constraint would resolve these to their apparent types and change the signature.
+   */
+  function typeParameterConstraint(parameter: ts.TypeParameter): TypeTree | undefined {
+    const node = checker.typeParameterToDeclaration(
+      parameter,
+      undefined,
+      typescript.NodeBuilderFlags.IgnoreErrors | typescript.NodeBuilderFlags.UseAliasDefinedOutsideCurrentScope,
+    );
+    if (!node) {
+      const base = checker.getBaseConstraintOfType(parameter);
+      return base && reference(base);
+    }
+    if (!node.constraint) return undefined;
+    const text = typescript
+      .createPrinter({ removeComments: true })
+      .printNode(typescript.EmitHint.Unspecified, node.constraint, sourceFile);
     if (/\.\.\. \d+ more|\.\.\.$/.test(text)) reasons.add("compiler text limit");
     return { kind: "reference", typeName: boundedText(text) };
   }
@@ -203,8 +229,18 @@ export function getTypeInfoAtPosition(
     if (calls.length && !options.unwrapFunctions && (type.aliasSymbol || type.isClassOrInterface()))
       return reference(type);
     let members = apparent.getProperties();
-    if (options.hidePrivateProperties) members = members.filter(isPublicProperty);
     const indexes = checker.getIndexInfosOfType(apparent);
+    // Generic mapped types (e.g. Partial<T>) have no resolvable members; keep their declared form.
+    if (
+      type.flags & typescript.TypeFlags.Object &&
+      (type as ts.ObjectType).objectFlags & typescript.ObjectFlags.Mapped &&
+      !members.length &&
+      !indexes.length &&
+      !calls.length &&
+      !constructs.length
+    )
+      return reference(type, true);
+    if (options.hidePrivateProperties) members = members.filter(isPublicProperty);
     const signatures = [
       ...calls.map((signature) => ({ signature, construct: false })),
       ...constructs.map((signature) => ({ signature, construct: true })),
@@ -317,14 +353,14 @@ export function getTypeInfoAtPosition(
     });
     if (symbols.length > parameters.length) reasons.add("parameter limit");
     const typeParameters = signature.typeParameters?.map((parameter) => {
-      const constraint = checker.getBaseConstraintOfType(parameter);
       const defaultType = checker.getDefaultFromTypeParameter(parameter);
       const declaration = parameter.symbol.declarations?.find(typescript.isTypeParameterDeclaration);
       const modifiers = declaration?.modifiers?.map((modifier) => typescript.tokenToString(modifier.kind) ?? "");
+      const constraint = typeParameterConstraint(parameter);
       return {
         ...(modifiers?.length ? { modifiers } : {}),
         name: boundedText(parameter.symbol.getName()),
-        ...(constraint ? { constraint: signatureType(constraint) } : {}),
+        ...(constraint ? { constraint } : {}),
         ...(defaultType ? { default: signatureType(defaultType) } : {}),
       };
     });
@@ -434,7 +470,9 @@ export function getTypeInfoAtPosition(
       typeFlags & typescript.TypeFlags.UniqueESSymbol ||
       typeFlags & typescript.TypeFlags.Never ||
       typeFlags & typescript.TypeFlags.Unknown ||
-      typeFlags & typescript.TypeFlags.Any,
+      typeFlags & typescript.TypeFlags.Any ||
+      // The `object` keyword; its apparent type is `{}`, which would also accept primitives.
+      typeFlags & typescript.TypeFlags.NonPrimitive,
     );
   }
 
@@ -621,10 +659,13 @@ export function getTypeInfoAtPosition(
             : typescript.SyntaxKind.VarKeyword;
     }
     const name = boundedText(symbol.getName());
-    const newExpression = typescript.findAncestor(node, typescript.isNewExpression);
+    // Only the constructed class itself (`new Foo()`, `new ns.Foo()`), not classes used as arguments or type arguments.
+    const callee = typescript.isPropertyAccessExpression(node.parent) && node.parent.name === node ? node.parent : node;
+    const newExpression =
+      typescript.isNewExpression(callee.parent) && callee.parent.expression === callee ? callee.parent : undefined;
     let tree: TypeTree;
     let declaration: string;
-    if (kind === typescript.SyntaxKind.ClassDeclaration && newExpression && typescript.isNewExpression(newExpression)) {
+    if (kind === typescript.SyntaxKind.ClassDeclaration && newExpression) {
       const signature = checker.getResolvedSignature(newExpression);
       if (!signature) return undefined;
       tree = {

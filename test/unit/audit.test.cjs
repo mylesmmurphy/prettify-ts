@@ -301,3 +301,60 @@ test("opaque reference expressions group safely and primitive brands remain inte
   const branded = inspect("type Test = string & { readonly brand: unique symbol };").text;
   assert.match(branded, /string &/);
 });
+
+test("type parameter constraints keep their declared form", () => {
+  assert.match(equivalent("type Test = <O, K extends keyof O>(o: O, k: K) => O[K];"), /K extends keyof O/);
+  assert.match(equivalent("type Test = <T extends U, U extends string>(t: T, u: U) => void;"), /T extends U,/);
+  const declared = inspect(
+    "function Test<O extends object, K extends keyof O>(o: O, k: K): O[K] { return o[k]; }",
+  ).text;
+  assert.match(declared, /<O extends object, K extends keyof O>/);
+  parses(declared);
+});
+test("only the constructed class is shown as a constructor", () => {
+  const argument = inspect(
+    "class Foo { a = 1 } class Wrapper { constructor(c: typeof Foo) {} } new Wrapper(Foo);",
+    "Foo)",
+  );
+  assert.doesNotMatch(argument.text, /Wrapper/);
+  const typeArgument = inspect("class Foo { a = 1 } new Map<string, Foo>();", "Foo>");
+  assert.doesNotMatch(typeArgument.text, /Map|iterable/);
+  assert.match(
+    inspect("namespace NS { export class Foo { constructor(public a: number) {} } } new NS.Foo(1);", "Foo(1)").text,
+    /new \(a: number\) => Foo/,
+  );
+});
+test("generic mapped types and the object keyword are not erased to {}", () => {
+  for (const source of ["type Test<T> = Partial<T>;", "type Test<K extends string, V> = Record<K, V>;"]) {
+    const { text } = inspect(source);
+    assert.match(text, /\[P in (?:keyof T|K)\]/, text);
+    parses(text);
+  }
+  assert.match(equivalent("type Test = { a: object; b: {} };"), /a: object; b: \{\};/);
+});
+test("large types degrade to a partial preview instead of an empty response", () => {
+  const source =
+    "declare const Test: { " + Array.from({ length: 2000 }, (_, i) => "p" + i + ": string").join(";") + " };";
+  const { info, text } = inspect(source, "Test", { maxProperties: 1000 });
+  assert.equal(info.typeTree.kind, "object");
+  assert.ok(info.typeTree.properties.length > 100);
+  assert.ok(info.truncationReasons.includes("analysis budget"));
+  assert.ok(!info.truncationReasons.includes("response size limit"));
+  assert.ok(JSON.stringify(info).length < 99000);
+  assert.match(text, /more properties/);
+});
+test("booleans keep their union position and safe references are not grouped", () => {
+  assert.match(
+    equivalent("type Test = { a: boolean | null; b: string | boolean | undefined };"),
+    /a: boolean \| null; b: string \| boolean \| undefined;/,
+  );
+  const text = inspect("interface Foo<T> { v: T } type Test = { a: Foo<string> | null; b: Foo<number>[] };", "Test", {
+    maxDepth: 1,
+  }).text;
+  assert.match(text, /a: Foo<string> \| null; b: Foo<number>\[\];/);
+  const grouped = inspect(
+    "type Test<T> = { a: (keyof T)[]; b: keyof T | null; c: (T extends string ? 1 : 2) | null };",
+  ).text;
+  assert.match(grouped, /a: \(keyof T\)\[\]; b: keyof T \| null; c: \(T extends string \? 1 : 2\) \| null;/);
+  parses(grouped);
+});
