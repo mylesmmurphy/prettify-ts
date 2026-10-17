@@ -31,3 +31,4 @@ test/workspace/.vscode
 .pnpm-store/
 
 test/out-unit/
+test/out-real-world/

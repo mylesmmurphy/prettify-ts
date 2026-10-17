@@ -29,3 +29,14 @@ Hover assertions go through VS Code's real hover providers, as users see them, a
 The built formatter is loaded from development output by type-output assertions even during installed-VSIX runs; actual hover/copy integration tests exercise the installed bundled renderer. Run the build before invoking the test CLI directly.
 
 Run editor suites sequentially on the same desktop: clipboard integration tests share the system clipboard. CI jobs use separate machines.
+
+## Real-world suite (optional)
+
+`pnpm test:real-world` (or `node scripts/test-real-world.js`) runs the plugin over large open-source projects. It is not part of `pnpm test` or PR CI; the `Real-world sweep` workflow runs it weekly and on demand.
+
+- Projects, pinned commits, install commands, tsconfig and sampled directories live in `test/real-world/projects.json`. Clones and installs (lifecycle scripts disabled) are kept in `.vscode-test/real-world/` and reused while the commit and install command are unchanged.
+- The headless sweep (`test/real-world/sweep.ts`) loads each project's tsconfig into a LanguageService with the project's own TypeScript, attaches the plugin through its `create` entry, and requests a deterministic sample of identifiers: every position in hover mode (`DEFAULT_OPTIONS`) and every 8th distinct name as a full copy (`fullExpansion`).
+- Each position fails on a plugin error, a request slower than the internal limit (`PREVIEW_LIMITS` / `FULL_COPY_LIMITS`, plus 250ms for the cooperative deadline), a "response size limit" truncation, or `renderTypeInfo` output with parse diagnostics. Failures are grouped by shape, with examples.
+- The report prints p50/p95/max latency, limit counts, and the slowest types; JSON reports and `summary.md` are written next to the clones.
+
+Flags: `--project=<name>` (repeatable), `--positions=<n>` (default 3000, or `PRETTIFY_REAL_WORLD_POSITIONS`), `--prepare-only`, `--editor` (also run the editor smoke test: hover and both copy commands on the identifiers in the project's `smoke` entry), `--editor-only`.

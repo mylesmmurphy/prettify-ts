@@ -11,6 +11,8 @@ export default [
       "scripts/**", // Ignore scripts directory
       "eslint.config.mjs", // Ignore this config file
       "test/.vscode-test.js",
+      "test/real-world/.vscode-test.js",
+      "test/out-real-world/**", // Bundled real-world sweep
       "test/unit/*.cjs", // Executed directly by the Node test runner
       ".vscode-test/**", // Ignore all VSCode test files
     ],

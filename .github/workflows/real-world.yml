@@ -1,0 +1,83 @@
+name: Real-world sweep
+
+# Optional end-to-end coverage over large open-source projects (test/real-world/projects.json).
+# Deliberately not triggered by pull requests or pushes: it is slow, network-bound, and informational.
+on:
+  workflow_dispatch:
+    inputs:
+      positions:
+        description: Identifier positions to sweep per project
+        default: "3000"
+        type: string
+      editor:
+        description: Also run the VS Code editor smoke test
+        default: true
+        type: boolean
+  schedule:
+    - cron: "23 5 * * 1" # Mondays 05:23 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-world
+  cancel-in-progress: false
+
+jobs:
+  real-world:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore cloned projects
+        id: clones
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            .vscode-test/real-world
+            ~/.cache/node/corepack
+          key: real-world-${{ runner.os }}-${{ hashFiles('test/real-world/projects.json') }}
+
+      - name: Clone and install projects
+        run: node scripts/test-real-world.js --prepare-only
+
+      # Saved before the sweep so a failing sweep still keeps the clones for the next run.
+      - name: Save cloned projects
+        if: steps.clones.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            .vscode-test/real-world
+            ~/.cache/node/corepack
+          key: real-world-${{ runner.os }}-${{ hashFiles('test/real-world/projects.json') }}
+
+      - name: Sweep
+        env:
+          PRETTIFY_REAL_WORLD_POSITIONS: ${{ inputs.positions || '3000' }}
+          EDITOR_FLAG: ${{ (github.event_name == 'schedule' || inputs.editor) && '--editor' || '' }}
+        run: xvfb-run -a node scripts/test-real-world.js $EDITOR_FLAG
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: real-world-reports
+          path: |
+            .vscode-test/real-world/*.report.json
+            .vscode-test/real-world/summary.md
+          if-no-files-found: ignore
