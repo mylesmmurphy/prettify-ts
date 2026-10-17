@@ -58,9 +58,21 @@ To use Prettify TS with Vue projects, you need:
 | **Unwrap Functions**                    | If enabled, expands function parameter and return types.                                                                    |
 | **Unwrap Arrays**                       | If enabled, expands the element types of arrays.                                                                            |
 | **Unwrap Generic Arguments Type Names** | A list of generic type names whose arguments should be unwrapped instead of using their resolved output (e.g., `Promise`).  |
-| **Hide Private Properties**             | If enabled, hides properties or methods marked private.                                                                     |
+| **Hide Private Properties**             | Hides private/protected members, JavaScript private fields, and optionally underscore-prefixed members.                     |
+| **Treat Underscore As Private**         | When hiding private members, also hides underscore-prefixed properties and methods. Defaults to enabled.                    |
 | **Skipped Type Names**                  | List of type names that should not be expanded. Generics are supported and replaced with ellipses (e.g., `ZodObject<...>`). |
 | **Max Characters**                      | Sets a maximum character limit for output. If exceeded, the result will be truncated.                                       |
+
+To show public underscore-prefixed members while keeping private and protected members hidden, use:
+
+```json
+{
+  "prettify-ts.hidePrivateProperties": true,
+  "prettify-ts.treatUnderscoreAsPrivate": false
+}
+```
+
+These settings apply to hover previews and both copy commands. Disabling **Hide Private Properties** shows all members regardless of **Treat Underscore As Private**. Computed symbol keys remain visible unless the member is explicitly private or protected.
 
 ## Sidebar View (Deprecated)
 

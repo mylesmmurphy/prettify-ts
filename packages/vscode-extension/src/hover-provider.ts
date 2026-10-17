@@ -16,6 +16,7 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
 
     const options = {
       hidePrivateProperties: config.get("hidePrivateProperties", true),
+      treatUnderscoreAsPrivate: config.get("treatUnderscoreAsPrivate", true),
       maxDepth: config.get("maxDepth", 2),
       maxProperties: config.get("maxProperties", 100),
       maxSubProperties: config.get("maxSubProperties", 5),

@@ -136,7 +136,12 @@
         "prettify-ts.hidePrivateProperties": {
           "type": "boolean",
           "default": true,
-          "description": "Hide private properties on an object."
+          "description": "Hide private and protected members, including JavaScript private fields. Underscore-prefixed members are also hidden when Treat Underscore As Private is enabled."
+        },
+        "prettify-ts.treatUnderscoreAsPrivate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Treat underscore-prefixed properties and methods as private when Hide Private Properties is enabled. Disable to show public underscore-prefixed members while keeping private and protected members hidden."
         },
         "prettify-ts.unwrapFunctions": {
           "type": "boolean",
