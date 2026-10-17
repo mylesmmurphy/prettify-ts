@@ -166,7 +166,10 @@ test("copies ignore Max Characters as before; full copy expands everything and p
   assert.equal(clipboard, "type Test = {\n    value: string;\n}\n");
   await commands.get("prettify-ts.fullCopyPrettifiedType")();
   assert.match(clipboard, /value: string/);
+  assert.equal(seen[0].copy, true);
+  assert.equal(seen[0].fullExpansion, false);
   assert.equal(seen[1].fullExpansion, true);
+  assert.equal(seen[1].copy, true);
   assert.equal(seen[1].hidePrivateProperties, false);
 });
 test("hover shows earlier markers and hides duplicates of TypeScript's own hover", async () => {

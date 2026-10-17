@@ -15,6 +15,12 @@ export type PrettifyOptions = {
   fullExpansion?: boolean;
 
   /**
+   * The output is copied rather than shown: compiler text is not truncated (`Foo<...>`) and skipped types keep
+   * their arguments, so pasted output stays valid TypeScript. Always set with fullExpansion.
+   */
+  copy?: boolean;
+
+  /**
    * Treat underscore-prefixed members as private when hiding private properties.
    * Defaults to true when omitted for compatibility with older requests.
    */

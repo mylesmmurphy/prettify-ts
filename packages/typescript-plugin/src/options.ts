@@ -74,6 +74,7 @@ export function normalizeOptions(input: Partial<PrettifyOptions> = {}): Prettify
       : [...DEFAULT_OPTIONS[key]];
   }
   result.fullExpansion = input.fullExpansion === true;
+  result.copy = input.copy === true || result.fullExpansion;
   if (result.fullExpansion) {
     result.maxDepth = MAX_SETTING;
     result.maxProperties = MAX_SETTING;

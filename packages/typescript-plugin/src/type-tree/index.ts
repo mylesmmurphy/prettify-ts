@@ -99,14 +99,24 @@ export function getTypeInfoAtPosition(
     return text;
   }
 
-  function reference(type: ts.Type, expandAlias = false): TypeTree {
-    // The compiler's ordinary truncation protects structural reference fallbacks.
-    const text = checker.typeToString(
+  /**
+   * Previews keep the compiler's ordinary truncation (`Foo<...>`), which protects structural reference fallbacks.
+   * Copies must paste as valid TypeScript, so they ask for the full text; the text budget still bounds it.
+   */
+  function typeText(type: ts.Type, flags = typescript.TypeFormatFlags.None): string {
+    return checker.typeToString(
       type,
       undefined,
-      expandAlias ? typescript.TypeFormatFlags.InTypeAlias : typescript.TypeFormatFlags.None,
+      options.copy ? flags | typescript.TypeFormatFlags.NoTruncation : flags,
     );
-    if (/\.\.\. \d+ more|\.\.\.$/.test(text)) reasons.add("compiler text limit");
+  }
+
+  // Previews mark only the elisions they have always reported; copies also report `Foo<...>` and `[...]`.
+  const compilerElision = options.copy ? /\.\.\. \d+ more|\.\.\.$|<\.\.\.>|\[\.\.\.\]/ : /\.\.\. \d+ more|\.\.\.$/;
+
+  function reference(type: ts.Type, expandAlias = false): TypeTree {
+    const text = typeText(type, expandAlias ? typescript.TypeFormatFlags.InTypeAlias : typescript.TypeFormatFlags.None);
+    if (compilerElision.test(text)) reasons.add("compiler text limit");
     return { kind: "reference", typeName: boundedText(text) };
   }
 
@@ -118,7 +128,9 @@ export function getTypeInfoAtPosition(
     const node = checker.typeParameterToDeclaration(
       parameter,
       undefined,
-      typescript.NodeBuilderFlags.IgnoreErrors | typescript.NodeBuilderFlags.UseAliasDefinedOutsideCurrentScope,
+      typescript.NodeBuilderFlags.IgnoreErrors |
+        typescript.NodeBuilderFlags.UseAliasDefinedOutsideCurrentScope |
+        (options.copy ? typescript.NodeBuilderFlags.NoTruncation : typescript.NodeBuilderFlags.None),
     );
     if (!node) {
       const base = checker.getBaseConstraintOfType(parameter);
@@ -128,7 +140,7 @@ export function getTypeInfoAtPosition(
     const text = typescript
       .createPrinter({ removeComments: true })
       .printNode(typescript.EmitHint.Unspecified, node.constraint, sourceFile);
-    if (/\.\.\. \d+ more|\.\.\.$/.test(text)) reasons.add("compiler text limit");
+    if (compilerElision.test(text)) reasons.add("compiler text limit");
     return { kind: "reference", typeName: boundedText(text) };
   }
 
@@ -198,7 +210,9 @@ export function getTypeInfoAtPosition(
       ((name && options.skippedTypeNames.includes(name)) ||
         (genericName && options.skippedTypeNames.includes(genericName)))
     ) {
-      return { kind: "reference", typeName: boundedText((genericName ?? name)! + (args.length ? "<...>" : "")) };
+      // Skipped types are not expanded; copies keep their arguments (`Map<string, number>`) to stay valid.
+      const skipped = options.copy ? typeText(type) : (genericName ?? name)! + (args.length ? "<...>" : "");
+      return { kind: "reference", typeName: boundedText(skipped) };
     }
     if (genericName && args.length && options.unwrapGenericArgumentsTypeNames.includes(genericName)) {
       return {
@@ -304,7 +318,7 @@ export function getTypeInfoAtPosition(
         local++;
         const identifier = index.declaration?.parameters[0]?.name?.getText() ?? "key";
         properties.push({
-          name: "[" + identifier + ": " + checker.typeToString(index.keyType) + "]",
+          name: "[" + identifier + ": " + typeText(index.keyType) + "]",
           computed: true,
           readonly: index.isReadonly,
           optional: false,
@@ -353,7 +367,7 @@ export function getTypeInfoAtPosition(
     const signatureType = (type: ts.Type, annotation?: ts.Node, optional = false): TypeTree =>
       options.unwrapFunctions
         ? getTypeTree(type, depth, visited, annotation, optional)
-        : { kind: "reference", typeName: boundedText(getSkippedTypeName(annotation) ?? checker.typeToString(type)) };
+        : { kind: "reference", typeName: boundedText(getSkippedTypeName(annotation) ?? typeText(type)) };
     const symbols = signature.thisParameter ? [signature.thisParameter, ...signature.parameters] : signature.parameters;
     const parameters = symbols.map((symbol) => {
       const declaration = symbol.valueDeclaration ?? symbol.declarations?.[0];
@@ -455,7 +469,7 @@ export function getTypeInfoAtPosition(
     let symbol = checker.getSymbolAtLocation(nameNode);
     if (symbol && symbol.flags & typescript.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
     if (options.skippedTypeNames.includes(name) || (symbol && options.skippedTypeNames.includes(symbol.getName()))) {
-      return typescript.isTypeReferenceNode(annotation) && annotation.typeArguments?.length
+      return typescript.isTypeReferenceNode(annotation) && annotation.typeArguments?.length && !options.copy
         ? `${name}<...>`
         : annotation.getText();
     }
@@ -659,6 +673,8 @@ export function getTypeInfoAtPosition(
     if (vueLanguage) position = getPositionForVue(vueLanguage, sourceFile.fileName.replace(/\\/g, "/"), position);
     const node = getDescendantAtRange(typescript, sourceFile, [position, position]);
     if (!node || node === sourceFile || !node.parent) return undefined;
+    // `as const` is a keyword, not a type: the compiler resolves it to an unresolved `const` symbol.
+    if (typescript.isConstTypeReference(node.parent)) return undefined;
     let symbol = checker.getSymbolAtLocation(node);
     if (!symbol) return undefined;
     if (symbol.flags & typescript.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
@@ -744,6 +760,10 @@ export function getTypeInfoAtPosition(
         : name;
       declaration = getSyntaxKindDeclaration(kind, declarationName);
       if (declaration.startsWith("function") && tree.kind !== "function") declaration = "const " + name + ": ";
+      // An interface header needs a body; arrays, references and skipped interfaces are written as aliases.
+      if (declaration.startsWith("interface ") && tree.kind !== "object") {
+        declaration = "type " + declaration.slice("interface ".length).trimEnd() + " = ";
+      }
     }
     if (control.isCancellationRequested?.()) return undefined;
     const result: TypeInfo = {

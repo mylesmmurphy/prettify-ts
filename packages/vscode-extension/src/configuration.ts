@@ -7,13 +7,14 @@ import {
   normalizeOptions,
 } from "@prettify-ts/typescript-plugin/src/options";
 
-export function readSettings(document?: vscode.TextDocument, full = false) {
+export function readSettings(document?: vscode.TextDocument, full = false, copy = false) {
   const config = vscode.workspace.getConfiguration("prettify-ts", document);
   const options: Partial<PrettifyOptions> = {};
   for (const key of Object.keys(DEFAULT_OPTIONS) as (keyof typeof DEFAULT_OPTIONS)[]) {
     Object.assign(options, { [key]: config.get(key, DEFAULT_OPTIONS[key]) });
   }
   options.fullExpansion = full;
+  options.copy = copy || full;
   return {
     config,
     enabled: config.get("enabled", DISPLAY_DEFAULTS.enabled),

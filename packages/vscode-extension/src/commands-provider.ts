@@ -13,7 +13,7 @@ export function registerCommands(context: vscode.ExtensionContext, client: TypeC
     }
     const document = editor.document;
     const position = editor.selection.active;
-    const settings = readSettings(document, full);
+    const settings = readSettings(document, full, true);
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
