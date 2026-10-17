@@ -20,7 +20,7 @@ Prettify TS replaces hard-to-read TypeScript hovers with fully resolved, nicely 
 ## Features
 
 * **Prettified hovers** for interfaces, type aliases, classes, functions, unions, arrays, and more.
-* **Copy as TypeScript**: right-click and choose **Prettify → Copy Prettified Type** or **Copy Fully Prettified Type**. Copied output is valid TypeScript you can paste straight into your code.
+* **Copy as TypeScript**: copy any prettified type to your clipboard as valid, paste-ready TypeScript.
 * **Toggle Preview**: run **Prettify TS: Toggle Preview** from the Command Palette to switch prettified hovers on or off.
 * **Configurable**: control depth, indentation, how much is shown, and which types are left as-is.
 * **TypeScript, JavaScript, and Vue**: works in `.ts`, `.tsx`, `.js`, `.jsx`, and `.vue` files.
@@ -68,11 +68,9 @@ To show public `_underscore` members while still hiding private and protected on
 }
 ```
 
-## Large and recursive types
+## Copy as TypeScript
 
-Very large or self-referencing types can't stall the TypeScript server: previews and copies have internal time and size limits well above normal use, and the output says when one is reached. Copied types mark omitted members with comments like `/* ... 3 more */`, so pasted output stays valid TypeScript.
-
-If something goes wrong, check the **Prettify TS** output channel for details.
+Right-click a type and choose **Prettify → Copy Prettified Type** to copy what the hover shows, or **Copy Fully Prettified Type** to expand every level. Either way, the clipboard gets valid TypeScript you can paste straight into your code: omitted members become comments like `/* ... 3 more */`, and skipped types keep their generic arguments.
 
 ## Related Projects
 
@@ -83,7 +81,7 @@ Want to explore types in a sidebar tree? Check out:
 
 ## Contributing
 
-Bug reports, suggestions, and pull requests are welcome on [GitHub](https://github.com/mylesmmurphy/prettify-ts/issues).
+Bug reports, suggestions, and pull requests are welcome on [GitHub](https://github.com/mylesmmurphy/prettify-ts/issues). If something isn't working, the **Prettify TS** output channel usually has details worth including.
 
 ## Acknowledgements
 
