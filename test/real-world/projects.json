@@ -1,0 +1,57 @@
+{
+  "$comment": "Real-world sweep targets. Each project is shallow-cloned at `commit` into .vscode-test/real-world/<name> and installed with lifecycle scripts disabled. Bump a commit deliberately and re-run `pnpm test:real-world` before merging.",
+  "projects": [
+    {
+      "name": "type-fest",
+      "description": "Type-heavy utility library (recursive conditional and mapped types)",
+      "repository": "https://github.com/sindresorhus/type-fest",
+      "commit": "4cbbaca55135fa15701b4bbb931c46616e6afd29",
+      "install": ["npm", "install", "--ignore-scripts", "--no-audit", "--no-fund", "--loglevel=error"],
+      "tsconfig": "tsconfig.json",
+      "include": ["source/", "test-d/"],
+      "smoke": {
+        "file": "test-d/simplify.ts",
+        "identifiers": [
+          {
+            "name": "flattenProperties",
+            "contains": "left: number"
+          },
+          {
+            "name": "valueAsSimplifiedInterface",
+            "contains": "baz: number | undefined"
+          },
+          {
+            "name": "SomeInterfaceAsTypeWrittenByHand",
+            "contains": "bar?: string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "excalidraw",
+      "description": "Large React application (JSX, DOM types, deep app state)",
+      "repository": "https://github.com/excalidraw/excalidraw",
+      "commit": "4c37956ba5f04ec342a9d9d5891a38f22c5b7b4e",
+      "install": [
+        "corepack",
+        "yarn",
+        "install",
+        "--frozen-lockfile",
+        "--ignore-scripts",
+        "--non-interactive",
+        "--silent"
+      ],
+      "tsconfig": "tsconfig.json",
+      "include": ["packages/", "excalidraw-app/"]
+    },
+    {
+      "name": "element-plus",
+      "description": "Vue component library (ExtractPropTypes, emits and component instance types)",
+      "repository": "https://github.com/element-plus/element-plus",
+      "commit": "149862aa6bc1c761f96e3d01a3d1a5a05e6c82bf",
+      "install": ["corepack", "pnpm", "install", "--frozen-lockfile", "--ignore-scripts", "--reporter=silent"],
+      "tsconfig": "tsconfig.web.json",
+      "include": ["packages/"]
+    }
+  ]
+}

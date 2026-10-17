@@ -1,0 +1,90 @@
+name: Real-world sweep
+
+# Optional end-to-end coverage over large open-source projects (test/real-world/projects.json).
+# Slow, network-bound and informational, so it never runs on pull requests by default and is never a
+# required check. Add the `real-world` label to a pull request to run it there (again on each push).
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      positions:
+        description: Identifier positions to sweep per project
+        default: "3000"
+        type: string
+      editor:
+        description: Also run the VS Code editor smoke test
+        default: true
+        type: boolean
+  schedule:
+    - cron: "23 5 * * 1" # Mondays 05:23 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-world-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  real-world:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'real-world') ||
+      (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'real-world'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore cloned projects
+        id: clones
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            .vscode-test/real-world
+            ~/.cache/node/corepack
+          key: real-world-${{ runner.os }}-${{ hashFiles('test/real-world/projects.json') }}
+
+      - name: Clone and install projects
+        run: node scripts/test-real-world.js --prepare-only
+
+      # Saved before the sweep so a failing sweep still keeps the clones for the next run.
+      - name: Save cloned projects
+        if: steps.clones.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            .vscode-test/real-world
+            ~/.cache/node/corepack
+          key: real-world-${{ runner.os }}-${{ hashFiles('test/real-world/projects.json') }}
+
+      - name: Sweep
+        env:
+          PRETTIFY_REAL_WORLD_POSITIONS: ${{ inputs.positions || '3000' }}
+          EDITOR_FLAG: ${{ (github.event_name != 'workflow_dispatch' || inputs.editor) && '--editor' || '' }}
+        run: xvfb-run -a node scripts/test-real-world.js $EDITOR_FLAG
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: real-world-reports
+          path: |
+            .vscode-test/real-world/*.report.json
+            .vscode-test/real-world/summary.md
+          if-no-files-found: ignore
