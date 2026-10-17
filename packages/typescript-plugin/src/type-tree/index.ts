@@ -11,6 +11,7 @@ let checker: ts.TypeChecker;
 
 let options: PrettifyOptions = {
   hidePrivateProperties: true,
+  treatUnderscoreAsPrivate: true,
   maxDepth: 2,
   maxProperties: 100,
   maxSubProperties: 5,
@@ -608,18 +609,22 @@ function sortUnionTypes(a: ts.Type, b: ts.Type): number {
  * Check if an object property is public
  */
 function isPublicProperty(symbol: ts.Symbol): boolean {
+  const name = symbol.getName();
+  if (name.startsWith("#")) return false;
+  if (options.treatUnderscoreAsPrivate !== false && name.startsWith("_") && !isSymbolProperty(symbol)) return false;
+
   const declarations = symbol.getDeclarations();
   if (!declarations) return true;
-
-  const name = symbol.getName();
-  if ((name.startsWith("_") && !isSymbolProperty(symbol)) || name.startsWith("#")) return false;
 
   return declarations.every((declaration) => {
     if (!(
       typescript.isMethodDeclaration(declaration) ||
       typescript.isMethodSignature(declaration) ||
       typescript.isPropertyDeclaration(declaration) ||
-      typescript.isPropertySignature(declaration)
+      typescript.isPropertySignature(declaration) ||
+      typescript.isGetAccessor(declaration) ||
+      typescript.isSetAccessor(declaration) ||
+      typescript.isParameter(declaration)
     ))
       return true;
 

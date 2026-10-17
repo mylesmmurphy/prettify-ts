@@ -101,6 +101,7 @@ type PrettifySettings = {
   typeIndentation?: number;
   maxCharacters?: number;
   hidePrivateProperties?: boolean;
+  treatUnderscoreAsPrivate?: boolean;
   maxDepth?: number;
   maxProperties?: number;
   maxSubProperties?: number;
@@ -124,6 +125,7 @@ export async function applySettings(overrides: PrettifySettings = {}) {
     typeIndentation: 4,
     maxCharacters: 20000,
     hidePrivateProperties: true,
+    treatUnderscoreAsPrivate: true,
     maxDepth: 2,
     maxProperties: 100,
     maxSubProperties: 5,

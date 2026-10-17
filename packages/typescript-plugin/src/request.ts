@@ -12,6 +12,12 @@ export type PrettifyOptions = {
   hidePrivateProperties: boolean;
 
   /**
+   * Treat underscore-prefixed members as private when hiding private properties.
+   * Defaults to true when omitted for compatibility with older requests.
+   */
+  treatUnderscoreAsPrivate?: boolean;
+
+  /**
    * Determines the maximum depth of the type tree.
    * This limits how deeply nested types will be expanded.
    */
