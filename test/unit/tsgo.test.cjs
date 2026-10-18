@@ -8,9 +8,10 @@ const { pathToFileURL } = require("node:url");
 const ts = require("typescript");
 const api = require("../out-unit/entry");
 
-const ts7Root = path.dirname(
-  require.resolve("typescript-7/package.json", { paths: [path.join(__dirname, "../../packages/core")] }),
-);
+// PRETTIFY_TEST_TS7_PATH selects another TypeScript 7 installation, such as the latest nightly.
+const ts7Root =
+  process.env.PRETTIFY_TEST_TS7_PATH ||
+  path.dirname(require.resolve("typescript-7/package.json", { paths: [path.join(__dirname, "../../packages/core")] }));
 const compilerOptions = {
   strict: true,
   exactOptionalPropertyTypes: true,

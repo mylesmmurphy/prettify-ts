@@ -7,9 +7,10 @@ const path = require("node:path");
 const Module = require("node:module");
 const { pathToFileURL } = require("node:url");
 
-const ts7Root = path.dirname(
-  require.resolve("typescript-7/package.json", { paths: [path.join(__dirname, "../../packages/core")] }),
-);
+// PRETTIFY_TEST_TS7_PATH selects another TypeScript 7 installation, such as the latest nightly.
+const ts7Root =
+  process.env.PRETTIFY_TEST_TS7_PATH ||
+  path.dirname(require.resolve("typescript-7/package.json", { paths: [path.join(__dirname, "../../packages/core")] }));
 let values, providers, commands, middleware, initialized, warnings, clipboard, extension, documents;
 const token = { isCancellationRequested: false, onCancellationRequested() {} };
 const mock = {

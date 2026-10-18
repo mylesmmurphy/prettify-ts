@@ -21,12 +21,22 @@ Environment selectors:
 | PRETTIFY_TEST_VSCODE_PATH | Reuse a cached editor executable |
 | PRETTIFY_TEST_EXTENSIONS_PATH | Reuse an already prepared isolated extensions directory |
 | PRETTIFY_TEST_TYPESCRIPT_PATH | Alternate compiler module for test:unit |
+| PRETTIFY_TEST_TSGO | Set to 1 to run the TypeScript 7 editor suite |
+| PRETTIFY_TEST_TS7_PATH | Alternate TypeScript 7 installation (package directory) for the TypeScript 7 unit tests and editor suite |
+| PRETTIFY_TEST_TS7_EXTENSION_REF | TypeScript commit or branch to build the TypeScript 7 extension from; default the pinned commit |
+| PRETTIFY_TEST_TS7_EXTENSION_PATH | Use an already built TypeScript 7 extension directory |
 
 Each editor run uses a disposable workspace copy. Settings updates and Vue edit regressions do not change tracked fixtures. Extension installation also uses explicit isolated profile and extension directories.
 
 Hover assertions go through VS Code's real hover providers, as users see them, and also check the plugin's own rendering, so a matching native TypeScript hover cannot hide a Prettify regression. Merged hovers contribute several code blocks to one hover; the helpers collect each of them. The hover suite also covers duplicate hiding, the omission marker, the enabled setting, each hover placement, and separate hovers.
 
-The editor suite runs VS Code's built-in TypeScript (TS Server). TypeScript 7 hovers in a real editor need a TypeScript 7 extension release with its third-party API, which the Marketplace does not have yet; until then they are covered by the headless TypeScript 7 tests above. The unit suite additionally parses emitted types and checks mutual assignability for representative complete expansions. Fresh-install defaults are checked against the shared options definition.
+## TypeScript 7 editor suite
+
+`PRETTIFY_TEST_TSGO=1 pnpm test` runs `test/suite/tsgo` instead of the regular editor suite: VS Code serves TypeScript through the TypeScript 7 extension (`TypeScriptTeam.native-preview`) with `js/ts.experimental.useTsgo` on and TS Server off. It covers merged hovers in each placement, separate hovers, de-duplication, copying and disabling.
+
+The Marketplace release of the TypeScript 7 extension predates the API Prettify TS uses, so `scripts/build-typescript-7-extension.js` builds the extension from TypeScript's source at the commit in `test/typescript-7.json` (cached in `.vscode-test/typescript-7-extension`). The language server is the pinned TypeScript 7 nightly from `packages/core`. Use VS Code 1.126 or later; the default for this suite is the current stable release.
+
+The `TypeScript 7 nightly` workflow runs weekly (and on demand) against `typescript@next` and the extension built from TypeScript's `main`, so API changes show up before the pins are bumped. To bump them, update `typescript-7` in `packages/core/package.json` and the commit in `test/typescript-7.json` together, then run the unit and TypeScript 7 editor suites. Once a Marketplace release has the API, the suite can install that release instead of building one. The unit suite additionally parses emitted types and checks mutual assignability for representative complete expansions. Fresh-install defaults are checked against the shared options definition.
 
 The built formatter is loaded from development output by type-output assertions even during installed-VSIX runs; actual hover/copy integration tests exercise the installed bundled renderer. Run the build before invoking the test CLI directly.
 

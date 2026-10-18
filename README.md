@@ -30,7 +30,7 @@ Use Node.js 24 (`nvm use`) and the pnpm version pinned in `package.json`. Enable
 
 TypeScript is kept on the 5.9 line while the language service plugin relies on the JavaScript compiler API. New compiler major versions require a separate compatibility review.
 
-TypeScript 7 support goes through the TypeScript 7 API. `packages/core` depends on a pinned TypeScript 7 nightly, installed as `typescript-7`, for its API types and the headless TypeScript 7 tests. Keep that dependency in `core` only: its `tsc` binary would replace TypeScript 5.9's in the scripts of any package that depends on it.
+TypeScript 7 support goes through the TypeScript 7 API. `packages/core` depends on a pinned TypeScript 7 nightly, installed as `typescript-7`, for its API types and the TypeScript 7 tests. Keep that dependency in `core` only: its `tsc` binary would replace TypeScript 5.9's in the scripts of any package that depends on it. CI also runs the editor suite with VS Code serving TypeScript 7 (`PRETTIFY_TEST_TSGO=1 pnpm test`), and a weekly workflow checks the latest TypeScript 7 nightly; see the [Test README](./test/README.md#typescript-7-editor-suite).
 
 ```bash
 pnpm install      # Installs all dependencies
