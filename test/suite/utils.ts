@@ -13,8 +13,8 @@ const workspacePath = process.env.PRETTIFY_TEST_WORKSPACE ?? path.join(__dirname
  * Sets the shared `openDoc` variable to the opened document.
  * Waits until the TypeScript server provides the hover information.
  */
-export async function openDocument(fileName: string): Promise<void> {
-  const uri = vscode.Uri.file(path.join(workspacePath, fileName));
+export async function openDocument(fileName: string, folder = workspacePath): Promise<void> {
+  const uri = vscode.Uri.file(path.join(folder, fileName));
 
   const doc = await vscode.workspace.openTextDocument(uri);
 
@@ -58,6 +58,8 @@ type PrettifySettings = {
   unwrapArrays?: boolean;
   unwrapFunctions?: boolean;
   unwrapGenericArgumentsTypeNames?: string[];
+  hoverMode?: "merged" | "separate";
+  hoverPlacement?: "prettifiedFirst" | "nativeFirst" | "prettifiedOnly";
 };
 
 /**
@@ -92,8 +94,8 @@ export async function applySettings(overrides: PrettifySettings = {}) {
 /** Real hover contents, plus the plugin's own rendering when available so a native hover cannot mask it. */
 export type HoverResult = string[] & { rendered?: string };
 
-/** The normalized contents of every hover VS Code shows at the keyword (Prettify's and TypeScript's). */
-export async function getHoverContents(keyword: string, characterOffset = 1): Promise<string[]> {
+/** The hovers VS Code shows at the keyword, each as its markdown sections in display order. */
+export async function getHoverSections(keyword: string, characterOffset = 1): Promise<string[][]> {
   const offset = openDoc.getText().indexOf(keyword);
   assert.ok(offset >= 0, `Fixture keyword not found: ${keyword}`);
   const position = openDoc.positionAt(offset + characterOffset);
@@ -102,11 +104,26 @@ export async function getHoverContents(keyword: string, characterOffset = 1): Pr
     openDoc.uri,
     position,
   );
-  return (hovers ?? [])
-    .map((hover) => hover.contents[0])
-    .filter((content) => content !== undefined)
-    .map((content) => (typeof content === "string" ? content : content.value))
-    .map(normalizeTypeString);
+  return (hovers ?? []).map((hover) =>
+    hover.contents
+      .map((content) => (typeof content === "string" ? content : content.value))
+      .flatMap(codeSections)
+      .map(normalizeTypeString),
+  );
+}
+
+/**
+ * The normalized code blocks of every hover VS Code shows at the keyword (Prettify's and TypeScript's).
+ * A merged hover contributes several: the preview and TypeScript's own signature.
+ */
+export async function getHoverContents(keyword: string, characterOffset = 1): Promise<string[]> {
+  return (await getHoverSections(keyword, characterOffset)).flat();
+}
+
+/** Each code block of hover markdown, or the whole text when it has none. */
+function codeSections(markdown: string): string[] {
+  const blocks = [...markdown.matchAll(/(`{3,})typescript\n([\s\S]*?)\n\1/g)].map((match) => match[2]!);
+  return blocks.length ? blocks : markdown.trim() ? [markdown] : [];
 }
 
 /**

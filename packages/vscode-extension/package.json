@@ -14,6 +14,7 @@
     "@prettify-ts/typescript-plugin": "workspace:*"
   },
   "devDependencies": {
+    "@prettify-ts/core": "workspace:*",
     "@types/node": "^24.19.2",
     "@types/vscode": "1.100.0",
     "@vscode/vsce": "^4.0.0",
@@ -98,6 +99,36 @@
           "type": "boolean",
           "default": true,
           "description": "Enable or disable Prettify TS.",
+          "scope": "language-overridable"
+        },
+        "prettify-ts.hoverMode": {
+          "type": "string",
+          "enum": [
+            "merged",
+            "separate"
+          ],
+          "default": "merged",
+          "enumDescriptions": [
+            "Add the preview to TypeScript's own hover, in the order set by Hover Placement.",
+            "Show the preview as a hover of its own next to TypeScript's. Vue files always use this mode."
+          ],
+          "markdownDescription": "How the prettified preview is shown. Merged hovers keep a single hover with a fixed order; separate hovers leave the order between hovers to VS Code.",
+          "scope": "language-overridable"
+        },
+        "prettify-ts.hoverPlacement": {
+          "type": "string",
+          "enum": [
+            "prettifiedFirst",
+            "nativeFirst",
+            "prettifiedOnly"
+          ],
+          "default": "prettifiedFirst",
+          "enumDescriptions": [
+            "The preview first, then TypeScript's own signature and documentation.",
+            "TypeScript's own signature and documentation first, then the preview.",
+            "The preview in place of TypeScript's signature, keeping its documentation. Merged hovers only."
+          ],
+          "markdownDescription": "Where the preview appears relative to TypeScript's own hover content. In separate hovers, `nativeFirst` places Prettify's hover below TypeScript's and `prettifiedOnly` behaves like `prettifiedFirst`.",
           "scope": "language-overridable"
         },
         "prettify-ts.typeIndentation": {

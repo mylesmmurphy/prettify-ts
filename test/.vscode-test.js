@@ -40,15 +40,31 @@ module.exports = defineConfig(
       settings["js/ts.tsdk.path"] = sdk;
     }
     fs.writeFileSync(path.join(userDataPath, "User/settings.json"), JSON.stringify(settings));
-    // Tests change workspace configuration and Vue buffers. Always use a disposable fixture copy.
+    // Tests change workspace configuration and Vue buffers. Always use disposable fixture copies.
+    // A multi-root workspace, so tests can give the second folder its own settings.
     const workspacePath = path.join(userDataPath, "workspace");
-    fs.rmSync(workspacePath, { recursive: true, force: true });
-    fs.cpSync(path.join(__dirname, "workspace"), workspacePath, { recursive: true });
+    const secondFolderPath = path.join(userDataPath, "workspace-folder");
+    for (const [from, to] of [
+      ["workspace", workspacePath],
+      ["workspace-folder", secondFolderPath],
+    ]) {
+      fs.rmSync(to, { recursive: true, force: true });
+      fs.cpSync(path.join(__dirname, from), to, { recursive: true });
+    }
+    const workspaceFile = path.join(userDataPath, "prettify.code-workspace");
+    fs.writeFileSync(
+      workspaceFile,
+      JSON.stringify({ folders: [{ path: "workspace" }, { path: "workspace-folder" }], settings: {} }),
+    );
     process.env.PRETTIFY_TEST_WORKSPACE = workspacePath;
+    // A reused extensions directory keeps replaced versions until VS Code cleans up the ones it marked obsolete.
+    const obsoletePath = path.join(extensionsPath, ".obsolete");
+    const obsolete = fs.existsSync(obsoletePath) ? JSON.parse(fs.readFileSync(obsoletePath, "utf8")) : {};
     const installed =
       process.env.PRETTIFY_TEST_PACKAGED === "1"
         ? fs
             .readdirSync(extensionsPath)
+            .filter((name) => !obsolete[name])
             .map((name) => path.join(extensionsPath, name))
             .find((directory) => {
               const manifestPath = path.join(directory, "package.json");
@@ -61,10 +77,11 @@ module.exports = defineConfig(
     return {
       useInstallation: { fromPath: executable },
       extensionDevelopmentPath: installed ?? path.join(root, "packages/vscode-extension"),
-      workspaceFolder: workspacePath,
+      workspaceFolder: workspaceFile,
       launchArgs: ["--user-data-dir=" + userDataPath, "--extensions-dir=" + extensionsPath, "--skip-welcome"],
       env: {
         PRETTIFY_TEST_WORKSPACE: workspacePath,
+        PRETTIFY_TEST_SECOND_FOLDER: secondFolderPath,
         PRETTIFY_TEST_VUE_EXTENSION_VERSION: vueVersion,
         PRETTIFY_TEST_USE_WORKSPACE_TYPESCRIPT: process.env.PRETTIFY_TEST_USE_WORKSPACE_TYPESCRIPT,
       },

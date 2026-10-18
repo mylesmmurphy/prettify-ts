@@ -1,0 +1,10 @@
+{
+  "name": "@prettify-ts/core",
+  "version": "1.0.2",
+  "license": "MIT",
+  "private": true,
+  "description": "Type-tree analysis, rendering and hover composition shared by the TypeScript plugin and the VS Code extension.",
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}

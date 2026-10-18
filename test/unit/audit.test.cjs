@@ -259,7 +259,7 @@ test("AST lookup prunes irrelevant branches", () => {
   sf.statements[1].forEachChild = () => {
     throw new Error("Visited irrelevant subtree");
   };
-  assert.equal(api.getDescendantAtRange(ts, sf, [6, 6]).getText(), "First");
+  assert.equal(api.getDescendantAtRange(sf, [6, 6]).getText(), "First");
 });
 test("Vue generated offset zero is valid", () => {
   const code = {},
@@ -290,6 +290,10 @@ test("manifest defaults agree with shared options", () => {
     properties = manifest.contributes.configuration.properties;
   for (const [key, value] of Object.entries(api.DEFAULT_OPTIONS))
     assert.deepEqual(properties["prettify-ts." + key].default, value, key);
+  assert.equal(properties["prettify-ts.hoverMode"].default, api.HOVER_DEFAULTS.mode);
+  assert.deepEqual(properties["prettify-ts.hoverMode"].enum, [...api.HOVER_MODES]);
+  assert.equal(properties["prettify-ts.hoverPlacement"].default, api.HOVER_DEFAULTS.placement);
+  assert.deepEqual(properties["prettify-ts.hoverPlacement"].enum, [...api.HOVER_PLACEMENTS]);
   for (const v of Object.values(properties)) {
     if (v.type === "integer") assert.ok(v.maximum !== undefined);
     assert.equal(v.scope, "language-overridable");

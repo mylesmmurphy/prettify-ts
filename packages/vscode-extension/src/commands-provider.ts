@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { toggleEnabled, readSettings } from "./configuration";
-import { renderTypeInfo } from "./stringify-type-tree";
-import { reportedLimits, supportedLanguages } from "./type-client";
+import { renderTypeInfo } from "@prettify-ts/core/src/stringify";
+import { reportedLimits } from "@prettify-ts/core/src/preview";
+import { toggleEnabled, readSettings, supportedLanguages } from "./configuration";
 import type { TypeClient } from "./type-client";
 
 export function registerCommands(context: vscode.ExtensionContext, client: TypeClient): void {

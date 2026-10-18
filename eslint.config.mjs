@@ -15,6 +15,7 @@ export default [
       "test/out-real-world/**", // Bundled real-world sweep
       "test/unit/*.cjs", // Executed directly by the Node test runner
       ".vscode-test/**", // Ignore all VSCode test files
+      ".claude/**", // Local agent worktrees are separate checkouts
     ],
   },
   ...tseslint.config(
