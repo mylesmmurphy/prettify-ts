@@ -5,7 +5,7 @@ Use Node 24 and the pinned pnpm version.
 - pnpm typecheck checks the plugin, extension, integration tests, and unit entry points.
 - pnpm lint checks TypeScript and formatting.
 - pnpm build builds the plugin and extension.
-- pnpm test:unit runs compiler-backed semantic/parser regressions, client/cancellation/configuration tests, and packaging failure cleanup.
+- pnpm test:unit runs compiler-backed semantic/parser regressions, client/cancellation/configuration tests, hover composition and quick-info merging, TypeScript 7 tests, and packaging failure cleanup. The TypeScript 7 tests start the pinned TypeScript 7 server: `tsgo.test.cjs` checks that the TypeScript 7 backend renders the same output as the in-process compiler for a shared corpus, and `tsgo-editor.test.cjs` drives the extension's TypeScript 7 hover middleware, separate hover and copy command with VS Code mocked.
 - pnpm test builds and runs the editor integration suite.
 - pnpm test:package builds a VSIX, installs it in an isolated profile, and runs the integration suite using the installed artifact directory as the test extension.
 
@@ -24,7 +24,9 @@ Environment selectors:
 
 Each editor run uses a disposable workspace copy. Settings updates and Vue edit regressions do not change tracked fixtures. Extension installation also uses explicit isolated profile and extension directories.
 
-Hover assertions go through VS Code's real hover providers, as users see them, and also check the plugin's own rendering, so a matching native TypeScript hover cannot hide a Prettify regression. The hover suite also covers duplicate hiding, the omission marker, and the enabled setting. The unit suite additionally parses emitted types and checks mutual assignability for representative complete expansions. Fresh-install defaults are checked against the shared options definition.
+Hover assertions go through VS Code's real hover providers, as users see them, and also check the plugin's own rendering, so a matching native TypeScript hover cannot hide a Prettify regression. Merged hovers contribute several code blocks to one hover; the helpers collect each of them. The hover suite also covers duplicate hiding, the omission marker, the enabled setting, each hover placement, and separate hovers.
+
+The editor suite runs VS Code's built-in TypeScript (TS Server). TypeScript 7 hovers in a real editor need a TypeScript 7 extension release with its third-party API, which the Marketplace does not have yet; until then they are covered by the headless TypeScript 7 tests above. The unit suite additionally parses emitted types and checks mutual assignability for representative complete expansions. Fresh-install defaults are checked against the shared options definition.
 
 The built formatter is loaded from development output by type-output assertions even during installed-VSIX runs; actual hover/copy integration tests exercise the installed bundled renderer. Run the build before invoking the test CLI directly.
 

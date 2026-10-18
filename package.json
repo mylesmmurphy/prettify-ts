@@ -12,7 +12,7 @@
     "build": "pnpm -r run build",
     "build:debug": "pnpm --filter @prettify-ts/typescript-plugin build:debug && pnpm --filter prettify-ts run build",
     "package": "pnpm build && node ./scripts/package.js",
-    "typecheck": "tsc --noEmit -p packages/typescript-plugin && tsc --noEmit -p packages/vscode-extension && tsc --noEmit -p test && tsc --noEmit -p test/unit && tsc --noEmit -p test/real-world",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/typescript-plugin && tsc --noEmit -p packages/vscode-extension && tsc --noEmit -p test && tsc --noEmit -p test/unit && tsc --noEmit -p test/real-world",
     "test:unit": "node scripts/test-unit.js",
     "test:real-world": "node scripts/test-real-world.js",
     "test:package": "pnpm build && tsc -p test && node scripts/test-package.js"

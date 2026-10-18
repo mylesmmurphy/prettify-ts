@@ -45,10 +45,14 @@ module.exports = defineConfig(
     fs.rmSync(workspacePath, { recursive: true, force: true });
     fs.cpSync(path.join(__dirname, "workspace"), workspacePath, { recursive: true });
     process.env.PRETTIFY_TEST_WORKSPACE = workspacePath;
+    // A reused extensions directory keeps replaced versions until VS Code cleans up the ones it marked obsolete.
+    const obsoletePath = path.join(extensionsPath, ".obsolete");
+    const obsolete = fs.existsSync(obsoletePath) ? JSON.parse(fs.readFileSync(obsoletePath, "utf8")) : {};
     const installed =
       process.env.PRETTIFY_TEST_PACKAGED === "1"
         ? fs
             .readdirSync(extensionsPath)
+            .filter((name) => !obsolete[name])
             .map((name) => path.join(extensionsPath, name))
             .find((directory) => {
               const manifestPath = path.join(directory, "package.json");

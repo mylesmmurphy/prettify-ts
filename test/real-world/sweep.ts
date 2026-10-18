@@ -9,10 +9,10 @@ import { performance } from "node:perf_hooks";
 import type * as ts from "typescript";
 
 import init from "../../packages/typescript-plugin/src";
-import { DEFAULT_OPTIONS, FULL_COPY_LIMITS, PREVIEW_LIMITS } from "../../packages/typescript-plugin/src/options";
+import { DEFAULT_OPTIONS, FULL_COPY_LIMITS, PREVIEW_LIMITS } from "../../packages/core/src/options";
 import type { PrettifyOptions, PrettifyRequest, PrettifyResponse } from "../../packages/typescript-plugin/src/request";
-import type { TypeInfo } from "../../packages/typescript-plugin/src/type-tree/types";
-import { renderTypeInfo, renderTypeParts } from "../../packages/vscode-extension/src/stringify-type-tree";
+import type { TypeInfo } from "../../packages/core/src/types";
+import { renderTypeInfo, renderTypeParts } from "../../packages/core/src/stringify";
 
 export type SweepOptions = {
   name: string;

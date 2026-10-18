@@ -35,7 +35,7 @@ const mock = {
   },
   languages: {
     registerHoverProvider(selector, provider) {
-      providers.set(selector.language, provider);
+      providers.set(typeof selector === "string" ? selector : selector.language, provider);
       return { dispose() {} };
     },
   },
@@ -94,7 +94,8 @@ const info = {
   },
 };
 beforeEach(() => {
-  values = {};
+  // The separate hover provider is under test here; merged hovers are built by the plugin or middleware.
+  values = { hoverMode: "separate" };
   inspected = {};
   updates = [];
   logs = [];
@@ -131,7 +132,7 @@ test("cancelled and outdated requests do not produce results", async () => {
 });
 test("missing or failed quickinfo preserves valid hover and logs failures", async () => {
   api.registerHoverProvider({ subscriptions: [] }, client());
-  assert.deepEqual([...providers.keys()], api.supportedLanguages);
+  assert.deepEqual([...providers.keys()], [...api.supportedLanguages, "*"]);
   let hover = await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token);
   assert.match(hover.contents.value, /value: string/);
   handler = async (command, method) => {
@@ -141,6 +142,27 @@ test("missing or failed quickinfo preserves valid hover and logs failures", asyn
   hover = await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token);
   assert.match(hover.contents.value, /value: string/);
   assert.match(logs[0], /No quickinfo/);
+});
+test("merged hovers leave TypeScript and JavaScript to the plugin; Vue keeps the separate hover", async () => {
+  values.hoverMode = "merged";
+  api.registerHoverProvider({ subscriptions: [] }, client());
+  assert.equal(await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token), undefined);
+  const vue = { ...document, languageId: "vue" };
+  const hover = await providers.get("vue").provideHover(vue, { line: 0, character: 1 }, token);
+  assert.match(hover.contents.value, /value: string/);
+});
+test("native-first separate hovers come from the less specific provider, which VS Code orders after TypeScript's", async () => {
+  api.registerHoverProvider({ subscriptions: [] }, client());
+  assert.ok(await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token));
+  assert.equal(await providers.get("*").provideHover(document, { line: 0, character: 1 }, token), undefined);
+  values.hoverPlacement = "nativeFirst";
+  assert.equal(await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token), undefined);
+  assert.match(
+    (await providers.get("*").provideHover(document, { line: 0, character: 1 }, token)).contents.value,
+    /value: string/,
+  );
+  const plaintext = { ...document, languageId: "plaintext" };
+  assert.equal(await providers.get("*").provideHover(plaintext, { line: 0, character: 1 }, token), undefined);
 });
 test("toggle writes the highest effective workspace or language override", async () => {
   values.enabled = false;
@@ -193,7 +215,7 @@ test("hover shows earlier markers and hides duplicates of TypeScript's own hover
       ? { body: { __prettifyResponse: collapsed } }
       : { body: { displayString: "type Test = Other" } };
   let hover = await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token);
-  assert.equal(hover.contents.value, "type Test = {\n    nested: { ... 2 more };\n}\n");
+  assert.equal(hover.contents.value, "type Test = {\n    nested: { ... 2 more };\n}");
   handler = async (command, method) =>
     method === "completionInfo"
       ? { body: { __prettifyResponse: info } }

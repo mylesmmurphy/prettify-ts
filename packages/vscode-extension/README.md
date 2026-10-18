@@ -20,6 +20,8 @@ Prettify TS replaces hard-to-read TypeScript hovers with fully resolved, nicely 
 ## Features
 
 * **Prettified hovers** for interfaces, type aliases, classes, functions, unions, arrays, and more.
+* **One hover, in the order you choose**: the preview is added to TypeScript's own hover, before or after TypeScript's signature and documentation, or in place of the signature. Prefer a hover of its own? Set `hoverMode` to `separate`.
+* **TypeScript 7**: works with the native TypeScript 7 language server as well as the JavaScript one.
 * **Copy as TypeScript**: copy any prettified type to your clipboard as valid, paste-ready TypeScript.
 * **Toggle Preview**: run **Prettify TS: Toggle Preview** from the Command Palette to switch prettified hovers on or off.
 * **Configurable**: control depth, indentation, how much is shown, and which types are left as-is.
@@ -29,6 +31,10 @@ Prettify TS replaces hard-to-read TypeScript hovers with fully resolved, nicely 
 
 * VS Code **1.100.0** or newer.
 * Works with the editor's bundled TypeScript or your workspace TypeScript.
+
+### TypeScript 7
+
+When VS Code runs TypeScript 7 (`js/ts.experimental.useTsgo`), Prettify TS uses the [TypeScript 7](https://marketplace.visualstudio.com/items?itemName=TypeScriptTeam.native-preview) extension's API. That requires a release of the extension for TypeScript 7.1 or later; with an older one, Prettify TS shows a warning and no previews. Vue files keep using the JavaScript language server, as Vue's tooling does.
 
 ### JavaScript projects
 
@@ -45,6 +51,8 @@ All settings are under `prettify-ts.*` and can be overridden per language.
 | Setting | Default | Description |
 | --- | --- | --- |
 | `enabled` | `true` | Turns prettified hovers on or off. **Toggle Preview** flips this. |
+| `hoverMode` | `merged` | `merged` adds the preview to TypeScript's own hover. `separate` shows it as a hover of its own, ordered by VS Code. Vue files always use `separate`. |
+| `hoverPlacement` | `prettifiedFirst` | `prettifiedFirst`, `nativeFirst` (TypeScript's signature and documentation first), or `prettifiedOnly` (the preview replaces TypeScript's signature; documentation stays). In separate hovers, `nativeFirst` puts Prettify's hover below TypeScript's. |
 | `typeIndentation` | `4` | Spaces used to indent nested types. |
 | `maxDepth` | `1` | How many levels of nested types to expand. |
 | `maxProperties` | `1000` | Maximum properties shown in total, including nested ones. |
@@ -58,6 +66,14 @@ All settings are under `prettify-ts.*` and can be overridden per language.
 | `hidePrivateProperties` | `true` | Hides private and protected members and JavaScript `#private` fields. |
 | `treatUnderscoreAsPrivate` | `true` | Also hides `_underscore` members when `hidePrivateProperties` is on. |
 | `maxCharacters` | `20000` | Maximum characters in a preview before it is cut off. Higher values are slower. |
+
+To see TypeScript's short signature first, with the expanded type below it:
+
+```json
+{
+  "prettify-ts.hoverPlacement": "nativeFirst"
+}
+```
 
 To show public `_underscore` members while still hiding private and protected ones:
 
