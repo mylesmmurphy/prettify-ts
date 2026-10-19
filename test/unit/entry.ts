@@ -1,7 +1,14 @@
 export { getTypeInfoAtPosition } from "../../packages/typescript-plugin/src/type-tree";
-export { getDescendantAtRange } from "../../packages/typescript-plugin/src/type-tree/get-ast-node";
+export { getDescendantAtRange } from "../../packages/core/src/builder/syntax";
 export { getPositionForVue } from "../../packages/typescript-plugin/src/type-tree/vue";
-export * from "../../packages/typescript-plugin/src/options";
-export * from "../../packages/vscode-extension/src/stringify-type-tree";
+export * from "../../packages/core/src/options";
+export * from "../../packages/core/src/stringify";
 import init from "../../packages/typescript-plugin/src";
 export { init };
+export { mergeQuickInfo } from "../../packages/typescript-plugin/src/merge-quick-info";
+export { resolveHoverSettings, languageOf } from "../../packages/typescript-plugin/src/settings";
+export * from "../../packages/core/src/compose";
+export * from "../../packages/core/src/preview";
+export { getTypeInfo } from "../../packages/core/src/builder/builder";
+export { runAsync, runSync, step } from "../../packages/core/src/builder/backend";
+export { createCompilerBackend } from "../../packages/typescript-plugin/src/type-tree/backend";

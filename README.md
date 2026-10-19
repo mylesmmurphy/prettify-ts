@@ -54,11 +54,23 @@ This repo uses [pnpm workspaces](https://pnpm.io/workspaces) to manage multiple 
 ```
 .
 ├── packages/
-│   ├── typescript-plugin/     # TypeScript language service plugin
+│   ├── core/                  # Type-tree analysis, rendering and hover composition (shared)
+│   ├── typescript-plugin/     # TypeScript language service plugin (TS Server, TypeScript 6 and earlier)
 │   └── vscode-extension/      # VSCode extension host + UI
 └── test/                      # Full integration test suite
 └── scripts/                   # Utility scripts for development, building, or CI
 ```
+
+
+### How hovers are built
+
+The type tree builder (`packages/core/src/builder`) is written once, as generators that yield each compiler query to a `Backend`. A synchronous driver (`runSync`) runs it inside TS Server against the in-process compiler, and rejects a backend that returns a pending result. An asynchronous driver (`runAsync`) awaits each query, for a backend whose queries are requests to another process; the unit tests run the builder that way against an asynchronous wrapper of the in-process compiler and require identical output. The result is a `TypeInfo`, rendered by the shared formatter.
+
+Merged hovers (the default) add the preview to TypeScript's own hover, so the order is fixed:
+
+* The plugin decorates `getQuickInfoAtPosition` in TS Server. The extension sends settings with `configurePlugin`: the defaults, and each workspace folder's effective settings (with language overrides), which the plugin matches to the requested file. Language-specific settings are keyed by the document's VS Code language: the plugin uses the language the extension reports for open files whose language mode differs from their name, else the file's script kind in TS Server (untitled files have no extension), else its name.
+
+Separate hovers (`prettify-ts.hoverMode: separate`, and always in Vue files) use the extension's own hover provider. VS Code orders hovers by how specifically their providers match a document, then puts built-in providers last; the provider registered per language therefore appears above TypeScript's hover, and a provider for every language (`*`) appears below it for `nativeFirst`.
 
 
 ### Development Workflow

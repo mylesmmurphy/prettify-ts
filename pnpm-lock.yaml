@@ -58,8 +58,17 @@ importers:
         specifier: ^8.71.2
         version: 8.71.2(eslint@10.13.0)(typescript@5.9.3)
 
+  packages/core:
+    devDependencies:
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+
   packages/typescript-plugin:
     devDependencies:
+      '@prettify-ts/core':
+        specifier: workspace:*
+        version: link:../core
       '@types/ts-expose-internals':
         specifier: npm:ts-expose-internals@5.6.3
         version: ts-expose-internals@5.6.3
@@ -82,6 +91,9 @@ importers:
         specifier: workspace:*
         version: link:../typescript-plugin
     devDependencies:
+      '@prettify-ts/core':
+        specifier: workspace:*
+        version: link:../core
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2

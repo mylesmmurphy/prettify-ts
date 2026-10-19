@@ -1,18 +1,31 @@
 const { test, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 const Module = require("node:module");
-let handler, values, inspected, updates, logs, providers, commands, clipboard;
+let handler, values, scoped, folders, openDocuments, inspected, updates, logs, providers, commands, clipboard;
 const token = { isCancellationRequested: false, onCancellationRequested() {} };
 const document = { uri: { scheme: "untitled", path: "Test" }, version: 1, languageId: "typescript" };
 const mock = {
   ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
   ProgressLocation: { Notification: 15 },
   workspace: {
+    get workspaceFolders() {
+      return folders;
+    },
+    get textDocuments() {
+      return openDocuments;
+    },
     getConfiguration(section, scope) {
       assert.equal(section, "prettify-ts");
+      // Like VS Code: folder values override workspace values, and language values override both.
+      const uri = scope?.fsPath !== undefined ? scope : scope?.uri;
+      const resolved = {
+        ...values,
+        ...scoped[uri?.fsPath],
+        ...scoped[(uri?.fsPath ?? "") + "|" + scope?.languageId],
+      };
       return {
         get(key, fallback) {
-          return values[key] ?? fallback;
+          return resolved[key] ?? fallback;
         },
         inspect() {
           return inspected;
@@ -35,7 +48,7 @@ const mock = {
   },
   languages: {
     registerHoverProvider(selector, provider) {
-      providers.set(selector.language, provider);
+      providers.set(typeof selector === "string" ? selector : selector.language, provider);
       return { dispose() {} };
     },
   },
@@ -94,7 +107,11 @@ const info = {
   },
 };
 beforeEach(() => {
-  values = {};
+  // The separate hover provider is under test here; merged hovers are built by the plugin or middleware.
+  values = { hoverMode: "separate" };
+  scoped = {};
+  folders = undefined;
+  openDocuments = [];
   inspected = {};
   updates = [];
   logs = [];
@@ -131,7 +148,7 @@ test("cancelled and outdated requests do not produce results", async () => {
 });
 test("missing or failed quickinfo preserves valid hover and logs failures", async () => {
   api.registerHoverProvider({ subscriptions: [] }, client());
-  assert.deepEqual([...providers.keys()], api.supportedLanguages);
+  assert.deepEqual([...providers.keys()], [...api.supportedLanguages, "*"]);
   let hover = await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token);
   assert.match(hover.contents.value, /value: string/);
   handler = async (command, method) => {
@@ -141,6 +158,68 @@ test("missing or failed quickinfo preserves valid hover and logs failures", asyn
   hover = await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token);
   assert.match(hover.contents.value, /value: string/);
   assert.match(logs[0], /No quickinfo/);
+});
+test("merged hovers leave TypeScript and JavaScript to the plugin; Vue keeps the separate hover", async () => {
+  values.hoverMode = "merged";
+  api.registerHoverProvider({ subscriptions: [] }, client());
+  assert.equal(await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token), undefined);
+  const vue = { ...document, languageId: "vue" };
+  const hover = await providers.get("vue").provideHover(vue, { line: 0, character: 1 }, token);
+  assert.match(hover.contents.value, /value: string/);
+});
+test("native-first separate hovers come from the less specific provider, which VS Code orders after TypeScript's", async () => {
+  api.registerHoverProvider({ subscriptions: [] }, client());
+  assert.ok(await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token));
+  assert.equal(await providers.get("*").provideHover(document, { line: 0, character: 1 }, token), undefined);
+  values.hoverPlacement = "nativeFirst";
+  assert.equal(await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token), undefined);
+  assert.match(
+    (await providers.get("*").provideHover(document, { line: 0, character: 1 }, token)).contents.value,
+    /value: string/,
+  );
+  const plaintext = { ...document, languageId: "plaintext" };
+  assert.equal(await providers.get("*").provideHover(plaintext, { line: 0, character: 1 }, token), undefined);
+});
+test("plugin configuration carries each workspace folder's effective settings, with language values", () => {
+  values = { maxDepth: 3 };
+  scoped = {
+    "|javascript": { maxDepth: 2 },
+    "/one": { enabled: false, maxDepth: 7 },
+    "/two|typescript": { hoverMode: "separate" },
+  };
+  folders = [
+    { uri: { scheme: "file", fsPath: "/one" } },
+    { uri: { scheme: "file", fsPath: "/two" } },
+    { uri: { scheme: "vscode-vfs", fsPath: "/virtual" } },
+  ];
+  const configuration = api.pluginConfiguration();
+  assert.equal(configuration.maxDepth, 3);
+  assert.equal(configuration.languages.javascript.maxDepth, 2);
+  assert.deepEqual(
+    configuration.folders.map((folder) => folder.path),
+    ["/one", "/two"],
+    "TS Server only sees file-system folders",
+  );
+  const [one, two] = configuration.folders;
+  assert.deepEqual(
+    [one.enabled, one.maxDepth, one.languages.typescript.enabled, one.languages.typescript.maxDepth],
+    [false, 7, false, 7],
+  );
+  assert.deepEqual(
+    [two.hoverMode, two.languages.typescript.hoverMode, two.languages.javascript.hoverMode],
+    [undefined, "separate", undefined],
+  );
+});
+test("plugin configuration reports open files whose language mode differs from their name", () => {
+  const file = (fsPath, languageId, scheme = "file") => ({ uri: { scheme, fsPath }, languageId });
+  openDocuments = [
+    file("/one/associated.js", "javascriptreact"),
+    file("/one/plain.js", "javascript"),
+    file("/one/view.tsx", "typescriptreact"),
+    file("/one/notes.txt", "plaintext"),
+    file("/Untitled-1", "typescript", "untitled"),
+  ];
+  assert.deepEqual(api.pluginConfiguration().documentLanguages, { "/one/associated.js": "javascriptreact" });
 });
 test("toggle writes the highest effective workspace or language override", async () => {
   values.enabled = false;
@@ -193,7 +272,7 @@ test("hover shows earlier markers and hides duplicates of TypeScript's own hover
       ? { body: { __prettifyResponse: collapsed } }
       : { body: { displayString: "type Test = Other" } };
   let hover = await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token);
-  assert.equal(hover.contents.value, "type Test = {\n    nested: { ... 2 more };\n}\n");
+  assert.equal(hover.contents.value, "type Test = {\n    nested: { ... 2 more };\n}");
   handler = async (command, method) =>
     method === "completionInfo"
       ? { body: { __prettifyResponse: info } }

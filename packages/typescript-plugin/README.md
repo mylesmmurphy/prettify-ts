@@ -1,6 +1,6 @@
 # TypeScript Plugin - Prettify Type Tree
 
-This package provides the TypeScript Language Service Plugin that powers the [Prettify TS](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts) VSCode extension. It enables structured type analysis, enabling improved and customizable type previews in editor hover tooltips.
+This package provides the TypeScript Language Service Plugin that powers the [Prettify TS](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts) VSCode extension. It runs inside TS Server (TypeScript 6 and earlier) and adds prettified type previews to TypeScript's own hovers.
 
 
 ## Features
@@ -13,20 +13,21 @@ This package provides the TypeScript Language Service Plugin that powers the [Pr
   * Generic types and inference (e.g., conditional types with `infer`)
   * Function signatures (with rest and optional parameters)
   * Circular references (auto-detected and handled)
-* Configurable via plugin settings passed from the extension
-* Used by the extension to format hover results in a clean and human-readable way
+* **Merged hovers**: the preview becomes part of TypeScript's quick info, so any editor that shows TypeScript hovers shows it
+* Configurable through the extension's settings, or through `tsconfig.json`
 
 
 ## Architecture
 
-The plugin hijacks the TypeScript language service API by overriding `getCompletionsAtPosition` to add a **side channel** for extracting type metadata.
+The type tree is built by `@prettify-ts/core`, whose builder runs against this plugin's in-process compiler through a synchronous backend. The plugin decorates two language service methods:
 
-When a hover is triggered in the extension, the plugin returns metadata about the hovered node in a `TypeInfo` object rather than traditional completions.
+* `getQuickInfoAtPosition` merges the rendered preview into TypeScript's quick info. Editors show the display parts as a typescript code block and the documentation as markdown, so the preview is a single text display part, and anything moved out of the signature (TypeScript's own signature, the limits note) goes into the documentation as markdown. Vue files are left unchanged: Vue's own language server provides their hovers, and the extension adds a separate hover there.
+* `getCompletionsAtPosition` keeps a **side channel** for the extension: a request whose trigger character is a Prettify request returns a `TypeInfo` object instead of completions. The extension uses it for copy commands and separate hovers.
 
 
 ## `TypeInfo` Response Format
 
-The plugin returns rich type information to the client through a structured object:
+The plugin returns rich type information to the client through a structured object, defined in [`packages/core/src/types.ts`](../core/src/types.ts):
 
 ```ts
 /**
@@ -98,11 +99,34 @@ export type TypeInfo = {
 
 ## Configuration
 
-The plugin behavior is controlled via settings passed by the extension.
+In VS Code, the extension sends its `prettify-ts.*` settings to the plugin (`configurePlugin`), including language-specific values. Other editors can configure the plugin in `tsconfig.json`, using the same setting names:
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@prettify-ts/typescript-plugin",
+        "hoverPlacement": "nativeFirst",
+        "maxDepth": 2,
+        "typeIndentation": 2
+      }
+    ]
+  }
+}
+```
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| `enabled` | `true` | Adds previews to hovers. |
+| `hoverMode` | `merged` | `merged` adds previews to quick info; `separate` leaves quick info unchanged (the VS Code extension then shows its own hover). |
+| `hoverPlacement` | `prettifiedFirst` | `prettifiedFirst`, `nativeFirst`, or `prettifiedOnly`. |
+| `typeIndentation`, `maxCharacters` | `4`, `20000` | As in the extension. |
+| `maxDepth`, `maxProperties`, `maxSubProperties`, `maxUnionMembers`, `maxFunctionSignatures`, `skippedTypeNames`, `unwrapGenericArgumentsTypeNames`, `unwrapArrays`, `unwrapFunctions`, `hidePrivateProperties`, `treatUnderscoreAsPrivate` | See the extension README | Expansion options, as in the extension. |
 
 ## Usage
 
-This plugin is **not meant to be installed or used independently**. It is packaged and activated by the [Prettify TS extension](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts).
+The plugin is packaged and activated by the [Prettify TS extension](https://marketplace.visualstudio.com/items?itemName=MylesMurphy.prettify-ts). It is not published to npm yet; the `tsconfig.json` configuration above applies to editors that load it from a local install.
 
 ## Development Notes
 
@@ -116,8 +140,6 @@ This plugin is **not meant to be installed or used independently**. It is packag
   }
 ]
 ```
-
-The extension and plugin communicate internally via the `getCompletionsAtPosition` override to pass metadata back to the client.
 
 ## License
 

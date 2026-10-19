@@ -1,15 +1,24 @@
 import type * as ts from "typescript";
 
+import type { PrettifyOptions } from "@prettify-ts/core/src/options";
+import { renderHoverPreview } from "@prettify-ts/core/src/preview";
+import { mergeQuickInfo } from "./merge-quick-info";
 import { isPrettifyRequest } from "./request";
 import type { PrettifyCompletionsTriggerCharacter, PrettifyResponse } from "./request";
+import { documentLanguageOf, languageOf as languageOfName, resolveHoverSettings } from "./settings";
+import type { PluginConfiguration } from "./settings";
 import { getTypeInfoAtPosition } from "./type-tree";
 import { getVueLanguage } from "./type-tree/vue";
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
   const ts = modules.typescript;
+  // tsconfig `plugins` settings, replaced by the VS Code extension's settings when it sends them.
+  let configuration: PluginConfiguration = {};
 
   function create(info: ts.server.PluginCreateInfo): ts.LanguageService {
-    info.project.projectService.logger.info("Prettify LSP is starting");
+    const logger = info.project.projectService.logger;
+    logger.info("Prettify LSP is starting");
+    if (info.config && typeof info.config === "object") configuration = { ...(info.config as PluginConfiguration) };
 
     // Set up decorator object
     const proxy: ts.LanguageService = Object.create(null);
@@ -19,6 +28,48 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
       const x = info.languageService[k]!;
       // @ts-expect-error - JS runtime trickery which is tricky to type tersely
       proxy[k] = (...args: unknown[]) => x.apply(info.languageService, args);
+    }
+
+    /**
+     * The VS Code language of a file, which language-specific settings are keyed by: the language mode the editor
+     * reports for an open file whose name implies another language, else the script kind the file was opened with
+     * (untitled documents have no extension), else its name.
+     */
+    function languageOf(fileName: string, caseSensitive: boolean): string | undefined {
+      const reported = documentLanguageOf(configuration, fileName, caseSensitive);
+      if (reported) return reported;
+      switch (info.languageServiceHost?.getScriptKind?.(fileName)) {
+        case ts.ScriptKind.TS:
+          return "typescript";
+        case ts.ScriptKind.TSX:
+          return "typescriptreact";
+        case ts.ScriptKind.JS:
+          return "javascript";
+        case ts.ScriptKind.JSX:
+          return "javascriptreact";
+        default:
+          return languageOfName(fileName);
+      }
+    }
+
+    function typeInfoAt(fileName: string, position: number, options: PrettifyOptions) {
+      const program = info.languageService.getProgram();
+      if (!program) return undefined;
+      const sourceFile = program.getSourceFile(fileName);
+      if (!sourceFile) return undefined;
+      return getTypeInfoAtPosition(
+        ts,
+        program.getTypeChecker(),
+        sourceFile,
+        position,
+        options,
+        getVueLanguage(info.project) || getVueLanguage(program),
+        {
+          compilerOptions: program.getCompilerOptions(),
+          isCancellationRequested: () => info.project.getCancellationToken().isCancellationRequested(),
+          onError: (error) => logger.info("Prettify analysis failed: " + String(error)),
+        },
+      );
     }
 
     /**
@@ -32,28 +83,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         // If the request is not a prettify request, call the original method
         return info.languageService.getCompletionsAtPosition(fileName, position, options, formattingSettings);
       }
-
-      const program = info.languageService.getProgram();
-      if (!program) return undefined;
-
-      const sourceFile = program.getSourceFile(fileName);
-      if (!sourceFile) return undefined;
-
-      const checker = program.getTypeChecker();
-
-      const prettifyResponse = getTypeInfoAtPosition(
-        ts,
-        checker,
-        sourceFile,
-        position,
-        requestBody.options,
-        getVueLanguage(info.project) || getVueLanguage(program),
-        {
-          compilerOptions: program.getCompilerOptions(),
-          isCancellationRequested: () => info.project.getCancellationToken().isCancellationRequested(),
-          onError: (error) => info.project.projectService.logger.info("Prettify analysis failed: " + String(error)),
-        },
-      );
+      if (!info.languageService.getProgram()?.getSourceFile(fileName)) return undefined;
 
       const response: PrettifyResponse = {
         // Follow the same structure as ts.CompletionInfo
@@ -62,16 +92,43 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         isNewIdentifierLocation: false,
         entries: [],
         // Add metadata to the response
-        __prettifyResponse: prettifyResponse,
+        __prettifyResponse: typeInfoAt(fileName, position, requestBody.options),
       };
 
       return response;
     };
 
+    /** Merged hovers: the preview becomes part of TypeScript's own quick info, for any editor. */
+    proxy.getQuickInfoAtPosition = (fileName, position, ...rest) => {
+      const quickInfo = info.languageService.getQuickInfoAtPosition(fileName, position, ...rest);
+      // Vue hovers go through Vue's own language server, so Vue files keep the separate hover.
+      if (!quickInfo || /\.vue$/i.test(fileName)) return quickInfo;
+      try {
+        const caseSensitive = ts.sys?.useCaseSensitiveFileNames ?? true;
+        const settings = resolveHoverSettings(
+          configuration,
+          fileName,
+          caseSensitive,
+          languageOf(fileName, caseSensitive),
+        );
+        if (!settings.enabled || settings.mode !== "merged") return quickInfo;
+        const typeInfo = typeInfoAt(fileName, position, settings.options);
+        if (!typeInfo || settings.options.skippedTypeNames.includes(typeInfo.name)) return quickInfo;
+        return mergeQuickInfo(ts, quickInfo, renderHoverPreview(typeInfo, settings), settings.placement);
+      } catch (error) {
+        logger.info("Prettify hover failed: " + String(error));
+        return quickInfo;
+      }
+    };
+
     return proxy;
   }
 
-  return { create };
+  function onConfigurationChanged(config: unknown): void {
+    if (config && typeof config === "object") configuration = { ...(config as PluginConfiguration) };
+  }
+
+  return { create, onConfigurationChanged };
 }
 
 export = init;

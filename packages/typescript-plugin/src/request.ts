@@ -1,79 +1,9 @@
 import type * as ts from "typescript";
 
-import type { TypeInfo } from "./type-tree/types";
+import type { PrettifyOptions } from "@prettify-ts/core/src/options";
+import type { TypeInfo } from "@prettify-ts/core/src/types";
 
-/**
- * Prettify Request options. These options control how the type information is prettified.
- */
-export type PrettifyOptions = {
-  /**
-   * Denotes whether to hide private properties in the type information.
-   */
-  hidePrivateProperties: boolean;
-
-  /** A larger, still bounded analysis budget for explicit copy requests. */
-  fullExpansion?: boolean;
-
-  /**
-   * The output is copied rather than shown: compiler text is not truncated (`Foo<...>`) and skipped types keep
-   * their arguments, so pasted output stays valid TypeScript. Always set with fullExpansion.
-   */
-  copy?: boolean;
-
-  /**
-   * Treat underscore-prefixed members as private when hiding private properties.
-   * Defaults to true when omitted for compatibility with older requests.
-   */
-  treatUnderscoreAsPrivate?: boolean;
-
-  /**
-   * Determines the maximum depth of the type tree.
-   * This limits how deeply nested types will be expanded.
-   */
-  maxDepth: number;
-
-  /**
-   * Specifies the maximum number of properties to include in an object type.
-   * If the number of properties exceeds this limit, the excess properties will be summarized.
-   */
-  maxProperties: number;
-
-  /**
-   * Specifies the maximum number of sub-properties to include in an object type.
-   * Sub-properties are properties of properties.
-   */
-  maxSubProperties: number;
-
-  /**
-   * Specifies the maximum number of members to include in a union type.
-   */
-  maxUnionMembers: number;
-
-  /**
-   * Specifies the maximum number of function signatures to include in a function type.
-   */
-  maxFunctionSignatures: number;
-
-  /**
-   * List of type names to skip unwrapping in the type tree.
-   */
-  skippedTypeNames: string[];
-
-  /**
-   * Denotes whether to unwrap arrays in the type tree.
-   */
-  unwrapArrays: boolean;
-
-  /**
-   * Denotes whether to unwrap functions in the type tree.
-   */
-  unwrapFunctions: boolean;
-
-  /**
-   * List of generic type names whose arguments should be displayed as-is, rather than resolving to their apparent (final) type.
-   */
-  unwrapGenericArgumentsTypeNames: string[];
-};
+export type { PrettifyOptions };
 
 /**
  * Request format for prettifying type information.

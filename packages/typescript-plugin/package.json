@@ -9,6 +9,7 @@
     "build:debug": "tsup --sourcemap"
   },
   "devDependencies": {
+    "@prettify-ts/core": "workspace:*",
     "@types/ts-expose-internals": "npm:ts-expose-internals@5.6.3",
     "@volar/language-core": "^2.4.28",
     "@volar/typescript": "^2.4.28",

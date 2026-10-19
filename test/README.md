@@ -5,7 +5,7 @@ Use Node 24 and the pinned pnpm version.
 - pnpm typecheck checks the plugin, extension, integration tests, and unit entry points.
 - pnpm lint checks TypeScript and formatting.
 - pnpm build builds the plugin and extension.
-- pnpm test:unit runs compiler-backed semantic/parser regressions, client/cancellation/configuration tests, and packaging failure cleanup.
+- pnpm test:unit runs compiler-backed semantic/parser regressions, client/cancellation/configuration tests, hover rendering and quick-info merging (including workspace-folder settings), the builder's driver contract, and packaging failure cleanup. `backend.test.cjs` runs the builder asynchronously against a wrapper of the in-process compiler whose every query is pending, and requires output identical to the synchronous run; it also checks that the synchronous driver rejects a pending query and that rejected queries reach the builder's error handling.
 - pnpm test builds and runs the editor integration suite.
 - pnpm test:package builds a VSIX, installs it in an isolated profile, and runs the integration suite using the installed artifact directory as the test extension.
 
@@ -22,9 +22,9 @@ Environment selectors:
 | PRETTIFY_TEST_EXTENSIONS_PATH | Reuse an already prepared isolated extensions directory |
 | PRETTIFY_TEST_TYPESCRIPT_PATH | Alternate compiler module for test:unit |
 
-Each editor run uses a disposable workspace copy. Settings updates and Vue edit regressions do not change tracked fixtures. Extension installation also uses explicit isolated profile and extension directories.
+Each editor run uses disposable copies of a two-folder workspace (`test/workspace` and `test/workspace-folder`), so tests can give the second folder its own settings. Settings updates and Vue edit regressions do not change tracked fixtures. Extension installation also uses explicit isolated profile and extension directories.
 
-Hover assertions go through VS Code's real hover providers, as users see them, and also check the plugin's own rendering, so a matching native TypeScript hover cannot hide a Prettify regression. The hover suite also covers duplicate hiding, the omission marker, and the enabled setting. The unit suite additionally parses emitted types and checks mutual assignability for representative complete expansions. Fresh-install defaults are checked against the shared options definition.
+Hover assertions go through VS Code's real hover providers, as users see them, and also check the plugin's own rendering, so a matching native TypeScript hover cannot hide a Prettify regression. Merged hovers contribute several code blocks to one hover; the helpers collect each of them. The hover suite also covers duplicate hiding, the omission marker, the enabled setting, each hover placement, and separate hovers. The multi-root suite checks that each folder's `enabled`, `maxDepth` and `hoverMode` apply only to its own files, in merged and separate hovers alike. The language suite checks language-specific settings in merged hovers for an untitled TypeScript document, a `.js` file associated with JavaScript React (and after switching its language mode), and a `.jsx` file. The unit suite also checks that analysis leaves no compiler objects reachable once a request finishes (a garbage-collection probe with a retaining control). The unit suite additionally parses emitted types and checks mutual assignability for representative complete expansions. Fresh-install defaults are checked against the shared options definition.
 
 The built formatter is loaded from development output by type-output assertions even during installed-VSIX runs; actual hover/copy integration tests exercise the installed bundled renderer. Run the build before invoking the test CLI directly.
 
