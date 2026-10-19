@@ -5,6 +5,7 @@
   "private": true,
   "description": "Type-tree analysis, rendering and hover composition shared by the TypeScript plugin and the VS Code extension.",
   "devDependencies": {
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "typescript-7": "npm:typescript@7.1.0-dev.20261018.1"
   }
 }

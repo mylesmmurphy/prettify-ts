@@ -37,3 +37,26 @@ export function escapeMarkdown(text: string): string {
 export function previewMarkdown(preview: HoverPreview): string {
   return codeBlock(preview.code) + (preview.note ? "\n\n" + escapeMarkdown(preview.note) : "");
 }
+
+/** Separates the preview from TypeScript's content, as separate hovers are separated. */
+export const SECTION_SEPARATOR = "\n\n---\n\n";
+
+const LEADING_CODE_BLOCK = /^\s*(`{3,})[^\n]*\n([\s\S]*?)\n\1[^\S\n]*(?:\n|$)/;
+
+/** Split TypeScript's hover markdown into its leading signature code block and the documentation after it. */
+export function splitNativeMarkdown(markdown: string): { signature?: string; documentation: string } {
+  const match = LEADING_CODE_BLOCK.exec(markdown);
+  if (!match) return { documentation: markdown };
+  return { signature: match[2]!, documentation: markdown.slice(match[0].length).replace(/^\s*(?:---\s*)?/, "") };
+}
+
+/** Combine TypeScript's hover markdown with the preview (TypeScript 7 hovers are markdown). */
+export function composeMarkdown(native: string, preview: HoverPreview, placement: HoverPlacement): string {
+  const block = previewMarkdown(preview);
+  if (placement === "nativeFirst") return native.trimEnd() + SECTION_SEPARATOR + block;
+  if (placement === "prettifiedOnly") {
+    const { documentation } = splitNativeMarkdown(native);
+    return documentation.trim() ? block + SECTION_SEPARATOR + documentation.trim() : block;
+  }
+  return block + SECTION_SEPARATOR + native.trimStart();
+}

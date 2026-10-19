@@ -19,7 +19,7 @@ This package provides the TypeScript Language Service Plugin that powers the [Pr
 
 ## Architecture
 
-The type tree is built by `@prettify-ts/core`, whose builder runs against this plugin's in-process compiler through a synchronous backend. The plugin decorates two language service methods:
+The type tree is built by `@prettify-ts/core`, whose builder runs against this plugin's in-process compiler through a synchronous backend (and, in the extension, against the TypeScript 7 API through an asynchronous one). The plugin decorates two language service methods:
 
 * `getQuickInfoAtPosition` merges the rendered preview into TypeScript's quick info. Editors show the display parts as a typescript code block and the documentation as markdown, so the preview is a single text display part, and anything moved out of the signature (TypeScript's own signature, the limits note) goes into the documentation as markdown. Vue files are left unchanged: Vue's own language server provides their hovers, and the extension adds a separate hover there.
 * `getCompletionsAtPosition` keeps a **side channel** for the extension: a request whose trigger character is a Prettify request returns a `TypeInfo` object instead of completions. The extension uses it for copy commands and separate hovers.
@@ -140,6 +140,8 @@ The plugin is packaged and activated by the [Prettify TS extension](https://mark
   }
 ]
 ```
+
+TypeScript 7 has no TS Server plugins. With TypeScript 7 (experimental), the extension builds the same type tree through the TypeScript 7 API and merges hovers with the TypeScript 7 extension's LSP middleware.
 
 ## License
 
