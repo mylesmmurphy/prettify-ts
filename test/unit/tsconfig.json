@@ -1,5 +1,8 @@
 {
   "extends": "../../tsconfig.json",
-  "compilerOptions": { "noEmit": true },
+  "compilerOptions": {
+    // Type-checked only (esbuild bundles): resolves package exports and imports, as the TypeScript 7 types need.
+    "module": "preserve",
+    "moduleResolution": "bundler", "noEmit": true },
   "include": ["*.ts"]
 }

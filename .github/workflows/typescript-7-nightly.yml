@@ -1,0 +1,42 @@
+name: TypeScript 7 nightly
+
+# Weekly check against the latest TypeScript 7 nightly and the TypeScript 7 extension's main branch.
+# PR checks use pinned versions (packages/core's typescript-7 dependency and test/typescript-7.json);
+# this workflow shows TypeScript 7 API changes before those pins are bumped. Never a required check.
+on:
+  schedule:
+    - cron: "41 5 * * 1" # Mondays 05:41 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: typescript-7-nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typescript-7-nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install the latest TypeScript 7 nightly
+        run: |
+          npm install --prefix "$RUNNER_TEMP/typescript-next" --no-audit --no-fund typescript@next
+          echo "PRETTIFY_TEST_TS7_PATH=$RUNNER_TEMP/typescript-next/node_modules/typescript" >> "$GITHUB_ENV"
+          echo "TypeScript $(node -p "require(process.argv[1]).version" "$RUNNER_TEMP/typescript-next/node_modules/typescript/package.json")"
+      - name: Unit tests, including TypeScript 7 parity and editor pipeline
+        run: pnpm test:unit
+      - name: TypeScript 7 editor integration with the extension from TypeScript main
+        env:
+          PRETTIFY_TEST_TSGO: '1'
+          PRETTIFY_TEST_VSCODE_VERSION: stable
+          PRETTIFY_TEST_TS7_EXTENSION_REF: main
+        run: xvfb-run -a pnpm test

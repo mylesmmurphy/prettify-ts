@@ -2,9 +2,11 @@ import * as vscode from "vscode";
 import { renderTypeInfo } from "@prettify-ts/core/src/stringify";
 import { reportedLimits } from "@prettify-ts/core/src/preview";
 import { toggleEnabled, readSettings, supportedLanguages } from "./configuration";
+import { sourceFor } from "./hover-provider";
 import type { TypeClient } from "./type-client";
+import type { TsgoClient } from "./tsgo-client";
 
-export function registerCommands(context: vscode.ExtensionContext, client: TypeClient): void {
+export function registerCommands(context: vscode.ExtensionContext, client: TypeClient, tsgo?: TsgoClient): void {
   async function copyType(full: boolean): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !supportedLanguages.includes(editor.document.languageId)) {
@@ -21,7 +23,7 @@ export function registerCommands(context: vscode.ExtensionContext, client: TypeC
         cancellable: true,
       },
       async (_, token) => {
-        const info = await client.request(document, position, settings.options, token);
+        const info = await sourceFor(document, client, tsgo).request(document, position, settings.options, token);
         if (token.isCancellationRequested) return;
         if (!info) {
           void vscode.window.showErrorMessage(

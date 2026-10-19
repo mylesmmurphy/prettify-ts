@@ -30,6 +30,8 @@ Use Node.js 24 (`nvm use`) and the pnpm version pinned in `package.json`. Enable
 
 TypeScript is kept on the 5.9 line while the language service plugin relies on the JavaScript compiler API. New compiler major versions require a separate compatibility review.
 
+TypeScript 7 support (experimental) goes through the TypeScript 7 API. `packages/core` depends on a pinned TypeScript 7 nightly, installed as `typescript-7`, for its API types and the TypeScript 7 tests. Keep that dependency in `core` only: its `tsc` binary would replace TypeScript 5.9's in the scripts of any package that depends on it. CI also runs the editor suite with VS Code serving TypeScript 7 (`PRETTIFY_TEST_TSGO=1 pnpm test`), and a weekly workflow checks the latest TypeScript 7 nightly; see the [Test README](./test/README.md#typescript-7-editor-suite-experimental).
+
 ```bash
 pnpm install      # Installs all dependencies
 pnpm typecheck    # Checks the plugin, extension, and test types
@@ -56,7 +58,7 @@ This repo uses [pnpm workspaces](https://pnpm.io/workspaces) to manage multiple 
 ├── packages/
 │   ├── core/                  # Type-tree analysis, rendering and hover composition (shared)
 │   ├── typescript-plugin/     # TypeScript language service plugin (TS Server, TypeScript 6 and earlier)
-│   └── vscode-extension/      # VSCode extension host + UI
+│   └── vscode-extension/      # VSCode extension host + UI, and the TypeScript 7 integration
 └── test/                      # Full integration test suite
 └── scripts/                   # Utility scripts for development, building, or CI
 ```
@@ -64,11 +66,12 @@ This repo uses [pnpm workspaces](https://pnpm.io/workspaces) to manage multiple 
 
 ### How hovers are built
 
-The type tree builder (`packages/core/src/builder`) is written once, as generators that yield each compiler query to a `Backend`. A synchronous driver (`runSync`) runs it inside TS Server against the in-process compiler, and rejects a backend that returns a pending result. An asynchronous driver (`runAsync`) awaits each query, for a backend whose queries are requests to another process; the unit tests run the builder that way against an asynchronous wrapper of the in-process compiler and require identical output. The result is a `TypeInfo`, rendered by the shared formatter.
+The type tree builder (`packages/core/src/builder`) is written once, as generators that yield each compiler query to a `Backend`. A synchronous driver (`runSync`) runs it inside TS Server against the in-process compiler, and rejects a backend that returns a pending result. An asynchronous driver (`runAsync`) awaits each query: the extension runs the builder that way against the TypeScript 7 API, where queries are round trips to the language server and sibling queries are prefetched in batches. The unit tests also run it against an asynchronous wrapper of the in-process compiler and require identical output. The result is a `TypeInfo`, rendered by the shared formatter.
 
 Merged hovers (the default) add the preview to TypeScript's own hover, so the order is fixed:
 
 * The plugin decorates `getQuickInfoAtPosition` in TS Server. The extension sends settings with `configurePlugin`: the defaults, and each workspace folder's effective settings (with language overrides), which the plugin matches to the requested file. Language-specific settings are keyed by the document's VS Code language: the plugin uses the language the extension reports for open files whose language mode differs from their name, else the file's script kind in TS Server (untitled files have no extension), else its name.
+* With TypeScript 7 (experimental), the extension registers LSP middleware for `textDocument/hover` through the TypeScript 7 extension's API, and builds the type tree through an API connection to the same language server. It decides whether TypeScript 7 serves a document from `js/ts.experimental.useTsgo` and the legacy `typescript.experimental.useTsgo` exactly as the TypeScript 7 extension does.
 
 Separate hovers (`prettify-ts.hoverMode: separate`, and always in Vue files) use the extension's own hover provider. VS Code orders hovers by how specifically their providers match a document, then puts built-in providers last; the provider registered per language therefore appears above TypeScript's hover, and a provider for every language (`*`) appears below it for `nativeFirst`.
 

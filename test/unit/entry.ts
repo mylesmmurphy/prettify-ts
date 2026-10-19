@@ -9,6 +9,7 @@ export { mergeQuickInfo } from "../../packages/typescript-plugin/src/merge-quick
 export { resolveHoverSettings, languageOf } from "../../packages/typescript-plugin/src/settings";
 export * from "../../packages/core/src/compose";
 export * from "../../packages/core/src/preview";
+export { getTypeInfoFromProject } from "../../packages/core/src/tsgo/backend";
 export { getTypeInfo } from "../../packages/core/src/builder/builder";
 export { runAsync, runSync, step } from "../../packages/core/src/builder/backend";
 export { createCompilerBackend } from "../../packages/typescript-plugin/src/type-tree/backend";

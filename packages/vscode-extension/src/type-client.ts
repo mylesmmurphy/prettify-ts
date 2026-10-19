@@ -3,7 +3,7 @@ import type { PrettifyOptions } from "@prettify-ts/core/src/options";
 import type { TypeInfo } from "@prettify-ts/core/src/types";
 import type { PrettifyRequest } from "@prettify-ts/typescript-plugin/src/request";
 
-/** Where type information comes from. TS Server, through the plugin, is the source for every document. */
+/** Where type information comes from: TS Server through the plugin, or the TypeScript 7 API. */
 export interface TypeSource {
   request(
     document: vscode.TextDocument,

@@ -94,6 +94,26 @@ jobs:
       - name: Latest editor and Vue with workspace TypeScript
         run: xvfb-run -a pnpm test
 
+  typescript-7-editor:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # VS Code serves TypeScript through the TypeScript 7 extension (built at the commit pinned in
+      # test/typescript-7.json) with the pinned TypeScript 7 nightly, and TS Server off.
+      PRETTIFY_TEST_TSGO: '1'
+      PRETTIFY_TEST_VSCODE_VERSION: stable
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript 7 editor integration
+        run: xvfb-run -a pnpm test
+
   windows:
     if: github.event_name != 'pull_request'
     runs-on: windows-latest

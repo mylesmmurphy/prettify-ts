@@ -21,6 +21,7 @@ Prettify TS replaces hard-to-read TypeScript hovers with fully resolved, nicely 
 
 * **Prettified hovers** for interfaces, type aliases, classes, functions, unions, arrays, and more.
 * **One hover, in the order you choose**: the preview is added to TypeScript's own hover, before or after TypeScript's signature and documentation, or in place of the signature. Prefer a hover of its own? Set `hoverMode` to `separate`.
+* **TypeScript 7 (experimental)**: previews with the native TypeScript 7 language server, when its VS Code extension provides the API Prettify TS needs (see below).
 * **Copy as TypeScript**: copy any prettified type to your clipboard as valid, paste-ready TypeScript.
 * **Toggle Preview**: run **Prettify TS: Toggle Preview** from the Command Palette to switch prettified hovers on or off.
 * **Configurable**: control depth, indentation, how much is shown, and which types are left as-is.
@@ -30,6 +31,12 @@ Prettify TS replaces hard-to-read TypeScript hovers with fully resolved, nicely 
 
 * VS Code **1.100.0** or newer.
 * Works with the editor's bundled TypeScript or your workspace TypeScript.
+
+### TypeScript 7 (experimental)
+
+When VS Code runs TypeScript 7 (`js/ts.experimental.useTsgo`), Prettify TS uses the API of the [TypeScript 7](https://marketplace.visualstudio.com/items?itemName=TypeScriptTeam.native-preview) extension: LSP middleware to merge the preview into its hover, and an API connection to its language server. No Marketplace release has that API yet (1.0.1 predates it); it is expected with TypeScript 7.1. Prettify TS checks for the API itself rather than for a version number. Without it, Prettify TS shows one warning, leaves TypeScript's hovers as they are, and adds no previews. Vue files keep using the JavaScript language server, as Vue's tooling does.
+
+Tested combination: the extension built from TypeScript commit `5237fd4` with TypeScript `7.1.0-dev.20261018.1`.
 
 ### JavaScript projects
 

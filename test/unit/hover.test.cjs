@@ -1,4 +1,4 @@
-// Merged hovers: preview rendering, plugin settings and quick-info merging.
+// Merged hovers: preview rendering, plugin settings, quick-info merging, and markdown composition for TypeScript 7.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const ts = require(process.env.PRETTIFY_TEST_TYPESCRIPT_PATH || "typescript");
@@ -10,6 +10,31 @@ const preview = {
   type: "{\n    nested: string;\n}",
   limits: [],
 };
+
+const native = "```typescript\nconst value: Value\n```\nDocumentation for *value*.";
+
+test("markdown composition orders the preview and TypeScript's content by placement", () => {
+  const first = api.composeMarkdown(native, preview, "prettifiedFirst");
+  assert.ok(first.startsWith("```typescript\nconst value: {"), first);
+  assert.ok(first.indexOf("nested") < first.indexOf("const value: Value"), first);
+  assert.ok(first.endsWith("Documentation for *value*."), first);
+  const nativeFirst = api.composeMarkdown(native, preview, "nativeFirst");
+  assert.ok(nativeFirst.startsWith(native), nativeFirst);
+  assert.ok(nativeFirst.indexOf("Documentation") < nativeFirst.indexOf("nested"), nativeFirst);
+  const only = api.composeMarkdown(native, preview, "prettifiedOnly");
+  assert.doesNotMatch(only, /const value: Value/);
+  assert.match(only, /nested[\s\S]*Documentation for \*value\*\./);
+  assert.equal(api.composeMarkdown("```typescript\nconst value: Value\n```", preview, "prettifiedOnly"), api.previewMarkdown(preview));
+});
+
+test("TypeScript's hover markdown splits into signature and documentation", () => {
+  assert.deepEqual(api.splitNativeMarkdown(native), {
+    signature: "const value: Value",
+    documentation: "Documentation for *value*.",
+  });
+  assert.deepEqual(api.splitNativeMarkdown("Only text"), { documentation: "Only text" });
+  assert.equal(api.splitNativeMarkdown("```ts\na\nb\n```\n---\nDocs").documentation, "Docs");
+});
 
 test("code blocks stay closed when type text contains backticks, and notes are escaped", () => {
   const block = api.codeBlock('type T = "```";');
