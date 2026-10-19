@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import type { PrettifyOptions } from "@prettify-ts/core/src/options";
 import { DEFAULT_OPTIONS, DISPLAY_DEFAULTS, integerSetting, normalizeOptions } from "@prettify-ts/core/src/options";
 import { HOVER_DEFAULTS, hoverMode, hoverPlacement } from "@prettify-ts/core/src/compose";
+import { languageOf } from "@prettify-ts/typescript-plugin/src/settings";
 import type { PluginConfiguration } from "@prettify-ts/typescript-plugin/src/settings";
 
 export const supportedLanguages = ["typescript", "typescriptreact", "javascript", "javascriptreact", "vue"];
@@ -56,7 +57,25 @@ export function pluginConfiguration(): PluginConfiguration {
     folders: (vscode.workspace.workspaceFolders ?? [])
       .filter((folder) => folder.uri.scheme === "file")
       .map((folder) => ({ path: folder.uri.fsPath, ...withLanguages(folder.uri) })),
+    documentLanguages: documentLanguages(),
   };
+}
+
+/**
+ * Open files whose language mode differs from what their name implies (`files.associations`, a changed language
+ * mode), by path. TS Server keeps the script kind of files it loaded before they were opened.
+ */
+export function documentLanguages(): Record<string, string> {
+  return Object.fromEntries(
+    vscode.workspace.textDocuments
+      .filter(
+        (document) =>
+          document.uri.scheme === "file" &&
+          supportedLanguages.includes(document.languageId) &&
+          document.languageId !== languageOf(document.uri.fsPath),
+      )
+      .map((document) => [document.uri.fsPath, document.languageId]),
+  );
 }
 
 export async function toggleEnabled(option?: boolean): Promise<void> {

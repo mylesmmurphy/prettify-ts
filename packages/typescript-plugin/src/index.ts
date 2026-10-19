@@ -5,7 +5,7 @@ import { renderHoverPreview } from "@prettify-ts/core/src/preview";
 import { mergeQuickInfo } from "./merge-quick-info";
 import { isPrettifyRequest } from "./request";
 import type { PrettifyCompletionsTriggerCharacter, PrettifyResponse } from "./request";
-import { resolveHoverSettings } from "./settings";
+import { documentLanguageOf, languageOf as languageOfName, resolveHoverSettings } from "./settings";
 import type { PluginConfiguration } from "./settings";
 import { getTypeInfoAtPosition } from "./type-tree";
 import { getVueLanguage } from "./type-tree/vue";
@@ -28,6 +28,28 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
       const x = info.languageService[k]!;
       // @ts-expect-error - JS runtime trickery which is tricky to type tersely
       proxy[k] = (...args: unknown[]) => x.apply(info.languageService, args);
+    }
+
+    /**
+     * The VS Code language of a file, which language-specific settings are keyed by: the language mode the editor
+     * reports for an open file whose name implies another language, else the script kind the file was opened with
+     * (untitled documents have no extension), else its name.
+     */
+    function languageOf(fileName: string, caseSensitive: boolean): string | undefined {
+      const reported = documentLanguageOf(configuration, fileName, caseSensitive);
+      if (reported) return reported;
+      switch (info.languageServiceHost?.getScriptKind?.(fileName)) {
+        case ts.ScriptKind.TS:
+          return "typescript";
+        case ts.ScriptKind.TSX:
+          return "typescriptreact";
+        case ts.ScriptKind.JS:
+          return "javascript";
+        case ts.ScriptKind.JSX:
+          return "javascriptreact";
+        default:
+          return languageOfName(fileName);
+      }
     }
 
     function typeInfoAt(fileName: string, position: number, options: PrettifyOptions) {
@@ -82,7 +104,13 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
       // Vue hovers go through Vue's own language server, so Vue files keep the separate hover.
       if (!quickInfo || /\.vue$/i.test(fileName)) return quickInfo;
       try {
-        const settings = resolveHoverSettings(configuration, fileName, ts.sys?.useCaseSensitiveFileNames ?? true);
+        const caseSensitive = ts.sys?.useCaseSensitiveFileNames ?? true;
+        const settings = resolveHoverSettings(
+          configuration,
+          fileName,
+          caseSensitive,
+          languageOf(fileName, caseSensitive),
+        );
         if (!settings.enabled || settings.mode !== "merged") return quickInfo;
         const typeInfo = typeInfoAt(fileName, position, settings.options);
         if (!typeInfo || settings.options.skippedTypeNames.includes(typeInfo.name)) return quickInfo;

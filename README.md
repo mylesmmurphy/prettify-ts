@@ -68,7 +68,7 @@ The type tree builder (`packages/core/src/builder`) is written once, as generato
 
 Merged hovers (the default) add the preview to TypeScript's own hover, so the order is fixed:
 
-* The plugin decorates `getQuickInfoAtPosition` in TS Server. The extension sends settings with `configurePlugin`: the defaults, and each workspace folder's effective settings (with language overrides), which the plugin matches to the requested file.
+* The plugin decorates `getQuickInfoAtPosition` in TS Server. The extension sends settings with `configurePlugin`: the defaults, and each workspace folder's effective settings (with language overrides), which the plugin matches to the requested file. Language-specific settings are keyed by the document's VS Code language: the plugin uses the language the extension reports for open files whose language mode differs from their name, else the file's script kind in TS Server (untitled files have no extension), else its name.
 
 Separate hovers (`prettify-ts.hoverMode: separate`, and always in Vue files) use the extension's own hover provider. VS Code orders hovers by how specifically their providers match a document, then puts built-in providers last; the provider registered per language therefore appears above TypeScript's hover, and a provider for every language (`*`) appears below it for `nativeFirst`.
 

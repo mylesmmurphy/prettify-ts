@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { pluginConfiguration } from "./configuration";
+import { documentLanguages, pluginConfiguration } from "./configuration";
 
 const PLUGIN_NAME = "@prettify-ts/typescript-plugin";
 
@@ -23,7 +23,17 @@ export function registerPluginConfiguration(context: vscode.ExtensionContext, lo
     }
   }
   void send();
+  // A language mode change closes and reopens the document; resend only when the reported languages change.
+  let reported = JSON.stringify(documentLanguages());
+  const documentsChanged = () => {
+    const languages = JSON.stringify(documentLanguages());
+    if (languages === reported) return;
+    reported = languages;
+    void send();
+  };
   context.subscriptions.push(
+    vscode.workspace.onDidOpenTextDocument(documentsChanged),
+    vscode.workspace.onDidCloseTextDocument(documentsChanged),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("prettify-ts")) void send();
     }),

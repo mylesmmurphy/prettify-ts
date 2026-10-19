@@ -18,7 +18,7 @@ export type Computation<T> = Generator<unknown, T, unknown>;
  */
 export function step<T>(value: Step<T>): Computation<T> {
   if (isPromiseLike(value)) return suspend(value);
-  finished.value = value;
+  pending = value;
   return finishedIterator as Computation<T>;
 }
 
@@ -26,9 +26,14 @@ function* suspend<T>(value: PromiseLike<T>): Computation<T> {
   return (yield value) as T;
 }
 
-const finished: IteratorReturnResult<unknown> = { done: true, value: undefined };
+/** The available result between `step` and the `yield*` that reads it; cleared on reading, so it never outlives a query. */
+let pending: unknown;
 const finishedIterator = {
-  next: () => finished,
+  next(): IteratorReturnResult<unknown> {
+    const value = pending;
+    pending = undefined;
+    return { done: true, value };
+  },
   [Symbol.iterator]() {
     return this;
   },

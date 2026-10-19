@@ -1,7 +1,7 @@
 const { test, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 const Module = require("node:module");
-let handler, values, scoped, folders, inspected, updates, logs, providers, commands, clipboard;
+let handler, values, scoped, folders, openDocuments, inspected, updates, logs, providers, commands, clipboard;
 const token = { isCancellationRequested: false, onCancellationRequested() {} };
 const document = { uri: { scheme: "untitled", path: "Test" }, version: 1, languageId: "typescript" };
 const mock = {
@@ -10,6 +10,9 @@ const mock = {
   workspace: {
     get workspaceFolders() {
       return folders;
+    },
+    get textDocuments() {
+      return openDocuments;
     },
     getConfiguration(section, scope) {
       assert.equal(section, "prettify-ts");
@@ -108,6 +111,7 @@ beforeEach(() => {
   values = { hoverMode: "separate" };
   scoped = {};
   folders = undefined;
+  openDocuments = [];
   inspected = {};
   updates = [];
   logs = [];
@@ -205,6 +209,17 @@ test("plugin configuration carries each workspace folder's effective settings, w
     [two.hoverMode, two.languages.typescript.hoverMode, two.languages.javascript.hoverMode],
     [undefined, "separate", undefined],
   );
+});
+test("plugin configuration reports open files whose language mode differs from their name", () => {
+  const file = (fsPath, languageId, scheme = "file") => ({ uri: { scheme, fsPath }, languageId });
+  openDocuments = [
+    file("/one/associated.js", "javascriptreact"),
+    file("/one/plain.js", "javascript"),
+    file("/one/view.tsx", "typescriptreact"),
+    file("/one/notes.txt", "plaintext"),
+    file("/Untitled-1", "typescript", "untitled"),
+  ];
+  assert.deepEqual(api.pluginConfiguration().documentLanguages, { "/one/associated.js": "javascriptreact" });
 });
 test("toggle writes the highest effective workspace or language override", async () => {
   values.enabled = false;

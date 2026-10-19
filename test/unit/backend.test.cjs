@@ -2,6 +2,8 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
+const v8 = require("node:v8");
+const vm = require("node:vm");
 const ts = require(process.env.PRETTIFY_TEST_TYPESCRIPT_PATH || "typescript");
 const api = require("../out-unit/entry");
 
@@ -27,7 +29,7 @@ function compile(source) {
   host.getSourceFile = (name, ...args) =>
     name === file ? ts.createSourceFile(name, source, compilerOptions.target, true) : original(name, ...args);
   const program = ts.createProgram([file], compilerOptions, host);
-  return { checker: program.getTypeChecker(), sourceFile: program.getSourceFile(file) };
+  return { program, checker: program.getTypeChecker(), sourceFile: program.getSourceFile(file) };
 }
 
 // Queries the builder reads synchronously from the objects it holds; every other query may be pending.
@@ -179,4 +181,42 @@ test("rejected queries reach the builder's error handling", async () => {
     undefined,
   );
   assert.deepEqual(errors, [failure]);
+});
+
+test("analysis releases the compiler objects of the request once it finishes", async () => {
+  v8.setFlagsFromString("--expose-gc");
+  const gc = vm.runInNewContext("gc");
+  const kept = [];
+  /** Analyze in a scope of its own and return only weak references to the compiler objects. */
+  function analyze(keep) {
+    const source = "type Test = { d: Date };";
+    const { program, checker, sourceFile } = compile(source);
+    const info = api.getTypeInfoAtPosition(
+      ts,
+      checker,
+      sourceFile,
+      source.indexOf("Test") + 1,
+      api.DEFAULT_OPTIONS,
+      undefined,
+      {
+        compilerOptions,
+      },
+    );
+    assert.ok(info);
+    if (keep) kept.push(checker);
+    return { program: new WeakRef(program), checker: new WeakRef(checker), file: new WeakRef(sourceFile) };
+  }
+  async function alive(references) {
+    for (let round = 0; round < 3; round++) {
+      await new Promise((resolve) => setImmediate(resolve));
+      gc();
+    }
+    return Object.fromEntries(
+      Object.entries(references).map(([name, reference]) => [name, reference.deref() !== undefined]),
+    );
+  }
+  // Control: a reference held elsewhere keeps the program alive, so the probe detects retention.
+  assert.deepEqual(await alive(analyze(true)), { program: true, checker: true, file: true });
+  kept.length = 0;
+  assert.deepEqual(await alive(analyze(false)), { program: false, checker: false, file: false });
 });

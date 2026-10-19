@@ -23,6 +23,12 @@ export async function openDocument(fileName: string, folder = workspacePath): Pr
   openDoc = doc;
 }
 
+/** Show a document that is not a workspace fixture, such as an untitled one, and use it for hovers. */
+export async function showDocument(document: vscode.TextDocument): Promise<void> {
+  await vscode.window.showTextDocument(document);
+  openDoc = document;
+}
+
 /** Wait for the plugin itself, so native hover cannot hide an initialization failure. */
 export async function ensureTypeScriptServerReady(fileName: string, keyword: string): Promise<void> {
   await openDocument(fileName);

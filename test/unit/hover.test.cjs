@@ -88,11 +88,17 @@ test("plugin settings come from the deepest workspace folder containing the file
 });
 
 /** A language service with the plugin attached, as TS Server attaches it. */
-function pluginService(source, config) {
-  const fileName = "/virtual/test.ts";
+function pluginService(source, config, { fileName = "/virtual/test.ts", scriptKind } = {}) {
   const files = new Map([[fileName, source]]);
   const host = {
-    getCompilationSettings: () => ({ strict: true, target: ts.ScriptTarget.ESNext }),
+    // As TS Server configures projects with untitled files and JavaScript.
+    getCompilationSettings: () => ({
+      strict: true,
+      target: ts.ScriptTarget.ESNext,
+      allowJs: true,
+      allowNonTsExtensions: true,
+    }),
+    ...(scriptKind === undefined ? {} : { getScriptKind: () => scriptKind }),
     getScriptFileNames: () => [...files.keys()],
     getScriptVersion: () => "1",
     getScriptSnapshot: (name) =>
@@ -110,6 +116,8 @@ function pluginService(source, config) {
   const plugin = api.init({ typescript: ts });
   const proxy = plugin.create({
     languageService,
+    // TS Server's host knows the script kind VS Code opened each document with.
+    languageServiceHost: scriptKind === undefined ? undefined : { getScriptKind: () => scriptKind },
     config: config ?? {},
     project: {
       projectService: { logger: { info() {} } },
@@ -174,6 +182,52 @@ test("folder settings decide whether the plugin merges a file's quick info", () 
   const merged = proxy.getQuickInfoAtPosition(fileName, position("probe:"));
   assert.equal(display(merged), "const probe: {\n  value: string;\n}");
   assert.equal(typeof merged.then, "undefined", "quick info stays synchronous");
+});
+
+test("language settings follow the document's script kind, not only its file name", () => {
+  const source = "const probe: Probe = { value: '' };\ntype Probe = { value: string };";
+  const languages = { typescript: { enabled: false }, javascriptreact: { enabled: false } };
+  // An untitled TypeScript document: TS Server knows it as TS, though its name has no extension.
+  const untitled = pluginService(
+    source,
+    { languages },
+    {
+      fileName: "^/untitled/ts-nul-authority/Untitled-1",
+      scriptKind: ts.ScriptKind.TS,
+    },
+  );
+  assert.equal(
+    display(untitled.proxy.getQuickInfoAtPosition(untitled.fileName, untitled.position("probe:"))),
+    "const probe: Probe",
+  );
+  // A .js file VS Code opened as JavaScript React gets that language's settings.
+  const associated = pluginService(
+    source,
+    { languages },
+    { fileName: "/virtual/probe.js", scriptKind: ts.ScriptKind.JSX },
+  );
+  assert.equal(
+    display(associated.proxy.getQuickInfoAtPosition(associated.fileName, associated.position("probe:"))),
+    "const probe: Probe",
+  );
+  // TS Server keeps the JS script kind of a project file it loaded before the editor opened it as JavaScript React;
+  // the language the extension reports for that open file decides.
+  const loaded = pluginService(
+    source,
+    { languages, documentLanguages: { "/virtual/probe.js": "javascriptreact" } },
+    { fileName: "/virtual/probe.js", scriptKind: ts.ScriptKind.JS },
+  );
+  assert.equal(
+    display(loaded.proxy.getQuickInfoAtPosition(loaded.fileName, loaded.position("probe:"))),
+    "const probe: Probe",
+  );
+  // Control: the same file as plain JavaScript keeps the preview.
+  const plain = pluginService(source, { languages }, { fileName: "/virtual/probe.js", scriptKind: ts.ScriptKind.JS });
+  assert.match(display(plain.proxy.getQuickInfoAtPosition(plain.fileName, plain.position("probe:"))), /value: string/);
+  // Without a script kind, the file name decides.
+  assert.equal(api.resolveHoverSettings({ languages }, "/virtual/a.ts").enabled, false);
+  assert.equal(api.resolveHoverSettings({ languages }, "/virtual/a.js").enabled, true);
+  assert.equal(api.resolveHoverSettings({ languages }, "/virtual/a.js", true, "javascriptreact").enabled, false);
 });
 
 test("tsconfig plugin settings configure hovers in other editors", () => {
