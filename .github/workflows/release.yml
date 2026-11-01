@@ -74,7 +74,7 @@ jobs:
     env:
       VSIX: dist/${{ needs.verify.outputs.vsix }}
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: prettify-ts-vsix
           path: dist
