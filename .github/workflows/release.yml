@@ -53,7 +53,7 @@ jobs:
         run: |
           pnpm exec tsc -p test
           xvfb-run -a node scripts/test-package.js "dist/${{ steps.version.outputs.vsix }}"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: prettify-ts-vsix
           path: dist/${{ steps.version.outputs.vsix }}
