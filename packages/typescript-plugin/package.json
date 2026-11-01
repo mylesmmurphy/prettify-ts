@@ -10,8 +10,8 @@
   },
   "devDependencies": {
     "@types/ts-expose-internals": "npm:ts-expose-internals@5.6.3",
-    "@volar/language-core": "^2.4.28",
-    "@volar/typescript": "^2.4.28",
+    "@volar/language-core": "^2.4.30",
+    "@volar/typescript": "^2.4.30",
     "tsup": "^9.0.0",
     "typescript": "~5.9.3"
   }
