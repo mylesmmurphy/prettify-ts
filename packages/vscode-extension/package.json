@@ -14,7 +14,7 @@
     "@prettify-ts/typescript-plugin": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.6.6",
     "@types/vscode": "1.100.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
