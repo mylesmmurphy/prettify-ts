@@ -47,6 +47,7 @@ type PrettifySettings = {
   enabled?: boolean;
   typeIndentation?: number;
   maxCharacters?: number;
+  includeUnexpandedType?: boolean;
   hidePrivateProperties?: boolean;
   treatUnderscoreAsPrivate?: boolean;
   maxDepth?: number;

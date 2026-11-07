@@ -216,3 +216,22 @@ test("inline presentation limits do not add hover footers; invisible safety limi
     if (footer) assert.doesNotMatch(hover.contents.value, /object depth limit/);
   }
 });
+test("the unexpanded type setting reaches hover requests but never copies", async () => {
+  values.includeUnexpandedType = true;
+  const seen = [];
+  handler = async (command, method, args) => {
+    if (method === "completionInfo") seen.push(args.triggerCharacter.options);
+    return method === "completionInfo" ? { body: { __prettifyResponse: info } } : undefined;
+  };
+  api.registerHoverProvider({ subscriptions: [] }, client());
+  api.registerCommands({ subscriptions: [] }, client());
+
+  await providers.get("typescript").provideHover(document, { line: 0, character: 1 }, token);
+  await commands.get("prettify-ts.copyPrettifiedType")();
+  await commands.get("prettify-ts.fullCopyPrettifiedType")();
+
+  assert.deepEqual(
+    seen.map((options) => options.includeUnexpandedType),
+    [true, false, false],
+  );
+});

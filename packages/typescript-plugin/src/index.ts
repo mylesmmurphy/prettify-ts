@@ -50,6 +50,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         getVueLanguage(info.project) || getVueLanguage(program),
         {
           compilerOptions: program.getCompilerOptions(),
+          maximumHoverLength: maximumHoverLength(info.project, fileName),
           isCancellationRequested: () => info.project.getCancellationToken().isCancellationRequested(),
           onError: (error) => info.project.projectService.logger.info("Prettify analysis failed: " + String(error)),
         },
@@ -69,6 +70,19 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     };
 
     return proxy;
+  }
+
+  /** The editor's hover length limit (VS Code's `js/ts.hover.maximumLength`), when it sends one. */
+  function maximumHoverLength(project: ts.server.Project, fileName: string): number | undefined {
+    // Hosts that embed the plugin without a full project service have no preferences to read.
+    const service = project.projectService as Partial<ts.server.ProjectService>;
+    if (!service.getPreferences || !ts.server?.toNormalizedPath) {
+      return undefined;
+    }
+
+    // TypeScript 5.9 added this preference; the 5.6 internal typings used here predate it.
+    const preferences = service.getPreferences(ts.server.toNormalizedPath(fileName)) as { maximumHoverLength?: number };
+    return preferences.maximumHoverLength;
   }
 
   return { create };

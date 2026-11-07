@@ -26,6 +26,9 @@ export type PrettifyOptions = {
    */
   treatUnderscoreAsPrivate?: boolean;
 
+  /** Name each expanded object by its unexpanded type (`Pair<number> & { ... }`). Off when omitted. */
+  includeUnexpandedType?: boolean;
+
   /**
    * Determines the maximum depth of the type tree.
    * This limits how deeply nested types will be expanded.

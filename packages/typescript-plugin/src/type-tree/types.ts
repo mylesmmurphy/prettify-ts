@@ -42,7 +42,10 @@ export type TypeTupleElement = {
  * TypeTree is a tree representation of a TypeScript type.
  * Discriminated by the `kind` field.
  */
-export type TypeTree = { typeName: string } & (
+export type TypeTree = {
+  /** The type as written; empty on structural nodes, except objects named when includeUnexpandedType is on. */
+  typeName: string;
+} & (
   | { kind: "union"; excessMembers: number; types: TypeTree[] }
   | {
       kind: "object";

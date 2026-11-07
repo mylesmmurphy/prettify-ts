@@ -213,6 +213,12 @@
           "maximum": 99000,
           "description": "The maximum number of string characters to show in a type preview before cutting off. (High performance impact)",
           "scope": "language-overridable"
+        },
+        "prettify-ts.includeUnexpandedType": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Name each expanded object by its unexpanded type, for example `value: Pair<number> & { ... }`. Applies at every expanded depth, in hovers only.",
+          "scope": "language-overridable"
         }
       }
     }

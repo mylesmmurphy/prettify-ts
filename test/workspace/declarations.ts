@@ -9,6 +9,9 @@ const SharedValueFirst = { runtimeOnly: 123 };
 type DeclaredProbe = { nested: { value: string } };
 const declaredProbe: DeclaredProbe = { nested: { value: "test" } };
 
+type NamedPair<T> = { key: string; value: T };
+const namedProbe: { pair: NamedPair<number> } = { pair: { key: "a", value: 1 } };
+
 const sharedReference: SharedTypeFirst = { typeOnly: "test" };
 const sharedValueReference = SharedValueFirst;
 
