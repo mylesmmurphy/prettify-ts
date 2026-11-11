@@ -165,7 +165,10 @@ export function getTypeInfoAtPosition(
         return "";
       }
 
-      const text = body.getText().replace(/\s+/g, " ");
+      // Print syntax so comments are removed without changing whitespace inside literal types.
+      const text = typescript
+        .createPrinter({ removeComments: true })
+        .printNode(typescript.EmitHint.Unspecified, body, sourceFile);
       return text.length > hoverLength ? "" : boundedText(text);
     }
 

@@ -136,7 +136,7 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
   }
   if (tree.kind === "object") {
     if (!tree.properties.length && !tree.signatures?.length && !tree.excessProperties && !tree.excessSignatures)
-      return "{}";
+      return tree.typeName ? tree.typeName + " & {}" : "{}";
     const signatures = (tree.signatures ?? []).map((signature) => signatureText(signature, "call") + ";");
     const properties = tree.properties.map((property) => {
       // Canonical numeric keys stay bare (`0: string`); "01" or unsafe integers keep quotes to retain their identity.
