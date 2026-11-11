@@ -98,6 +98,11 @@ function needsGrouping(text: string, arrayElement: boolean): boolean {
   return false;
 }
 
+/** Whether the tree is an object written as an intersection with its unexpanded name. */
+function named(tree: TypeTree): boolean {
+  return tree.kind === "object" && !!tree.typeName;
+}
+
 /** Pure serialization with explicit syntax contexts and precedence. */
 export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | RenderContext = true): string {
   const context =
@@ -131,7 +136,7 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
   }
   if (tree.kind === "object") {
     if (!tree.properties.length && !tree.signatures?.length && !tree.excessProperties && !tree.excessSignatures)
-      return "{}";
+      return tree.typeName ? tree.typeName + " & {}" : "{}";
     const signatures = (tree.signatures ?? []).map((signature) => signatureText(signature, "call") + ";");
     const properties = tree.properties.map((property) => {
       // Canonical numeric keys stay bare (`0: string`); "01" or unsafe integers keep quotes to retain their identity.
@@ -152,7 +157,9 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
     });
     const members = [...signatures, ...properties].join(" ");
     const markers = (omitted(tree.excessProperties) + omitted(tree.excessSignatures ?? 0)).trimStart();
-    return "{ " + (members && markers ? members + " " + markers : members || markers) + " }";
+    const body = "{ " + (members && markers ? members + " " + markers : members || markers) + " }";
+    // `Name & { ...its members }` is the same type as `Name`, so the preview stays valid, highlightable TypeScript.
+    return tree.typeName ? tree.typeName + " & " + body : body;
   }
   if (tree.kind === "tuple") {
     return (
@@ -163,7 +170,10 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
           let text = stringifyTypeTree(element.type);
           const rest = element.rest ? "..." : "";
           if (element.name) return rest + element.name + (element.optional ? "?" : "") + ": " + text;
-          if (element.optional && (element.type.kind === "union" || element.type.kind === "function"))
+          if (
+            element.optional &&
+            (element.type.kind === "union" || element.type.kind === "function" || named(element.type))
+          )
             text = "(" + text + ")";
           return rest + text + (element.optional ? "?" : "");
         })
@@ -177,6 +187,7 @@ export function stringifyTypeTree(tree: TypeTree, anonymousFunction: boolean | R
     if (
       element.kind === "union" ||
       element.kind === "function" ||
+      named(element) ||
       ((element.kind === "array" || element.kind === "tuple") && element.readonly) ||
       ((element.kind === "reference" || element.kind === "primitive") && needsGrouping(text, true))
     )
@@ -298,7 +309,9 @@ export function prettyPrintTypeString(input: string, indentation = 2): string {
 /** The declaration prefix and the formatted type, rendered separately for hover deduplication. */
 export function renderTypeParts(info: TypeInfo, indentation: number): { declaration: string; type: string } {
   let declaration = info.declaration;
-  const tree = info.typeTree;
+  let tree = info.typeTree;
+  // An interface or class header is followed by a body, never by an intersection.
+  if (/^(?:interface|class) /.test(declaration) && named(tree)) tree = { ...tree, typeName: "" };
   if (declaration.startsWith("function")) {
     if (tree.kind === "function" && tree.signatures.length === 1) {
       // Constructors keep the familiar `function Foo(value: string): Foo` form.

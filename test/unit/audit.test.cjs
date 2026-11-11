@@ -504,3 +504,118 @@ test("hovering the default keyword of a default export shows its type", () => {
     /typeOnly/,
   );
 });
+test("unexpanded names lead each named object at every depth and keep the type equivalent", () => {
+  const named = { includeUnexpandedType: true };
+  const types = `
+    type Pair<T> = { readonly key: string; value: T | undefined };
+    interface Box<T> { item: T }
+    type Alias = Pair<string>;
+    type Nested = { first: Pair<number>; second: Alias; boxes: Box<string>[]; plain: { a: number } };`;
+
+  assert.equal(
+    inspect("type Test = { a: Pair<number> };" + types).text,
+    "type Test = { a: { readonly key: string; value: number | undefined; }; }",
+  );
+  assert.match(
+    equivalent("type Test = Nested;" + types, "Test", named),
+    /^type Test = Nested & \{ first: Pair<number> & \{/,
+  );
+  assert.match(equivalent("type Test = Nested;" + types, "Test", named), /second: Alias & \{/);
+  assert.match(
+    equivalent("type Test = Nested;" + types, "Test", named),
+    /boxes: \(Box<string> & \{ item: string; \}\)\[\]/,
+  );
+  assert.match(equivalent("type Test = Nested;" + types, "Test", named), /plain: \{ a: number; \}/);
+  assert.match(
+    equivalent("type Test = Pair<number> | Box<string>;" + types, "Test", named),
+    /^type Test = Pair<number> & \{.*\} \| Box<string> & \{/,
+  );
+  assert.match(inspect("declare const value: Nested;" + types, "value", named).text, /^const value: Nested & \{/);
+  assert.match(inspect("type Test = { a: string };", "Test", named).text, /^type Test = \{ a: string; \}/);
+  assert.match(inspect(types, "Box<T>", named).text, /^interface Box<T> \{ item: T; \}/);
+});
+test("unexpanded alias expressions preserve whitespace inside literal type arguments", () => {
+  const named = { includeUnexpandedType: true };
+  for (const argument of ['"a  b"', "`a  ${string}`"]) {
+    const text = equivalent("type Pair<T> = { value: T }; type Test = Pair<" + argument + ">;", "Test", named);
+    assert.ok(text.startsWith("type Test = Pair<" + argument + "> & {"), text);
+    assert.ok(text.includes("value: " + argument + ";"), text);
+  }
+});
+test("unexpanded alias expressions remove comments without consuming the expanded type", () => {
+  const text = equivalent(
+    'type Pair<T> = { value: T }; type Test = Pair< // line comment\n "a  b" /* block comment */ >;',
+    "Test",
+    { includeUnexpandedType: true },
+  );
+  assert.doesNotMatch(text, /line comment|block comment/);
+  assert.match(text, /Pair<"a  b"> & \{ value: "a  b"; \}/);
+});
+test("empty named objects retain their names while declaration headers and anonymous objects stay valid", () => {
+  const named = { includeUnexpandedType: true };
+  assert.equal(equivalent("interface Empty {} type Test = Empty;", "Test", named), "type Test = Empty & {}");
+  assert.equal(
+    equivalent("interface Empty {} type Test = { named: Empty; anonymous: {} };", "Test", named),
+    "type Test = { named: Empty & {}; anonymous: {}; }",
+  );
+  assert.equal(equivalent("type Test = {};", "Test", named), "type Test = {}");
+  for (const declaration of ["interface", "class"]) {
+    const { text } = inspect(declaration + " Test {}", "Test", named);
+    assert.equal(text, declaration + " Test {}");
+    parses(text);
+  }
+});
+test("private-only classes retain nominal identity in nested expanded properties", () => {
+  const text = equivalent("class Hidden { private value = 1; } type Test = { item: Hidden };", "Test", {
+    includeUnexpandedType: true,
+  });
+  assert.match(text, /item: Hidden & \{\};/);
+  assert.doesNotMatch(text, /value:/);
+});
+test("unexpanded names follow the editor's hover length limit, past the compiler's 160 characters", () => {
+  const argument = "A".repeat(200);
+  const source = `type Pair<T> = { value: T }; type ${argument} = { a: 1 }; declare const Test: { pair: Pair<number>; long: Pair<${argument}> };`;
+  const { checker, sourceFile } = programFor(source);
+  const names = (maximumHoverLength) => {
+    const info = api.getTypeInfoAtPosition(
+      ts,
+      checker,
+      sourceFile,
+      source.indexOf("Test") + 1,
+      { ...api.DEFAULT_OPTIONS, maxDepth: 2, includeUnexpandedType: true },
+      undefined,
+      { maximumHoverLength },
+    );
+    return info.typeTree.properties.map((property) => property.type.typeName);
+  };
+
+  assert.deepEqual(names(undefined), ["Pair<number>", `Pair<${argument}>`]);
+  assert.deepEqual(names(0), ["Pair<number>", `Pair<${argument}>`]);
+  assert.deepEqual(names(12), ["Pair<number>", ""]);
+  assert.deepEqual(names(11), ["", ""]);
+});
+test("the plugin reads the editor's hover length preference for the requested file", () => {
+  const source = "type Pair<T> = { value: T }; declare const Test: { pair: Pair<number> };";
+  const { program } = programFor(source);
+  const requested = [];
+  const projectService = {
+    logger: { info() {} },
+    getPreferences(file) {
+      requested.push(file);
+      return { maximumHoverLength: 11 };
+    },
+  };
+  const proxy = api.init({ typescript: ts }).create({
+    languageService: { getProgram: () => program },
+    project: { projectService, getCancellationToken: () => ({ isCancellationRequested: () => false }) },
+  });
+  const response = proxy.getCompletionsAtPosition(file, source.indexOf("Test") + 1, {
+    triggerCharacter: {
+      meta: "prettify-type-info-request",
+      options: { ...api.DEFAULT_OPTIONS, maxDepth: 2, includeUnexpandedType: true },
+    },
+  });
+
+  assert.deepEqual(requested, [ts.server.toNormalizedPath(file)]);
+  assert.equal(response.__prettifyResponse.typeTree.properties[0].type.typeName, "");
+});

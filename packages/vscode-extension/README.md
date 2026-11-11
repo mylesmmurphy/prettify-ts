@@ -58,6 +58,7 @@ All settings are under `prettify-ts.*` and can be overridden per language.
 | `hidePrivateProperties` | `true` | Hides private and protected members and JavaScript `#private` fields. |
 | `treatUnderscoreAsPrivate` | `true` | Also hides `_underscore` members when `hidePrivateProperties` is on. |
 | `maxCharacters` | `20000` | Maximum characters in a preview before it is cut off. Higher values are slower. |
+| `includeUnexpandedType` | `false` | Names each expanded object by its unexpanded type, as in `value: Pair<number> & { ... }`. Hovers only. |
 
 To show public `_underscore` members while still hiding private and protected ones:
 

@@ -7,10 +7,15 @@ import { getDescendantAtRange } from "./get-ast-node";
 import { getPositionForVue } from "./vue";
 import { enumParent, resolvedReadonly } from "./compiler-internals";
 
+/** `[characters]` TypeScript's own hover length limit, used when the editor sends none. */
+const DEFAULT_HOVER_LENGTH = 500;
+
 export type AnalysisControl = {
   isCancellationRequested?: () => boolean;
   onError?: (error: unknown) => void;
   compilerOptions?: ts.CompilerOptions;
+  /** `[characters]` The editor's `maximumHoverLength` preference; longer unexpanded names are left out. */
+  maximumHoverLength?: number;
 };
 
 /** Analysis state belongs to one request, including all safety budgets. */
@@ -24,6 +29,12 @@ export function getTypeInfoAtPosition(
   control: AnalysisControl = {},
 ): TypeInfo | undefined {
   const options = normalizeOptions(prettifyOptions);
+  // Same fallback as VS Code: anything but a positive integer means the default.
+  const requestedLength = control.maximumHoverLength;
+  const hoverLength =
+    typeof requestedLength === "number" && Number.isSafeInteger(requestedLength) && requestedLength > 0
+      ? requestedLength
+      : DEFAULT_HOVER_LENGTH;
   const limits = options.fullExpansion ? FULL_COPY_LIMITS : PREVIEW_LIMITS;
   const deadline = Date.now() + limits.milliseconds;
   const reasons = new Set<string>();
@@ -118,6 +129,50 @@ export function getTypeInfoAtPosition(
     const text = typeText(type, expandAlias ? typescript.TypeFormatFlags.InTypeAlias : typescript.TypeFormatFlags.None);
     if (compilerElision.test(text)) reasons.add("compiler text limit");
     return { kind: "reference", typeName: boundedText(text) };
+  }
+
+  /** The name an expanded object shows before its members (`Pair<number>`), or "" for anonymous or elided names. */
+  function unexpandedName(type: ts.Type): string {
+    if (!options.includeUnexpandedType) {
+      return "";
+    }
+
+    const objectFlags = type.flags & typescript.TypeFlags.Object ? (type as ts.ObjectType).objectFlags : 0;
+    if (objectFlags & (typescript.ObjectFlags.Anonymous | typescript.ObjectFlags.Mapped) && !type.aliasSymbol) {
+      return "";
+    }
+
+    // The compiler would cut at 160 characters; the hover length limit decides instead.
+    const text = typeText(type, typescript.TypeFormatFlags.NoTruncation);
+    if (text.startsWith("{") || text.length > hoverLength || compilerElision.test(text)) {
+      return "";
+    }
+
+    return boundedText(text);
+  }
+
+  /** The root keeps its name only where it adds to the hovered name; an alias shows its right-hand side. */
+  function rootUnexpandedName(typeName: string, node: ts.Node, name: string): string {
+    const parent = node.parent;
+    if (!typeName || typescript.isTypeReferenceNode(parent)) {
+      return "";
+    }
+
+    // An alias's type is named after the alias itself, so its declared body is the unexpanded form.
+    if (typescript.isTypeAliasDeclaration(parent)) {
+      const body = parent.type;
+      if (typescript.isTypeLiteralNode(body) || typescript.isMappedTypeNode(body)) {
+        return "";
+      }
+
+      // Print syntax so comments are removed without changing whitespace inside literal types.
+      const text = typescript
+        .createPrinter({ removeComments: true })
+        .printNode(typescript.EmitHint.Unspecified, body, sourceFile);
+      return text.length > hoverLength ? "" : boundedText(text);
+    }
+
+    return typeName === name ? "" : typeName;
   }
 
   /**
@@ -344,7 +399,7 @@ export function getTypeInfoAtPosition(
       if (excessSignatures) reasons.add("function signature limit");
       return {
         kind: "object",
-        typeName: "",
+        typeName: unexpandedName(type),
         properties,
         excessProperties,
         ...(signatures.length
@@ -774,6 +829,7 @@ export function getTypeInfoAtPosition(
         typeReference ??
         (typescript.isTypeAliasDeclaration(node.parent) ? node.parent.name : getTypeAnnotation(symbol));
       tree = expandFairly(() => getTypeTree(type, 0, new Set(), annotation));
+      if (tree.kind === "object") tree.typeName = rootUnexpandedName(tree.typeName, node, name);
       const declaredParameters =
         declarationNode &&
         (typescript.isTypeAliasDeclaration(declarationNode) ||

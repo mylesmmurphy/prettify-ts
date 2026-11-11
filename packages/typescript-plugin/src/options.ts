@@ -3,6 +3,7 @@ import type { PrettifyOptions } from "./request";
 export const DEFAULT_OPTIONS: PrettifyOptions = {
   hidePrivateProperties: true,
   treatUnderscoreAsPrivate: true,
+  includeUnexpandedType: false,
   maxDepth: 1,
   maxProperties: 1000,
   maxSubProperties: 10,
@@ -55,7 +56,13 @@ export function integerSetting(value: unknown, fallback: number, minimum: number
 export function normalizeOptions(input: Partial<PrettifyOptions> = {}): PrettifyOptions {
   if (!input || typeof input !== "object" || Array.isArray(input)) input = {};
   const result = { ...DEFAULT_OPTIONS };
-  for (const key of ["hidePrivateProperties", "treatUnderscoreAsPrivate", "unwrapArrays", "unwrapFunctions"] as const) {
+  for (const key of [
+    "hidePrivateProperties",
+    "treatUnderscoreAsPrivate",
+    "includeUnexpandedType",
+    "unwrapArrays",
+    "unwrapFunctions",
+  ] as const) {
     if (typeof input[key] === "boolean") result[key] = input[key];
   }
   for (const key of [

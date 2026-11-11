@@ -15,6 +15,7 @@ export function readSettings(document?: vscode.TextDocument, full = false, copy 
   }
   options.fullExpansion = full;
   options.copy = copy || full;
+  if (options.copy) options.includeUnexpandedType = false; // Disable unexpanded type when copying to avoid including names that may be out of scope.
   return {
     config,
     enabled: config.get("enabled", DISPLAY_DEFAULTS.enabled),
